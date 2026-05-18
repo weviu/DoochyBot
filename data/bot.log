@@ -1,0 +1,442 @@
+[2026-05-18 15:13:15] [INFO] Starting Trading Bot...
+[2026-05-18 15:13:15] [INFO] Configuration loaded
+[2026-05-18 15:13:15] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 15:13:15] [ERROR] Failed to connect to cTrader {"error":"this.connection.connect is not a function"}
+[2026-05-18 15:13:15] [INFO] Scheduling reconnect in 1000ms {"attempt":1}
+[2026-05-18 15:13:16] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 15:13:16] [ERROR] Failed to connect to cTrader {"error":"this.connection.connect is not a function"}
+[2026-05-18 15:13:16] [INFO] Scheduling reconnect in 2000ms {"attempt":2}
+[2026-05-18 15:13:18] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 15:13:18] [ERROR] Failed to connect to cTrader {"error":"this.connection.connect is not a function"}
+[2026-05-18 15:13:18] [INFO] Scheduling reconnect in 4000ms {"attempt":3}
+[2026-05-18 15:13:22] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 15:13:23] [ERROR] Failed to connect to cTrader {"error":"this.connection.connect is not a function"}
+[2026-05-18 15:13:23] [INFO] Scheduling reconnect in 8000ms {"attempt":4}
+[2026-05-18 15:13:31] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 15:13:31] [ERROR] Failed to connect to cTrader {"error":"this.connection.connect is not a function"}
+[2026-05-18 15:13:31] [INFO] Scheduling reconnect in 16000ms {"attempt":5}
+[2026-05-18 15:13:47] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 15:13:47] [ERROR] Failed to connect to cTrader {"error":"this.connection.connect is not a function"}
+[2026-05-18 15:13:47] [INFO] Scheduling reconnect in 32000ms {"attempt":6}
+[2026-05-18 15:13:51] [INFO] Shutting down gracefully...
+[2026-05-18 15:13:51] [ERROR] Error disconnecting {"error":"this.connection.disconnect is not a function"}
+[2026-05-18 15:13:51] [INFO] Shutdown complete
+[2026-05-18 15:14:46] [INFO] Test bot started - send /test or /ping
+[2026-05-18 15:15:38] [INFO] Test bot started - send /test or /ping
+[2026-05-18 15:15:39] [ERROR] Failed to start bot {"error":"Call to 'getMe' failed! (404: Not Found)"}
+[2026-05-18 15:15:46] [INFO] Test bot started - send /test or /ping
+[2026-05-18 15:15:46] [ERROR] Failed to start bot {"error":"Call to 'getMe' failed! (404: Not Found)"}
+[2026-05-18 15:16:36] [INFO] Test bot started - send /test or /ping
+[2026-05-18 15:16:41] [INFO] Test command executed
+[2026-05-18 15:17:01] [INFO] Message received {"text":"/start"}
+[2026-05-18 15:17:01] [INFO] Not a valid signal {"error":"Invalid signal format. Start with BUY, SELL, LONG, or SHORT"}
+[2026-05-18 15:19:44] [INFO] ✅ Mock proxy ready on port 9009
+[2026-05-18 15:19:44] [ERROR] Failed to start bot {"error":"Cannot find module 'telegraf'\nRequire stack:\n- /home/san/ctraderLayer/src/bot/commands/symbols.js\n- /home/san/ctraderLayer/src/bot/bot.js\n- /home/san/ctraderLayer/test-full-bot.js"}
+[2026-05-18 15:20:19] [INFO] Telegram bot started
+[2026-05-18 15:20:19] [INFO] ✅ Mock proxy ready on port 9009
+[2026-05-18 15:20:19] [ERROR] Failed to start bot {"error":"Call to 'getUpdates' failed! (409: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running)"}
+[2026-05-18 15:20:33] [INFO] Telegram bot started
+[2026-05-18 15:21:29] [INFO] Help command executed
+[2026-05-18 15:21:51] [ERROR] Status command error {"error":"Call to 'sendMessage' failed! (400: Bad Request: can't parse entities: Can't find end of the entity starting at byte offset 54)"}
+[2026-05-18 15:22:03] [INFO] Balance command executed
+[2026-05-18 15:22:12] [INFO] Balance command executed
+[2026-05-18 15:24:00] [INFO] Help command executed
+[2026-05-18 15:29:44] [INFO] Message not a valid signal {"text":"/start","error":"Invalid signal format. Start with BUY, SELL, LONG, or SHORT"}
+[2026-05-18 15:40:04] [INFO] Shutting down...
+[2026-05-18 15:40:04] [INFO] ✅ Full Telegram bot ready with all commands
+[2026-05-18 16:10:43] [INFO] Starting Trading Bot...
+[2026-05-18 16:10:43] [INFO] Configuration loaded
+[2026-05-18 16:10:43] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:10:43] [ERROR] Failed to connect to cTrader {"error":"this.connection.connect is not a function"}
+[2026-05-18 16:10:43] [INFO] Scheduling reconnect in 1000ms {"attempt":1}
+[2026-05-18 16:10:44] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:10:44] [ERROR] Failed to connect to cTrader {"error":"this.connection.connect is not a function"}
+[2026-05-18 16:10:44] [INFO] Scheduling reconnect in 2000ms {"attempt":2}
+[2026-05-18 16:10:46] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:10:46] [ERROR] Failed to connect to cTrader {"error":"this.connection.connect is not a function"}
+[2026-05-18 16:10:46] [INFO] Scheduling reconnect in 4000ms {"attempt":3}
+[2026-05-18 16:10:50] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:10:50] [ERROR] Failed to connect to cTrader {"error":"this.connection.connect is not a function"}
+[2026-05-18 16:10:50] [INFO] Scheduling reconnect in 8000ms {"attempt":4}
+[2026-05-18 16:10:58] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:10:58] [ERROR] Failed to connect to cTrader {"error":"this.connection.connect is not a function"}
+[2026-05-18 16:10:58] [INFO] Scheduling reconnect in 16000ms {"attempt":5}
+[2026-05-18 16:11:14] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:11:14] [ERROR] Failed to connect to cTrader {"error":"this.connection.connect is not a function"}
+[2026-05-18 16:11:14] [INFO] Scheduling reconnect in 32000ms {"attempt":6}
+[2026-05-18 16:11:46] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:11:46] [ERROR] Failed to connect to cTrader {"error":"this.connection.connect is not a function"}
+[2026-05-18 16:11:46] [ERROR] Max reconnection attempts reached {"attempts":6}
+[2026-05-18 16:15:35] [INFO] Starting Trading Bot...
+[2026-05-18 16:15:35] [INFO] Configuration loaded
+[2026-05-18 16:15:35] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:15:35] [INFO] cTrader socket opened
+[2026-05-18 16:15:35] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:15:35] [ERROR] Application auth failed {}
+[2026-05-18 16:15:35] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:15:35] [INFO] Scheduling reconnect in 1000ms {"attempt":1}
+[2026-05-18 16:15:36] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:15:36] [INFO] cTrader socket opened
+[2026-05-18 16:15:36] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:15:36] [ERROR] Application auth failed {}
+[2026-05-18 16:15:36] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:15:36] [INFO] Scheduling reconnect in 2000ms {"attempt":2}
+[2026-05-18 16:15:38] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:15:38] [INFO] cTrader socket opened
+[2026-05-18 16:15:38] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:15:38] [ERROR] Application auth failed {}
+[2026-05-18 16:15:38] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:15:38] [INFO] Scheduling reconnect in 4000ms {"attempt":3}
+[2026-05-18 16:15:42] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:15:42] [INFO] cTrader socket opened
+[2026-05-18 16:15:42] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:15:42] [ERROR] Application auth failed {}
+[2026-05-18 16:15:42] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:15:42] [INFO] Scheduling reconnect in 8000ms {"attempt":4}
+[2026-05-18 16:19:13] [INFO] Starting Trading Bot...
+[2026-05-18 16:19:13] [INFO] Configuration loaded
+[2026-05-18 16:19:13] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:19:13] [INFO] cTrader socket opened
+[2026-05-18 16:19:13] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:19:14] [ERROR] Application auth failed {}
+[2026-05-18 16:19:14] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:19:14] [INFO] Scheduling reconnect in 1000ms {"attempt":1}
+[2026-05-18 16:19:15] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:19:15] [INFO] cTrader socket opened
+[2026-05-18 16:19:15] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:19:15] [ERROR] Application auth failed {}
+[2026-05-18 16:19:15] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:19:15] [INFO] Scheduling reconnect in 2000ms {"attempt":2}
+[2026-05-18 16:19:17] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:19:17] [INFO] cTrader socket opened
+[2026-05-18 16:19:17] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:19:17] [ERROR] Application auth failed {}
+[2026-05-18 16:19:17] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:19:17] [INFO] Scheduling reconnect in 4000ms {"attempt":3}
+[2026-05-18 16:19:21] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:19:21] [INFO] cTrader socket opened
+[2026-05-18 16:19:21] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:19:21] [ERROR] Application auth failed {}
+[2026-05-18 16:19:21] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:19:21] [INFO] Scheduling reconnect in 8000ms {"attempt":4}
+[2026-05-18 16:19:29] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:19:29] [INFO] cTrader socket opened
+[2026-05-18 16:19:29] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:19:29] [ERROR] Application auth failed {}
+[2026-05-18 16:19:29] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:19:29] [INFO] Scheduling reconnect in 16000ms {"attempt":5}
+[2026-05-18 16:19:45] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:19:45] [INFO] cTrader socket opened
+[2026-05-18 16:19:45] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:19:45] [ERROR] Application auth failed {}
+[2026-05-18 16:19:45] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:19:45] [INFO] Scheduling reconnect in 32000ms {"attempt":6}
+[2026-05-18 16:20:17] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:20:18] [INFO] cTrader socket opened
+[2026-05-18 16:20:18] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:20:18] [ERROR] Application auth failed {}
+[2026-05-18 16:20:18] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:20:18] [ERROR] Max reconnection attempts reached {"attempts":6}
+[2026-05-18 16:20:18] [INFO] Shutting down gracefully...
+[2026-05-18 16:20:18] [INFO] Shutdown complete
+[2026-05-18 16:20:47] [INFO] Starting Trading Bot...
+[2026-05-18 16:20:47] [INFO] Configuration loaded
+[2026-05-18 16:20:47] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:20:47] [INFO] cTrader socket opened
+[2026-05-18 16:20:47] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:20:57] [ERROR] Application auth failed {}
+[2026-05-18 16:20:57] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:20:57] [INFO] Scheduling reconnect in 1000ms {"attempt":1}
+[2026-05-18 16:20:58] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:20:58] [INFO] cTrader socket opened
+[2026-05-18 16:20:58] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:20:58] [ERROR] Application auth failed {}
+[2026-05-18 16:20:58] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:20:58] [INFO] Scheduling reconnect in 2000ms {"attempt":2}
+[2026-05-18 16:21:00] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:21:00] [INFO] cTrader socket opened
+[2026-05-18 16:21:00] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:21:00] [ERROR] Application auth failed {}
+[2026-05-18 16:21:00] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:21:00] [INFO] Scheduling reconnect in 4000ms {"attempt":3}
+[2026-05-18 16:21:04] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:21:04] [INFO] cTrader socket opened
+[2026-05-18 16:21:04] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:21:04] [ERROR] Application auth failed {}
+[2026-05-18 16:21:04] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:21:04] [INFO] Scheduling reconnect in 8000ms {"attempt":4}
+[2026-05-18 16:21:12] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:21:12] [INFO] cTrader socket opened
+[2026-05-18 16:21:12] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:21:12] [ERROR] Application auth failed {}
+[2026-05-18 16:21:12] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:21:12] [INFO] Scheduling reconnect in 16000ms {"attempt":5}
+[2026-05-18 16:21:28] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:21:29] [INFO] cTrader socket opened
+[2026-05-18 16:21:29] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:21:29] [ERROR] Application auth failed {}
+[2026-05-18 16:21:29] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:21:29] [INFO] Scheduling reconnect in 32000ms {"attempt":6}
+[2026-05-18 16:22:01] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:22:01] [INFO] cTrader socket opened
+[2026-05-18 16:22:01] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:22:01] [ERROR] Application auth failed {}
+[2026-05-18 16:22:01] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:22:01] [ERROR] Max reconnection attempts reached {"attempts":6}
+[2026-05-18 16:22:02] [INFO] Starting Trading Bot...
+[2026-05-18 16:22:02] [INFO] Configuration loaded
+[2026-05-18 16:22:02] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:22:02] [INFO] cTrader socket opened
+[2026-05-18 16:22:02] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:22:02] [ERROR] Application auth failed {}
+[2026-05-18 16:22:02] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:22:02] [INFO] Scheduling reconnect in 1000ms {"attempt":1}
+[2026-05-18 16:22:03] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:22:03] [INFO] cTrader socket opened
+[2026-05-18 16:22:03] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:22:03] [ERROR] Application auth failed {}
+[2026-05-18 16:22:03] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:22:03] [INFO] Scheduling reconnect in 2000ms {"attempt":2}
+[2026-05-18 16:22:05] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:22:05] [INFO] cTrader socket opened
+[2026-05-18 16:22:05] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:22:05] [ERROR] Application auth failed {}
+[2026-05-18 16:22:05] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:22:05] [INFO] Scheduling reconnect in 4000ms {"attempt":3}
+[2026-05-18 16:22:09] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:22:09] [INFO] cTrader socket opened
+[2026-05-18 16:22:09] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:22:09] [ERROR] Application auth failed {}
+[2026-05-18 16:22:09] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:22:09] [INFO] Scheduling reconnect in 8000ms {"attempt":4}
+[2026-05-18 16:22:17] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:22:18] [INFO] cTrader socket opened
+[2026-05-18 16:22:18] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:22:18] [ERROR] Application auth failed {}
+[2026-05-18 16:22:18] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:22:18] [INFO] Scheduling reconnect in 16000ms {"attempt":5}
+[2026-05-18 16:22:34] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:22:34] [INFO] cTrader socket opened
+[2026-05-18 16:22:34] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:22:34] [ERROR] Application auth failed {}
+[2026-05-18 16:22:34] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:22:34] [INFO] Scheduling reconnect in 32000ms {"attempt":6}
+[2026-05-18 16:23:06] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:23:06] [INFO] cTrader socket opened
+[2026-05-18 16:23:06] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:23:06] [ERROR] Application auth failed {}
+[2026-05-18 16:23:06] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:23:06] [ERROR] Max reconnection attempts reached {"attempts":6}
+[2026-05-18 16:23:08] [INFO] Starting Trading Bot...
+[2026-05-18 16:23:08] [INFO] Configuration loaded
+[2026-05-18 16:23:08] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:23:08] [INFO] cTrader socket opened
+[2026-05-18 16:23:08] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:23:08] [ERROR] Application auth failed {}
+[2026-05-18 16:23:08] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:23:08] [INFO] Scheduling reconnect in 1000ms {"attempt":1}
+[2026-05-18 16:23:09] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:23:09] [INFO] cTrader socket opened
+[2026-05-18 16:23:09] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:23:09] [ERROR] Application auth failed {}
+[2026-05-18 16:23:09] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:23:09] [INFO] Scheduling reconnect in 2000ms {"attempt":2}
+[2026-05-18 16:23:11] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:23:11] [INFO] cTrader socket opened
+[2026-05-18 16:23:11] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:23:11] [ERROR] Application auth failed {}
+[2026-05-18 16:23:11] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:23:11] [INFO] Scheduling reconnect in 4000ms {"attempt":3}
+[2026-05-18 16:23:15] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:23:16] [INFO] cTrader socket opened
+[2026-05-18 16:23:16] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:23:16] [ERROR] Application auth failed {}
+[2026-05-18 16:23:16] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:23:16] [INFO] Scheduling reconnect in 8000ms {"attempt":4}
+[2026-05-18 16:23:24] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:23:24] [INFO] cTrader socket opened
+[2026-05-18 16:23:24] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:23:24] [ERROR] Application auth failed {}
+[2026-05-18 16:23:24] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:23:24] [INFO] Scheduling reconnect in 16000ms {"attempt":5}
+[2026-05-18 16:23:40] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:23:40] [INFO] cTrader socket opened
+[2026-05-18 16:23:40] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:23:40] [ERROR] Application auth failed {}
+[2026-05-18 16:23:40] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:23:40] [INFO] Scheduling reconnect in 32000ms {"attempt":6}
+[2026-05-18 16:24:12] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:24:12] [INFO] cTrader socket opened
+[2026-05-18 16:24:12] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:24:12] [ERROR] Application auth failed {}
+[2026-05-18 16:24:12] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:24:12] [ERROR] Max reconnection attempts reached {"attempts":6}
+[2026-05-18 16:24:14] [INFO] Starting Trading Bot...
+[2026-05-18 16:24:14] [INFO] Configuration loaded
+[2026-05-18 16:24:14] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:24:14] [INFO] cTrader socket opened
+[2026-05-18 16:24:14] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:24:14] [ERROR] Application auth failed {}
+[2026-05-18 16:24:14] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:24:14] [INFO] Scheduling reconnect in 1000ms {"attempt":1}
+[2026-05-18 16:24:15] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:24:15] [INFO] cTrader socket opened
+[2026-05-18 16:24:15] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:24:16] [ERROR] Application auth failed {}
+[2026-05-18 16:24:16] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:24:16] [INFO] Scheduling reconnect in 2000ms {"attempt":2}
+[2026-05-18 16:24:18] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:24:18] [INFO] cTrader socket opened
+[2026-05-18 16:24:18] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:24:18] [ERROR] Application auth failed {}
+[2026-05-18 16:24:18] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:24:18] [INFO] Scheduling reconnect in 4000ms {"attempt":3}
+[2026-05-18 16:24:22] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:24:22] [INFO] cTrader socket opened
+[2026-05-18 16:24:22] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:24:22] [ERROR] Application auth failed {}
+[2026-05-18 16:24:22] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:24:22] [INFO] Scheduling reconnect in 8000ms {"attempt":4}
+[2026-05-18 16:24:30] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:24:30] [INFO] cTrader socket opened
+[2026-05-18 16:24:30] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:24:30] [ERROR] Application auth failed {}
+[2026-05-18 16:24:30] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:24:30] [INFO] Scheduling reconnect in 16000ms {"attempt":5}
+[2026-05-18 16:24:46] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:24:46] [INFO] cTrader socket opened
+[2026-05-18 16:24:46] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:24:47] [ERROR] Application auth failed {}
+[2026-05-18 16:24:47] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:24:47] [INFO] Scheduling reconnect in 32000ms {"attempt":6}
+[2026-05-18 16:25:19] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:25:19] [INFO] cTrader socket opened
+[2026-05-18 16:25:19] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:25:19] [ERROR] Application auth failed {}
+[2026-05-18 16:25:19] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:25:19] [ERROR] Max reconnection attempts reached {"attempts":6}
+[2026-05-18 16:25:20] [INFO] Starting Trading Bot...
+[2026-05-18 16:25:20] [INFO] Configuration loaded
+[2026-05-18 16:25:20] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:25:20] [INFO] cTrader socket opened
+[2026-05-18 16:25:20] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:25:21] [ERROR] Application auth failed {}
+[2026-05-18 16:25:21] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:25:21] [INFO] Scheduling reconnect in 1000ms {"attempt":1}
+[2026-05-18 16:25:22] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:25:22] [INFO] cTrader socket opened
+[2026-05-18 16:25:22] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:25:22] [ERROR] Application auth failed {}
+[2026-05-18 16:25:22] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:25:22] [INFO] Scheduling reconnect in 2000ms {"attempt":2}
+[2026-05-18 16:25:24] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:25:24] [INFO] cTrader socket opened
+[2026-05-18 16:25:24] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:25:24] [ERROR] Application auth failed {}
+[2026-05-18 16:25:24] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:25:24] [INFO] Scheduling reconnect in 4000ms {"attempt":3}
+[2026-05-18 16:25:28] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:25:28] [INFO] cTrader socket opened
+[2026-05-18 16:25:28] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:25:28] [ERROR] Application auth failed {}
+[2026-05-18 16:25:28] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:25:28] [INFO] Scheduling reconnect in 8000ms {"attempt":4}
+[2026-05-18 16:25:36] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:25:36] [INFO] cTrader socket opened
+[2026-05-18 16:25:36] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:25:36] [ERROR] Application auth failed {}
+[2026-05-18 16:25:36] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:25:36] [INFO] Scheduling reconnect in 16000ms {"attempt":5}
+[2026-05-18 16:25:52] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:25:52] [INFO] cTrader socket opened
+[2026-05-18 16:25:52] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:25:52] [ERROR] Application auth failed {}
+[2026-05-18 16:25:52] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:25:52] [INFO] Scheduling reconnect in 32000ms {"attempt":6}
+[2026-05-18 16:26:24] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:26:25] [INFO] cTrader socket opened
+[2026-05-18 16:26:25] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:26:25] [ERROR] Application auth failed {}
+[2026-05-18 16:26:25] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:26:25] [ERROR] Max reconnection attempts reached {"attempts":6}
+[2026-05-18 16:26:27] [INFO] Starting Trading Bot...
+[2026-05-18 16:26:27] [INFO] Configuration loaded
+[2026-05-18 16:26:27] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:26:27] [INFO] cTrader socket opened
+[2026-05-18 16:26:27] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:26:27] [ERROR] Application auth failed {}
+[2026-05-18 16:26:27] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:26:27] [INFO] Scheduling reconnect in 1000ms {"attempt":1}
+[2026-05-18 16:26:28] [INFO] Connecting to cTrader {"host":"demo.ctraderapi.com","port":5035,"accountId":"your_account_id_here"}
+[2026-05-18 16:26:28] [INFO] cTrader socket opened
+[2026-05-18 16:26:28] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-05-18 16:26:28] [ERROR] Application auth failed {}
+[2026-05-18 16:26:28] [ERROR] Failed to connect to cTrader {}
+[2026-05-18 16:26:28] [INFO] Scheduling reconnect in 2000ms {"attempt":2}
+[2026-05-18 16:26:29] [INFO] Received SIGINT - initiating graceful shutdown...
+[2026-05-18 16:26:29] [INFO] Disconnecting from cTrader...
+[2026-05-18 16:26:29] [INFO] cTrader disconnected
+[2026-05-18 16:26:29] [INFO] ✅ Graceful shutdown complete
+[2026-05-18 16:35:28] [INFO] Starting Trading Bot in TEST MODE (no cTrader)
+[2026-05-18 16:35:28] [INFO] Configuration loaded (test mode)
+[2026-05-18 16:35:28] [INFO] Mock cTrader connection created
+[2026-05-18 16:35:28] [INFO] Proxy server listening on port 9009
+[2026-05-18 16:35:28] [INFO] ✅ Proxy running on port 9009
+[2026-05-18 16:35:28] [INFO] Telegram bot started
+[2026-05-18 16:35:28] [INFO] Help command executed
+[2026-05-18 16:35:28] [INFO] Help command executed
+[2026-05-18 16:35:28] [INFO] Help command executed
+[2026-05-18 16:35:38] [INFO] Help command executed
+[2026-05-18 16:36:01] [INFO] Webhook received signal {"rawSignal":"BUY BTCUSD SL=65000 TP=67000"}
+[2026-05-18 16:36:01] [INFO] Signal parsed successfully {"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01}
+[2026-05-18 16:36:01] [INFO] Webhook signal parsed {"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01}
+[2026-05-18 16:36:01] [INFO] All risk checks passed {"signal":{"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01}}
+[2026-05-18 16:36:01] [INFO] Webhook signal passed risk checks {"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01}
+[2026-05-18 16:36:01] [ERROR] No chatId configured - cannot send confirmation {"signal":{"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01}}
+[2026-05-18 16:36:01] [ERROR] Failed to send confirmation {"error":"chatId not set. User must run /setchatid first."}
+[2026-05-18 16:36:01] [ERROR] Failed to send Telegram confirmation {"error":"chatId not set. User must run /setchatid first."}
+[2026-05-18 16:38:25] [INFO] Starting Trading Bot in TEST MODE (no cTrader)
+[2026-05-18 16:38:25] [INFO] Configuration loaded (test mode)
+[2026-05-18 16:38:25] [INFO] Mock cTrader connection created
+[2026-05-18 16:38:25] [INFO] Proxy server listening on port 9009
+[2026-05-18 16:38:25] [INFO] ✅ Proxy running on port 9009
+[2026-05-18 16:38:25] [INFO] Telegram bot started
+[2026-05-18 16:39:17] [INFO] TradingView setup info displayed
+[2026-05-18 16:41:12] [INFO] Starting Trading Bot in TEST MODE (no cTrader)
+[2026-05-18 16:41:12] [INFO] Configuration loaded (test mode)
+[2026-05-18 16:41:12] [INFO] Mock cTrader connection created
+[2026-05-18 16:41:12] [INFO] Proxy server listening on port 9009
+[2026-05-18 16:41:12] [INFO] ✅ Proxy running on port 9009
+[2026-05-18 16:41:12] [INFO] Telegram bot started
+[2026-05-18 16:41:43] [INFO] TradingView setup info displayed
+[2026-05-18 16:41:55] [INFO] Chat ID configured {"chatId":555334666}
+[2026-05-18 16:42:18] [INFO] Message not a valid signal {"text":"BUY BTC SL=0","error":"Symbol BTC not configured in settings"}
+[2026-05-18 16:43:35] [INFO] Starting Trading Bot in TEST MODE (no cTrader)
+[2026-05-18 16:43:35] [INFO] Configuration loaded (test mode)
+[2026-05-18 16:43:35] [INFO] Mock cTrader connection created
+[2026-05-18 16:43:35] [INFO] Proxy server listening on port 9009
+[2026-05-18 16:43:35] [INFO] ✅ Proxy running on port 9009
+[2026-05-18 16:43:35] [INFO] Telegram bot started
+[2026-05-18 16:44:01] [INFO] TradingView setup info displayed
+[2026-05-18 16:48:58] [INFO] Webhook received signal {"rawSignal":"BUY BTCUSD SL=65000 TP=67000"}
+[2026-05-18 16:48:58] [INFO] Signal parsed successfully {"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01}
+[2026-05-18 16:48:58] [INFO] Webhook signal parsed {"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01}
+[2026-05-18 16:48:58] [INFO] All risk checks passed {"signal":{"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01}}
+[2026-05-18 16:48:58] [INFO] Webhook signal passed risk checks {"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01}
+[2026-05-18 16:48:58] [INFO] TradingView confirmation sent {"signal":{"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01},"messageId":38,"chatId":555334666}
+[2026-05-18 16:48:58] [INFO] Stored TradingView confirmation {"key":"BTCUSD:BUY","signal":{"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01}}
+[2026-05-18 16:49:25] [INFO] TradingView signal cancelled {"userId":555334666}
+[2026-05-18 16:49:31] [INFO] Message not a valid signal {"text":"BUY BTC","error":"Stop loss (SL) is required. Format: SL=65000"}
+[2026-05-18 16:49:42] [INFO] Message not a valid signal {"text":"BUY BTC SL=0","error":"Symbol BTC not configured in settings"}
+[2026-05-18 16:49:58] [INFO] TradingView confirmation timeout - attempting to edit message {"messageId":38,"chatId":555334666}
+[2026-05-18 16:49:58] [INFO] Edited expired confirmation message
+[2026-05-18 16:50:10] [INFO] Webhook received signal {"rawSignal":"BUY BTCUSD SL=65000 TP=67000"}
+[2026-05-18 16:50:10] [INFO] Signal parsed successfully {"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01}
+[2026-05-18 16:50:10] [INFO] Webhook signal parsed {"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01}
+[2026-05-18 16:50:10] [INFO] All risk checks passed {"signal":{"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01}}
+[2026-05-18 16:50:10] [INFO] Webhook signal passed risk checks {"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01}
+[2026-05-18 16:50:10] [INFO] TradingView confirmation sent {"signal":{"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01},"messageId":41,"chatId":555334666}
+[2026-05-18 16:50:10] [INFO] Stored TradingView confirmation {"key":"BTCUSD:BUY","signal":{"direction":"BUY","symbol":"BTCUSD","sl":65000,"tp":67000,"volume":0.01}}
+[2026-05-18 16:51:10] [INFO] TradingView confirmation timeout - attempting to edit message {"messageId":41,"chatId":555334666}
+[2026-05-18 16:51:10] [INFO] Edited expired confirmation message
+[2026-05-18 16:51:44] [INFO] Message not a valid signal {"text":"BUY BTC","error":"Stop loss (SL) is required. Format: SL=65000"}

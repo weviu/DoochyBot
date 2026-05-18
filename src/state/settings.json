@@ -1,0 +1,18 @@
+{
+  "paused": false,
+  "chatId": "555334666",
+  "allowedSymbols": [
+    "BTCUSD",
+    "XAUUSD",
+    "XAGUSD"
+  ],
+  "symbolLotSizes": {
+    "BTCUSD": 0.01,
+    "XAUUSD": 0.05,
+    "XAGUSD": 0.1
+  },
+  "maxPositions": 3,
+  "maxTotalExposure": 1,
+  "dailyLossLimit": 5,
+  "blackoutTimes": []
+}
