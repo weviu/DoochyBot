@@ -74,5 +74,6 @@
   "maxPositions": 8,
   "maxTotalExposure": 1,
   "dailyLossLimit": 8,
-  "blackoutTimes": []
+  "blackoutTimes": [],
+  "requireConfirmation": true
 }

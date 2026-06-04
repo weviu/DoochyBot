@@ -77,6 +77,7 @@ class TelegramBot {
     const setchatidCmd = require('./commands/setchatid');
     const tvCmd = require('./commands/tv');
     const helpCmd = require('./commands/help');
+    const confirmCmd = require('./commands/confirm');
 
     // Register commands
     this.bot.command('status', statusCmd(this.proxyUrl));
@@ -90,6 +91,7 @@ class TelegramBot {
     this.bot.command('setchatid', setchatidCmd());
     this.bot.command('tv', tvCmd());
     this.bot.command('help', helpCmd());
+    this.bot.command('confirm', confirmCmd());
   }
 
   setupSignalHandler() {

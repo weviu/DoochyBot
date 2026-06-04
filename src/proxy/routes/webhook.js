@@ -1,7 +1,7 @@
 const logger = require('../../utils/logger');
 const { parseSignal } = require('../../bot/parser');
 const { checkRisks, loadSettings } = require('../../bot/riskGate');
-const { sendConfirmation } = require('../../bot/confirm');
+const { sendConfirmation, sendAlert, executeTradingViewTrade } = require('../../bot/confirm');
 
 module.exports = (connection) => {
   return async (req, res) => {
@@ -46,10 +46,23 @@ module.exports = (connection) => {
 
       logger.info('Webhook signal passed risk checks', signal);
 
+      const settings = loadSettings();
+
+      if (settings.requireConfirmation === false) {
+        // Auto-execute and send alert
+        const result = await executeTradingViewTrade(signal);
+        await sendAlert(signal, result);
+        return res.json({
+          success: result.success,
+          message: result.success ? 'Signal auto-executed' : `Auto-execute failed: ${result.error}`,
+          data: result.data
+        });
+      }
+
       // Send Telegram confirmation
       try {
         await sendConfirmation(signal);
-        
+
         res.json({
           success: true,
           message: 'Signal passed risk checks. Awaiting user confirmation in Telegram.'

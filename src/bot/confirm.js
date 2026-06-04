@@ -131,6 +131,34 @@ async function executeTradingViewTrade(signal) {
   }
 }
 
+async function sendAlert(signal, result) {
+  try {
+    const bot = getBot();
+    const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+    if (!settings.chatId) return;
+    const chatId = parseInt(settings.chatId);
+
+    if (result.success) {
+      await bot.api.sendMessage(chatId,
+        `⚡ Auto-executed TradingView Signal\n` +
+        `${signal.direction} ${signal.volume} ${signal.symbol}\n` +
+        `Entry: ${result.data.openPrice || 'Market'}\n` +
+        `SL: ${signal.sl}\n` +
+        `TP: ${signal.tp || 'None'}\n` +
+        `Order #${result.data.positionId}`
+      );
+    } else {
+      await bot.api.sendMessage(chatId,
+        `❌ Auto-execute failed\n` +
+        `${signal.direction} ${signal.symbol}\n` +
+        `Error: ${result.error}`
+      );
+    }
+  } catch (err) {
+    logger.error('Failed to send alert', { error: err.message });
+  }
+}
+
 function clearConfirmationTimeout(key) {
   if (activeTimeouts.has(key)) {
     clearTimeout(activeTimeouts.get(key));
@@ -140,6 +168,7 @@ function clearConfirmationTimeout(key) {
 
 module.exports = {
   sendConfirmation,
+  sendAlert,
   executeTradingViewTrade,
   clearConfirmationTimeout
 };

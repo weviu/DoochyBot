@@ -10,6 +10,7 @@ module.exports = () => {
         `/positions - List all open positions\n\n` +
         `/pause - Pause trading (disable new signals)\n` +
         `/resume - Resume trading\n` +
+        `/confirm on|off - Enable/disable signal confirmation (off = auto-execute)\n` +
         `/setchatid - Configure chat for TradingView webhook confirmations\n` +
         `/tv - TradingView webhook setup instructions\n\n` +
         `/closeall - Close all open positions (with confirmation)\n\n` +
