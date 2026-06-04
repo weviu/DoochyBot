@@ -14,7 +14,8 @@ module.exports = () => {
         `/tv - TradingView webhook setup instructions\n\n` +
         `/closeall - Close all open positions (with confirmation)\n\n` +
         `/risk daily <percent> - Set daily loss limit\n` +
-        `/risk size <symbol> <volume> - Set lot size for a symbol\n\n` +
+        `/risk size <symbol> <volume> - Set lot size for a symbol\n` +
+        `/risk positions <number> - Set max open positions (1-50)\n\n` +
         `/symbols - List allowed symbols\n` +
         `/symbols add <symbol> <volume> - Add new symbol\n` +
         `/symbols remove <symbol> - Remove symbol\n\n` +

@@ -4919,3 +4919,140 @@
 [2026-06-04 22:54:43] [INFO] TradingView confirmation timeout - attempting to edit message {"messageId":94,"chatId":555334666}
 [2026-06-04 22:54:43] [INFO] Edited expired confirmation message
 [2026-06-04 22:54:46] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:55:01] [INFO] Heartbeat sent
+[2026-06-04 22:55:11] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:55:26] [INFO] Heartbeat sent
+[2026-06-04 22:55:36] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:55:51] [INFO] Heartbeat sent
+[2026-06-04 22:55:53] [INFO] Webhook received signal {"rawSignal":"SELL DOGEUSD SL=0.088417 TP=0.085952"}
+[2026-06-04 22:55:53] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"DOGEUSD","sl":0.088417,"tp":0.085952,"volume":0.1}
+[2026-06-04 22:55:53] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"DOGEUSD","sl":0.088417,"tp":0.085952,"volume":0.1}
+[2026-06-04 22:55:53] [WARN] Risk check failed: max positions {"signal":{"direction":"SELL","symbol":"DOGEUSD","sl":0.088417,"tp":0.085952,"volume":0.1},"current":3}
+[2026-06-04 22:55:53] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"SELL","symbol":"DOGEUSD","sl":0.088417,"tp":0.085952,"volume":0.1},"reason":"Max open positions (3) reached"}
+[2026-06-04 22:56:01] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:56:16] [INFO] Heartbeat sent
+[2026-06-04 22:56:26] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:56:41] [INFO] Heartbeat sent
+[2026-06-04 22:56:51] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:57:06] [INFO] Heartbeat sent
+[2026-06-04 22:57:16] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:57:31] [INFO] Heartbeat sent
+[2026-06-04 22:57:33] [INFO] Webhook received signal {"rawSignal":"BUY BNBUSD SL=588.67 TP=604.48"}
+[2026-06-04 22:57:33] [INFO] Signal parsed successfully {"direction":"BUY","symbol":"BNBUSD","sl":588.67,"tp":604.48,"volume":0.1}
+[2026-06-04 22:57:33] [INFO] Webhook signal parsed {"direction":"BUY","symbol":"BNBUSD","sl":588.67,"tp":604.48,"volume":0.1}
+[2026-06-04 22:57:33] [WARN] Risk check failed: max positions {"signal":{"direction":"BUY","symbol":"BNBUSD","sl":588.67,"tp":604.48,"volume":0.1},"current":3}
+[2026-06-04 22:57:33] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"BUY","symbol":"BNBUSD","sl":588.67,"tp":604.48,"volume":0.1},"reason":"Max open positions (3) reached"}
+[2026-06-04 22:57:41] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:57:56] [INFO] Heartbeat sent
+[2026-06-04 22:58:06] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:58:21] [INFO] Heartbeat sent
+[2026-06-04 22:58:31] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:58:46] [INFO] Heartbeat sent
+[2026-06-04 22:58:56] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:59:11] [INFO] Heartbeat sent
+[2026-06-04 22:59:21] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:59:36] [INFO] Heartbeat sent
+[2026-06-04 22:59:46] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:00:01] [INFO] Heartbeat sent
+[2026-06-04 23:00:11] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:00:26] [INFO] Heartbeat sent
+[2026-06-04 23:00:36] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:00:51] [INFO] Heartbeat sent
+[2026-06-04 23:01:01] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:01:04] [INFO] Webhook received signal {"rawSignal":"SELL BNBUSD SL=606.9 TP=591.04"}
+[2026-06-04 23:01:04] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"BNBUSD","sl":606.9,"tp":591.04,"volume":0.1}
+[2026-06-04 23:01:04] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"BNBUSD","sl":606.9,"tp":591.04,"volume":0.1}
+[2026-06-04 23:01:04] [WARN] Risk check failed: max positions {"signal":{"direction":"SELL","symbol":"BNBUSD","sl":606.9,"tp":591.04,"volume":0.1},"current":3}
+[2026-06-04 23:01:04] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"SELL","symbol":"BNBUSD","sl":606.9,"tp":591.04,"volume":0.1},"reason":"Max open positions (3) reached"}
+[2026-06-04 23:01:09] [INFO] Webhook received signal {"rawSignal":"SELL DOGEUSD SL=0.090018 TP=0.088329"}
+[2026-06-04 23:01:09] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"DOGEUSD","sl":0.090018,"tp":0.088329,"volume":0.1}
+[2026-06-04 23:01:09] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"DOGEUSD","sl":0.090018,"tp":0.088329,"volume":0.1}
+[2026-06-04 23:01:09] [WARN] Risk check failed: max positions {"signal":{"direction":"SELL","symbol":"DOGEUSD","sl":0.090018,"tp":0.088329,"volume":0.1},"current":3}
+[2026-06-04 23:01:09] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"SELL","symbol":"DOGEUSD","sl":0.090018,"tp":0.088329,"volume":0.1},"reason":"Max open positions (3) reached"}
+[2026-06-04 23:01:16] [INFO] Heartbeat sent
+[2026-06-04 23:01:26] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:01:41] [INFO] Heartbeat sent
+[2026-06-04 23:01:51] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:02:06] [INFO] Heartbeat sent
+[2026-06-04 23:02:16] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:02:31] [INFO] Heartbeat sent
+[2026-06-04 23:02:41] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:02:48] [INFO] Webhook received signal {"rawSignal":"BUY BNBUSD SL=588.67 TP=604.48"}
+[2026-06-04 23:02:48] [INFO] Signal parsed successfully {"direction":"BUY","symbol":"BNBUSD","sl":588.67,"tp":604.48,"volume":0.1}
+[2026-06-04 23:02:48] [INFO] Webhook signal parsed {"direction":"BUY","symbol":"BNBUSD","sl":588.67,"tp":604.48,"volume":0.1}
+[2026-06-04 23:02:48] [WARN] Risk check failed: max positions {"signal":{"direction":"BUY","symbol":"BNBUSD","sl":588.67,"tp":604.48,"volume":0.1},"current":3}
+[2026-06-04 23:02:48] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"BUY","symbol":"BNBUSD","sl":588.67,"tp":604.48,"volume":0.1},"reason":"Max open positions (3) reached"}
+[2026-06-04 23:02:56] [INFO] Heartbeat sent
+[2026-06-04 23:03:06] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:03:21] [INFO] Heartbeat sent
+[2026-06-04 23:03:31] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:03:46] [INFO] Heartbeat sent
+[2026-06-04 23:03:51] [INFO] Webhook received signal {"rawSignal":"SELL UNIUSD SL=2.6506 TP=2.5398"}
+[2026-06-04 23:03:51] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"UNIUSD","sl":2.6506,"tp":2.5398,"volume":0.1}
+[2026-06-04 23:03:51] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"UNIUSD","sl":2.6506,"tp":2.5398,"volume":0.1}
+[2026-06-04 23:03:51] [WARN] Risk check failed: max positions {"signal":{"direction":"SELL","symbol":"UNIUSD","sl":2.6506,"tp":2.5398,"volume":0.1},"current":3}
+[2026-06-04 23:03:51] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"SELL","symbol":"UNIUSD","sl":2.6506,"tp":2.5398,"volume":0.1},"reason":"Max open positions (3) reached"}
+[2026-06-04 23:03:56] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:04:11] [INFO] Heartbeat sent
+[2026-06-04 23:04:21] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:04:32] [INFO] Webhook received signal {"rawSignal":"SELL BNBUSD SL=606.9 TP=591.04"}
+[2026-06-04 23:04:32] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"BNBUSD","sl":606.9,"tp":591.04,"volume":0.1}
+[2026-06-04 23:04:32] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"BNBUSD","sl":606.9,"tp":591.04,"volume":0.1}
+[2026-06-04 23:04:32] [WARN] Risk check failed: max positions {"signal":{"direction":"SELL","symbol":"BNBUSD","sl":606.9,"tp":591.04,"volume":0.1},"current":3}
+[2026-06-04 23:04:32] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"SELL","symbol":"BNBUSD","sl":606.9,"tp":591.04,"volume":0.1},"reason":"Max open positions (3) reached"}
+[2026-06-04 23:04:32] [INFO] Webhook received signal {"rawSignal":"SELL BNBUSD SL=606.9 TP=591.04"}
+[2026-06-04 23:04:32] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"BNBUSD","sl":606.9,"tp":591.04,"volume":0.1}
+[2026-06-04 23:04:32] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"BNBUSD","sl":606.9,"tp":591.04,"volume":0.1}
+[2026-06-04 23:04:32] [WARN] Risk check failed: max positions {"signal":{"direction":"SELL","symbol":"BNBUSD","sl":606.9,"tp":591.04,"volume":0.1},"current":3}
+[2026-06-04 23:04:32] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"SELL","symbol":"BNBUSD","sl":606.9,"tp":591.04,"volume":0.1},"reason":"Max open positions (3) reached"}
+[2026-06-04 23:04:36] [INFO] Heartbeat sent
+[2026-06-04 23:04:46] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:05:01] [INFO] Heartbeat sent
+[2026-06-04 23:05:05] [INFO] Webhook received signal {"rawSignal":"SELL LTCUSD SL=46.5695 TP=45.8353"}
+[2026-06-04 23:05:05] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"LTCUSD","sl":46.5695,"tp":45.8353,"volume":0.1}
+[2026-06-04 23:05:05] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"LTCUSD","sl":46.5695,"tp":45.8353,"volume":0.1}
+[2026-06-04 23:05:05] [WARN] Risk check failed: max positions {"signal":{"direction":"SELL","symbol":"LTCUSD","sl":46.5695,"tp":45.8353,"volume":0.1},"current":3}
+[2026-06-04 23:05:05] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"SELL","symbol":"LTCUSD","sl":46.5695,"tp":45.8353,"volume":0.1},"reason":"Max open positions (3) reached"}
+[2026-06-04 23:05:11] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:05:26] [INFO] Heartbeat sent
+[2026-06-04 23:05:36] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:05:42] [INFO] Webhook received signal {"rawSignal":"SELL XRPUSD SL=1.1786 TP=1.1518"}
+[2026-06-04 23:05:42] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"XRPUSD","sl":1.1786,"tp":1.1518,"volume":0.1}
+[2026-06-04 23:05:42] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"XRPUSD","sl":1.1786,"tp":1.1518,"volume":0.1}
+[2026-06-04 23:05:42] [WARN] Risk check failed: max positions {"signal":{"direction":"SELL","symbol":"XRPUSD","sl":1.1786,"tp":1.1518,"volume":0.1},"current":3}
+[2026-06-04 23:05:42] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"SELL","symbol":"XRPUSD","sl":1.1786,"tp":1.1518,"volume":0.1},"reason":"Max open positions (3) reached"}
+[2026-06-04 23:05:43] [INFO] Webhook received signal {"rawSignal":"SELL XRPUSD SL=1.1786 TP=1.1518"}
+[2026-06-04 23:05:43] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"XRPUSD","sl":1.1786,"tp":1.1518,"volume":0.1}
+[2026-06-04 23:05:43] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"XRPUSD","sl":1.1786,"tp":1.1518,"volume":0.1}
+[2026-06-04 23:05:43] [WARN] Risk check failed: max positions {"signal":{"direction":"SELL","symbol":"XRPUSD","sl":1.1786,"tp":1.1518,"volume":0.1},"current":3}
+[2026-06-04 23:05:43] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"SELL","symbol":"XRPUSD","sl":1.1786,"tp":1.1518,"volume":0.1},"reason":"Max open positions (3) reached"}
+[2026-06-04 23:05:50] [INFO] Message not a valid signal {"text":"risk daily %1.5","error":"Invalid signal format. Start with BUY, SELL, LONG, or SHORT"}
+[2026-06-04 23:05:51] [INFO] Heartbeat sent
+[2026-06-04 23:06:01] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:06:16] [INFO] Heartbeat sent
+[2026-06-04 23:06:17] [INFO] Webhook received signal {"rawSignal":"BUY BNBUSD SL=588.67 TP=604.48"}
+[2026-06-04 23:06:17] [INFO] Signal parsed successfully {"direction":"BUY","symbol":"BNBUSD","sl":588.67,"tp":604.48,"volume":0.1}
+[2026-06-04 23:06:17] [INFO] Webhook signal parsed {"direction":"BUY","symbol":"BNBUSD","sl":588.67,"tp":604.48,"volume":0.1}
+[2026-06-04 23:06:17] [WARN] Risk check failed: max positions {"signal":{"direction":"BUY","symbol":"BNBUSD","sl":588.67,"tp":604.48,"volume":0.1},"current":3}
+[2026-06-04 23:06:17] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"BUY","symbol":"BNBUSD","sl":588.67,"tp":604.48,"volume":0.1},"reason":"Max open positions (3) reached"}
+[2026-06-04 23:06:26] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:06:28] [INFO] Daily loss limit updated {"percent":2}
+[2026-06-04 23:06:36] [INFO] Daily loss limit updated {"percent":1.5}
+[2026-06-04 23:06:41] [INFO] Heartbeat sent
+[2026-06-04 23:06:51] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:07:06] [INFO] Heartbeat sent
+[2026-06-04 23:07:15] [INFO] Daily loss limit updated {"percent":8}
+[2026-06-04 23:07:16] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:07:31] [INFO] Heartbeat sent
+[2026-06-04 23:07:41] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:07:56] [INFO] Heartbeat sent
+[2026-06-04 23:08:01] [INFO] Webhook received signal {"rawSignal":"SELL BNBUSD SL=606.9 TP=591.04"}
+[2026-06-04 23:08:01] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"BNBUSD","sl":606.9,"tp":591.04,"volume":0.1}
+[2026-06-04 23:08:01] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"BNBUSD","sl":606.9,"tp":591.04,"volume":0.1}
+[2026-06-04 23:08:01] [WARN] Risk check failed: max positions {"signal":{"direction":"SELL","symbol":"BNBUSD","sl":606.9,"tp":591.04,"volume":0.1},"current":3}
+[2026-06-04 23:08:01] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"SELL","symbol":"BNBUSD","sl":606.9,"tp":591.04,"volume":0.1},"reason":"Max open positions (3) reached"}
+[2026-06-04 23:08:06] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:08:21] [INFO] Heartbeat sent
+[2026-06-04 23:08:31] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 23:08:46] [INFO] Heartbeat sent
+[2026-06-04 23:08:56] [WARN] Heartbeat timeout - marking connection as stale
