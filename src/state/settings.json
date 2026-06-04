@@ -71,7 +71,7 @@
     "NEOUSD": 0.1,
     "DASHUSD": 0.1
   },
-  "maxPositions": 3,
+  "maxPositions": 8,
   "maxTotalExposure": 1,
   "dailyLossLimit": 8,
   "blackoutTimes": []

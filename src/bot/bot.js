@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 const { parseSignal } = require('./parser');
 const { checkRisks } = require('./riskGate');
 const { setBot, setTelegramBot } = require('./instance');
+const { clearConfirmationTimeout } = require('./confirm');
 const fs = require('fs');
 const path = require('path');
 
@@ -241,12 +242,15 @@ class TelegramBot {
         }
       }
 
-      // Handle TradingView callbacks: tv_cancel
-      if (data === 'tv_cancel') {
+      // Handle TradingView callbacks: tv_cancel:SYMBOL:DIRECTION
+      const tvCancelMatch = data.match(/^tv_cancel:(.+):(.+)$/);
+      if (tvCancelMatch) {
         try {
+          const cancelKey = `${tvCancelMatch[1]}:${tvCancelMatch[2]}`;
+          clearConfirmationTimeout(cancelKey);
           await ctx.answerCallbackQuery('Cancelled');
           await this.bot.api.editMessageText(chatId, messageId, '❌ TradingView signal cancelled by user');
-          logger.info('TradingView signal cancelled', { userId: ctx.from.id });
+          logger.info('TradingView signal cancelled', { userId: ctx.from.id, key: cancelKey });
         } catch (err) {
           logger.error('Error cancelling TradingView signal', { error: err.message });
         }
@@ -259,6 +263,7 @@ class TelegramBot {
         try {
           const symbol = tvMatch[1];
           const direction = tvMatch[2];
+          clearConfirmationTimeout(`${symbol}:${direction}`);
 
           logger.info('Executing TradingView signal from callback', { symbol, direction, userId: ctx.from.id });
 

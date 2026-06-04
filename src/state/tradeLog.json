@@ -128,5 +128,27 @@
     "sl": 70,
     "tp": 64,
     "entryPrice": 68.07
+  },
+  {
+    "symbol": "BNBUSD",
+    "direction": "BUY",
+    "volume": 0.1,
+    "positionId": "7317869",
+    "openTime": "2026-06-04 23:11:29",
+    "status": "open",
+    "sl": 588.67,
+    "tp": 604.48,
+    "entryPrice": 602.82
+  },
+  {
+    "symbol": "SOLUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7317926",
+    "openTime": "2026-06-04 23:19:08",
+    "status": "open",
+    "sl": 69.9645,
+    "tp": 68.072,
+    "entryPrice": 68.12
   }
 ]

@@ -7,6 +7,8 @@ const { InlineKeyboard } = require('grammy');
 const SETTINGS_FILE = path.join(__dirname, '../state/settings.json');
 const POSITIONS_FILE = path.join(__dirname, '../state/positions.json');
 
+const activeTimeouts = new Map();
+
 /**
  * Send TradingView signal confirmation to user via Telegram
  * Signal: { direction, symbol, sl, tp, volume, entryPrice? }
@@ -30,9 +32,11 @@ async function sendConfirmation(signal) {
       `SL: ${signal.sl}\n` +
       `TP: ${signal.tp || 'None'}`;
 
+    const key = `${signal.symbol}:${signal.direction}`;
+
     const keyboard = new InlineKeyboard()
       .text('✅ Execute', `tv_execute:${signal.symbol}:${signal.direction}`)
-      .text('❌ Cancel', 'tv_cancel')
+      .text('❌ Cancel', `tv_cancel:${signal.symbol}:${signal.direction}`)
       .row();
 
     const confirmMsg = await bot.api.sendMessage(chatId, confirmText, {
@@ -49,16 +53,17 @@ async function sendConfirmation(signal) {
     telegramBot.storeTVConfirmation(signal);
 
     // Auto-cancel after 60 seconds with message edit
-    setTimeout(async () => {
+    const timeoutId = setTimeout(async () => {
+      activeTimeouts.delete(key);
       try {
         logger.info('TradingView confirmation timeout - attempting to edit message', {
           messageId: confirmMsg.message_id,
           chatId
         });
-        
+
         // Try to edit the message to show it expired (remove buttons)
         await bot.api.editMessageText(chatId, confirmMsg.message_id, {
-          text: `⏱️ Signal confirmation expired (60s timeout).\n\n${confirmText}`
+          text: `⏱️ Signal confirmation expired (120s timeout).\n\n${confirmText}`
         });
         logger.info('Edited expired confirmation message');
       } catch (editErr) {
@@ -67,7 +72,8 @@ async function sendConfirmation(signal) {
           error: editErr.message
         });
       }
-    }, 60000);
+    }, 120000);
+    activeTimeouts.set(key, timeoutId);
 
     return confirmMsg.message_id;
   } catch (err) {
@@ -125,7 +131,15 @@ async function executeTradingViewTrade(signal) {
   }
 }
 
+function clearConfirmationTimeout(key) {
+  if (activeTimeouts.has(key)) {
+    clearTimeout(activeTimeouts.get(key));
+    activeTimeouts.delete(key);
+  }
+}
+
 module.exports = {
   sendConfirmation,
-  executeTradingViewTrade
+  executeTradingViewTrade,
+  clearConfirmationTimeout
 };
