@@ -1,1 +1,29 @@
-[]
+[
+  {
+    "positionId": "7317345",
+    "symbol": "ETHUSD",
+    "direction": "SELL",
+    "volume": 0.01,
+    "sl": 1830,
+    "tp": 1760,
+    "entryPrice": 1757.11
+  },
+  {
+    "positionId": "7317509",
+    "symbol": "SOLUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "sl": 70,
+    "tp": 64,
+    "entryPrice": 68.08
+  },
+  {
+    "positionId": "7317569",
+    "symbol": "SOLUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "sl": 70,
+    "tp": 64,
+    "entryPrice": 68.07
+  }
+]

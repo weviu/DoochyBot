@@ -95,5 +95,38 @@
     "sl": 64000,
     "tp": 70000,
     "entryPrice": 69390.55
+  },
+  {
+    "symbol": "ETHUSD",
+    "direction": "SELL",
+    "volume": 0.01,
+    "positionId": "7317345",
+    "openTime": "2026-06-04 22:47:18",
+    "status": "open",
+    "sl": 1830,
+    "tp": 1760,
+    "entryPrice": 1757.11
+  },
+  {
+    "symbol": "SOLUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7317509",
+    "openTime": "2026-06-04 22:52:00",
+    "status": "open",
+    "sl": 70,
+    "tp": 64,
+    "entryPrice": 68.08
+  },
+  {
+    "symbol": "SOLUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7317569",
+    "openTime": "2026-06-04 22:53:47",
+    "status": "open",
+    "sl": 70,
+    "tp": 64,
+    "entryPrice": 68.07
   }
 ]

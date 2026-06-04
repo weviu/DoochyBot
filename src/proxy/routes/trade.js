@@ -32,27 +32,33 @@ const COMMON_SYMBOLS = {
 
 const SYMBOL_LOT_SIZE = {
   // Forex
-  'EURUSD':      10000000, 'GBPUSD':      10000000, 'USDJPY':      10000000,
-  'AUDUSD':      10000000, 'USDCHF':      10000000, 'USDCAD':      10000000,
-  'NZDUSD':      10000000,
+  'EURUSD':  10000000, 'GBPUSD':  10000000, 'USDJPY': 10000000,
+  'AUDUSD':  10000000, 'USDCHF':  10000000, 'USDCAD': 10000000,
+  'NZDUSD':  10000000,
   // Metals & Commodities
-  'XAUUSD':      10000,    'GOLD':        10000,    'XAGUSD':      10000,
-  'XPDUSD':      10000,    'XPTUSD':      10000,    'XCUUSD':      10000,
-  'USOIL':       10000,    'OIL':         10000,
+  'XAUUSD':  10000, 'GOLD':    10000, 'XAGUSD':  10000,
+  'XPDUSD':  10000, 'XPTUSD':  10000, 'XCUUSD':  10000,
+  'USOIL':   10000, 'OIL':     10000,
   // Indices
-  'US500.cash':  10000,    'US100.cash':  10000,    'US30.cash':   10000,
-  // Crypto
-  'BTCUSD':      100,      'ETHUSD':      1000,     'ADAUSD':      100,
-  'DOGEUSD':     100,      'XRPUSD':      100,      'NEOUSD':      100,
-  'DASHUSD':     100,      'XMRUSD':      100,      'LTCUSD':      100,
-  'DOTUSD':      100,      'AAVUSD':      100,      'XLMUSD':      100,
-  'GALUSD':      100,      'NERUSD':      100,      'LNKUSD':      100,
-  'AVAUSD':      100,      'SOLUSD':      100,      'BNBUSD':      100,
-  'BARUSD':      100,      'XTZUSD':      100,      'SANUSD':      100,
-  'BCHUSD':      100,      'ETCUSD':      100,      'UNIUSD':      100,
-  'ALGUSD':      100,      'VECUSD':      100,      'MANUSD':      100,
-  'IMXUSD':      100,      'GRTUSD':      100,      'ICPUSD':      100,
-  'FETUSD':      100,
+  'US500.cash': 10000, 'US100.cash': 10000, 'US30.cash': 10000,
+  // Crypto — exact lot sizes from cTrader ProtoOASymbolByIdReq
+  'BTCUSD':  100,       'ETHUSD':  1000,
+  'SOLUSD':  10000,     'BNBUSD':  10000,
+  'LTCUSD':  10000,     'BCHUSD':  10000,
+  'XMRUSD':  10000,     'AAVUSD':  10000,
+  'ETCUSD':  100000,    'LNKUSD':  100000,
+  'AVAUSD':  100000,    'NEOUSD':  100000,
+  'DASHUSD': 100000,
+  'XRPUSD':  1000000,   'DOTUSD':  1000000,
+  'NERUSD':  1000000,   'UNIUSD':  1000000,
+  'ICPUSD':  1000000,
+  'ADAUSD':  10000000,  'DOGEUSD': 10000000,
+  'XLMUSD':  10000000,  'BARUSD':  10000000,
+  'XTZUSD':  10000000,  'SANUSD':  10000000,
+  'ALGUSD':  10000000,  'MANUSD':  10000000,
+  'IMXUSD':  10000000,  'FETUSD':  10000000,
+  'GALUSD':  100000000, 'VECUSD':  100000000,
+  'GRTUSD':  100000000,
 };
 
 function loadTradeLog() {

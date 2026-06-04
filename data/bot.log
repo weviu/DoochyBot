@@ -4564,3 +4564,358 @@
 [2026-06-04 22:29:12] [WARN] Heartbeat timeout - marking connection as stale
 [2026-06-04 22:29:27] [INFO] Heartbeat sent
 [2026-06-04 22:29:37] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:29:52] [INFO] Heartbeat sent
+[2026-06-04 22:30:02] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:30:17] [INFO] Heartbeat sent
+[2026-06-04 22:30:27] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:30:42] [INFO] Heartbeat sent
+[2026-06-04 22:30:52] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:31:07] [INFO] Heartbeat sent
+[2026-06-04 22:31:17] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:31:32] [INFO] Heartbeat sent
+[2026-06-04 22:31:42] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:31:57] [INFO] Heartbeat sent
+[2026-06-04 22:32:07] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:32:22] [INFO] Heartbeat sent
+[2026-06-04 22:32:32] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:32:47] [INFO] Heartbeat sent
+[2026-06-04 22:32:57] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:33:12] [INFO] Heartbeat sent
+[2026-06-04 22:33:22] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:33:37] [INFO] Heartbeat sent
+[2026-06-04 22:33:47] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:34:02] [INFO] Heartbeat sent
+[2026-06-04 22:34:12] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:34:27] [INFO] Heartbeat sent
+[2026-06-04 22:34:37] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:34:52] [INFO] Heartbeat sent
+[2026-06-04 22:35:02] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:35:17] [INFO] Heartbeat sent
+[2026-06-04 22:35:27] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:35:42] [INFO] Heartbeat sent
+[2026-06-04 22:35:53] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:36:07] [INFO] Heartbeat sent
+[2026-06-04 22:36:18] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:36:33] [INFO] Heartbeat sent
+[2026-06-04 22:36:43] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:36:58] [INFO] Heartbeat sent
+[2026-06-04 22:37:08] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:37:23] [INFO] Heartbeat sent
+[2026-06-04 22:37:33] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:37:48] [INFO] Heartbeat sent
+[2026-06-04 22:37:58] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:38:13] [INFO] Heartbeat sent
+[2026-06-04 22:38:23] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:38:38] [INFO] Heartbeat sent
+[2026-06-04 22:38:47] [INFO] Webhook received signal {"rawSignal":"BUY BTCUSD SL=69000 TP=71000"}
+[2026-06-04 22:38:47] [INFO] Signal parsed successfully {"direction":"BUY","symbol":"BTCUSD","sl":69000,"tp":71000,"volume":0.01}
+[2026-06-04 22:38:47] [INFO] Webhook signal parsed {"direction":"BUY","symbol":"BTCUSD","sl":69000,"tp":71000,"volume":0.01}
+[2026-06-04 22:38:47] [INFO] All risk checks passed {"signal":{"direction":"BUY","symbol":"BTCUSD","sl":69000,"tp":71000,"volume":0.01}}
+[2026-06-04 22:38:47] [INFO] Webhook signal passed risk checks {"direction":"BUY","symbol":"BTCUSD","sl":69000,"tp":71000,"volume":0.01}
+[2026-06-04 22:38:47] [INFO] TradingView confirmation sent {"signal":{"direction":"BUY","symbol":"BTCUSD","sl":69000,"tp":71000,"volume":0.01},"messageId":89,"chatId":555334666}
+[2026-06-04 22:38:47] [INFO] Stored TradingView confirmation {"key":"BTCUSD:BUY","signal":{"direction":"BUY","symbol":"BTCUSD","sl":69000,"tp":71000,"volume":0.01}}
+[2026-06-04 22:38:48] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:39:03] [INFO] Heartbeat sent
+[2026-06-04 22:39:12] [INFO] TradingView signal cancelled {"userId":555334666}
+[2026-06-04 22:39:13] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:39:28] [INFO] Heartbeat sent
+[2026-06-04 22:39:38] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:39:47] [INFO] TradingView confirmation timeout - attempting to edit message {"messageId":89,"chatId":555334666}
+[2026-06-04 22:39:47] [INFO] Edited expired confirmation message
+[2026-06-04 22:39:53] [INFO] Heartbeat sent
+[2026-06-04 22:40:03] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:40:18] [INFO] Heartbeat sent
+[2026-06-04 22:40:28] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:40:43] [INFO] Heartbeat sent
+[2026-06-04 22:40:53] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:41:08] [INFO] Heartbeat sent
+[2026-06-04 22:41:18] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:41:33] [INFO] Heartbeat sent
+[2026-06-04 22:41:43] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:41:58] [INFO] Heartbeat sent
+[2026-06-04 22:42:08] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:42:11] [INFO] Webhook received signal {"rawSignal":"SELL AVAXUSD SL=7.6661 TP=7.3961"}
+[2026-06-04 22:42:11] [WARN] Webhook signal parse failed {"rawSignal":"SELL AVAXUSD SL=7.6661 TP=7.3961","error":"Symbol AVAXUSD not configured in settings"}
+[2026-06-04 22:42:23] [INFO] Heartbeat sent
+[2026-06-04 22:42:33] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:42:47] [INFO] Webhook received signal {"rawSignal":"SELL KAITOUSD SL=0.485277 TP=0.46533"}
+[2026-06-04 22:42:47] [WARN] Webhook signal parse failed {"rawSignal":"SELL KAITOUSD SL=0.485277 TP=0.46533","error":"Symbol KAITOUSD not configured in settings"}
+[2026-06-04 22:42:48] [INFO] Heartbeat sent
+[2026-06-04 22:42:48] [INFO] Webhook received signal {"rawSignal":"SELL KAITOUSD SL=0.485277 TP=0.46533"}
+[2026-06-04 22:42:48] [WARN] Webhook signal parse failed {"rawSignal":"SELL KAITOUSD SL=0.485277 TP=0.46533","error":"Symbol KAITOUSD not configured in settings"}
+[2026-06-04 22:42:58] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:43:13] [INFO] Heartbeat sent
+[2026-06-04 22:43:23] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:43:30] [INFO] Webhook received signal {"rawSignal":"SELL TIAUSD SL=0.333031 TP=0.31367"}
+[2026-06-04 22:43:30] [WARN] Webhook signal parse failed {"rawSignal":"SELL TIAUSD SL=0.333031 TP=0.31367","error":"Symbol TIAUSD not configured in settings"}
+[2026-06-04 22:43:35] [INFO] Webhook received signal {"rawSignal":"BUY TRXUSD SL=0.329108 TP=0.332367"}
+[2026-06-04 22:43:35] [WARN] Webhook signal parse failed {"rawSignal":"BUY TRXUSD SL=0.329108 TP=0.332367","error":"Symbol TRXUSD not configured in settings"}
+[2026-06-04 22:43:36] [INFO] Webhook received signal {"rawSignal":"SELL TRXUSD SL=0.333699 TP=0.330428"}
+[2026-06-04 22:43:36] [WARN] Webhook signal parse failed {"rawSignal":"SELL TRXUSD SL=0.333699 TP=0.330428","error":"Symbol TRXUSD not configured in settings"}
+[2026-06-04 22:43:38] [INFO] Heartbeat sent
+[2026-06-04 22:43:48] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:44:03] [INFO] Heartbeat sent
+[2026-06-04 22:44:13] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:44:28] [INFO] Heartbeat sent
+[2026-06-04 22:44:38] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:44:53] [INFO] Heartbeat sent
+[2026-06-04 22:45:03] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:45:13] [INFO] Webhook received signal {"rawSignal":"SELL ETCUSD SL=7.4252 TP=7.2242"}
+[2026-06-04 22:45:13] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"ETCUSD","sl":7.4252,"tp":7.2242,"volume":0.1}
+[2026-06-04 22:45:13] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"ETCUSD","sl":7.4252,"tp":7.2242,"volume":0.1}
+[2026-06-04 22:45:13] [INFO] All risk checks passed {"signal":{"direction":"SELL","symbol":"ETCUSD","sl":7.4252,"tp":7.2242,"volume":0.1}}
+[2026-06-04 22:45:13] [INFO] Webhook signal passed risk checks {"direction":"SELL","symbol":"ETCUSD","sl":7.4252,"tp":7.2242,"volume":0.1}
+[2026-06-04 22:45:13] [INFO] TradingView confirmation sent {"signal":{"direction":"SELL","symbol":"ETCUSD","sl":7.4252,"tp":7.2242,"volume":0.1},"messageId":90,"chatId":555334666}
+[2026-06-04 22:45:13] [INFO] Stored TradingView confirmation {"key":"ETCUSD:SELL","signal":{"direction":"SELL","symbol":"ETCUSD","sl":7.4252,"tp":7.2242,"volume":0.1}}
+[2026-06-04 22:45:18] [INFO] Heartbeat sent
+[2026-06-04 22:45:28] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:45:28] [INFO] Executing TradingView signal from callback {"symbol":"ETCUSD","direction":"SELL","userId":555334666}
+[2026-06-04 22:45:28] [INFO] Retrieved signal for execution {"direction":"SELL","symbol":"ETCUSD","sl":7.4252,"tp":7.2242,"volume":0.1}
+[2026-06-04 22:45:28] [INFO] Executing trade {"symbol":"ETCUSD","direction":"SELL","volume":0.1,"sl":7.4252,"tp":7.2242}
+[2026-06-04 22:45:28] [ERROR] TradingView trade execution failed {"error":"Symbol \"ETCUSD\" not supported. Supported symbols: EURUSD, GBPUSD, USDJPY, AUDUSD, USDCHF, USDCAD, NZDUSD, XAUUSD, GOLD, USOIL, OIL, ETHUSD, BTCUSD"}
+[2026-06-04 22:45:43] [INFO] Heartbeat sent
+[2026-06-04 22:45:53] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:46:08] [INFO] Heartbeat sent
+[2026-06-04 22:46:13] [INFO] TradingView confirmation timeout - attempting to edit message {"messageId":90,"chatId":555334666}
+[2026-06-04 22:46:13] [INFO] Edited expired confirmation message
+[2026-06-04 22:46:18] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:46:33] [INFO] Heartbeat sent
+[2026-06-04 22:46:42] [INFO] Received SIGTERM - initiating graceful shutdown...
+[2026-06-04 22:46:42] [INFO] Closing proxy server...
+[2026-06-04 22:46:42] [INFO] Stopping Telegram bot...
+[2026-06-04 22:46:42] [INFO] Proxy server closed
+[2026-06-04 22:46:42] [INFO] ✅ Bot fully operational
+[2026-06-04 22:46:42] [INFO] 📊 Proxy running on port 9009
+[2026-06-04 22:46:42] [INFO] 🤖 Telegram bot active
+[2026-06-04 22:46:42] [INFO] 💰 Account: 47520188
+[2026-06-04 22:46:42] [INFO] Telegram bot stopped
+[2026-06-04 22:46:42] [INFO] Telegram bot stopped
+[2026-06-04 22:46:42] [INFO] Stopping heartbeat...
+[2026-06-04 22:46:42] [INFO] Stopping heartbeat manager
+[2026-06-04 22:46:42] [INFO] Heartbeat stopped
+[2026-06-04 22:46:42] [INFO] Disconnecting from cTrader...
+[2026-06-04 22:46:42] [INFO] cTrader disconnected
+[2026-06-04 22:46:42] [INFO] ✅ Graceful shutdown complete
+[2026-06-04 22:46:49] [INFO] Starting Trading Bot...
+[2026-06-04 22:46:49] [INFO] Configuration loaded
+[2026-06-04 22:46:49] [INFO] Connecting to cTrader {"host":"live.ctraderapi.com","port":5035,"accountId":"47520188"}
+[2026-06-04 22:46:50] [INFO] cTrader socket opened
+[2026-06-04 22:46:50] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-06-04 22:46:50] [INFO] Application authenticated {"payloadType":"PROTO_OA_APPLICATION_AUTH_RES","clientMsgId":"4642b1b0-6067-11f1-a52e-990f6c4c5917"}
+[2026-06-04 22:46:50] [INFO] Sending ProtoOAAccountAuthReq {"accessToken":"set","ctidTraderAccountId":"47520188"}
+[2026-06-04 22:46:50] [INFO] Account authenticated {"payloadType":"PROTO_OA_ACCOUNT_AUTH_RES","ctidTraderAccountId":"47520188","clientMsgId":"464bd970-6067-11f1-a52e-990f6c4c5917"}
+[2026-06-04 22:46:50] [INFO] cTrader authentication successful {"accountId":"47520188"}
+[2026-06-04 22:46:50] [INFO] cTrader authenticated - starting proxy and bot
+[2026-06-04 22:46:50] [INFO] Proxy server listening on port 9009
+[2026-06-04 22:46:50] [INFO] Starting heartbeat manager (25s interval, 10s timeout)
+[2026-06-04 22:46:50] [INFO] Telegram bot started
+[2026-06-04 22:47:14] [INFO] Webhook received signal {"rawSignal":"SELL ETHUSD SL=1830.0 TP=1760.0"}
+[2026-06-04 22:47:14] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"ETHUSD","sl":1830,"tp":1760,"volume":0.01}
+[2026-06-04 22:47:14] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"ETHUSD","sl":1830,"tp":1760,"volume":0.01}
+[2026-06-04 22:47:14] [INFO] All risk checks passed {"signal":{"direction":"SELL","symbol":"ETHUSD","sl":1830,"tp":1760,"volume":0.01}}
+[2026-06-04 22:47:14] [INFO] Webhook signal passed risk checks {"direction":"SELL","symbol":"ETHUSD","sl":1830,"tp":1760,"volume":0.01}
+[2026-06-04 22:47:14] [INFO] TradingView confirmation sent {"signal":{"direction":"SELL","symbol":"ETHUSD","sl":1830,"tp":1760,"volume":0.01},"messageId":91,"chatId":555334666}
+[2026-06-04 22:47:14] [INFO] Stored TradingView confirmation {"key":"ETHUSD:SELL","signal":{"direction":"SELL","symbol":"ETHUSD","sl":1830,"tp":1760,"volume":0.01}}
+[2026-06-04 22:47:15] [INFO] Heartbeat sent
+[2026-06-04 22:47:17] [INFO] Executing TradingView signal from callback {"symbol":"ETHUSD","direction":"SELL","userId":555334666}
+[2026-06-04 22:47:17] [INFO] Retrieved signal for execution {"direction":"SELL","symbol":"ETHUSD","sl":1830,"tp":1760,"volume":0.01}
+[2026-06-04 22:47:17] [INFO] Executing trade {"symbol":"ETHUSD","direction":"SELL","volume":0.01,"sl":1830,"tp":1760}
+[2026-06-04 22:47:17] [INFO] Found symbolId {"symbol":"ETHUSD","symbolId":323}
+[2026-06-04 22:47:17] [INFO] Volume conversion {"userVolume":0.01,"lotSize":1000,"ctraderUnits":10}
+[2026-06-04 22:47:17] [INFO] ProtoOANewOrderReq payload {"payload":"{\"ctidTraderAccountId\":47520188,\"symbolId\":323,\"orderType\":\"MARKET\",\"tradeSide\":\"SELL\",\"volume\":10,\"timeInForce\":\"IMMEDIATE_OR_CANCEL\"}"}
+[2026-06-04 22:47:17] [INFO] Sending ProtoOANewOrderReq (exact payload): {
+  ctidTraderAccountId: 47520188,
+  symbolId: 323,
+  orderType: 'MARKET',
+  tradeSide: 'SELL',
+  volume: 10,
+  timeInForce: 'IMMEDIATE_OR_CANCEL'
+}
+[2026-06-04 22:47:17] [INFO] ProtoOANewOrderReq sent {"result":{}}
+[2026-06-04 22:47:17] [INFO] Forwarding ProtoOAExecutionEvent {"eventType":"2126","descriptor":{"payloadType":"PROTO_OA_EXECUTION_EVENT","ctidTraderAccountId":"47520188","executionType":"ORDER_ACCEPTED","position":{"positionId":"7317345","tradeData":{"symbolId":"323","volume":"0","tradeSide":"SELL","openTimestamp":null,"label":null,"guaranteedStopLoss":false,"comment":null},"positionStatus":"POSITION_STATUS_CREATED","swap":"0","price":0,"stopLoss":null,"takeProfit":null,"utcLastUpdateTimestamp":null,"commission":"0","marginRate":0,"mirroringCommission":"0","guaranteedStopLoss":false,"usedMargin":"0","stopLossTriggerMethod":"TRADE","moneyDigits":2,"trailingStopLoss":null},"order":{"orderId":"9561331","tradeData":{"symbolId":"323","volume":"10","tradeSide":"SELL","openTimestamp":"1780613237843","label":null,"guaranteedStopLoss":false,"comment":null},"orderType":"MARKET","orderStatus":"ORDER_STATUS_ACCEPTED","expirationTimestamp":null,"executionPrice":null,"executedVolume":"0","utcLastUpdateTimestamp":"1780613237843","baseSlippagePrice":null,"slippageInPoints":null,"closingOrder":false,"limitPrice":null,"stopPrice":null,"stopLoss":null,"takeProfit":null,"clientOrderId":"56bb9cf0-6067-11f1-a52e-990f6c4c5917","timeInForce":"IMMEDIATE_OR_CANCEL","positionId":"7317345","relativeStopLoss":null,"relativeTakeProfit":null,"isStopOut":null,"trailingStopLoss":null,"stopTriggerMethod":"TRADE"},"deal":null,"bonusDepositWithdraw":null,"depositWithdraw":null,"errorCode":null,"isServerEvent":false,"clientMsgId":"56bb9cf0-6067-11f1-a52e-990f6c4c5917"},"keys":["payloadType","ctidTraderAccountId","executionType","position","order","deal","bonusDepositWithdraw","depositWithdraw","errorCode","isServerEvent","clientMsgId"]}
+[2026-06-04 22:47:17] [INFO] ProtoOAExecutionEvent received {"executionType":"ORDER_ACCEPTED","positionId":"7317345","price":0}
+[2026-06-04 22:47:18] [INFO] Forwarding ProtoOAExecutionEvent {"eventType":"2126","descriptor":{"payloadType":"PROTO_OA_EXECUTION_EVENT","ctidTraderAccountId":"47520188","executionType":"ORDER_FILLED","position":{"positionId":"7317345","tradeData":{"symbolId":"323","volume":"10","tradeSide":"SELL","openTimestamp":"1780613237979","label":null,"guaranteedStopLoss":false,"comment":null},"positionStatus":"POSITION_STATUS_OPEN","swap":"0","price":1757.11,"stopLoss":null,"takeProfit":null,"utcLastUpdateTimestamp":"1780613237979","commission":"-6","marginRate":1757.11,"mirroringCommission":"0","guaranteedStopLoss":false,"usedMargin":"5277","stopLossTriggerMethod":"TRADE","moneyDigits":2,"trailingStopLoss":null},"order":{"orderId":"9561331","tradeData":{"symbolId":"323","volume":"10","tradeSide":"SELL","openTimestamp":"1780613237843","label":null,"guaranteedStopLoss":false,"comment":null},"orderType":"MARKET","orderStatus":"ORDER_STATUS_FILLED","expirationTimestamp":null,"executionPrice":1757.11,"executedVolume":"10","utcLastUpdateTimestamp":"1780613237979","baseSlippagePrice":null,"slippageInPoints":null,"closingOrder":false,"limitPrice":null,"stopPrice":null,"stopLoss":null,"takeProfit":null,"clientOrderId":"56bb9cf0-6067-11f1-a52e-990f6c4c5917","timeInForce":"IMMEDIATE_OR_CANCEL","positionId":"7317345","relativeStopLoss":null,"relativeTakeProfit":null,"isStopOut":null,"trailingStopLoss":null,"stopTriggerMethod":"TRADE"},"deal":{"dealId":"7949116","orderId":"9561331","positionId":"7317345","volume":"10","filledVolume":"10","symbolId":"323","createTimestamp":"1780613237843","executionTimestamp":"1780613237979","utcLastUpdateTimestamp":"1780613237979","executionPrice":1757.11,"tradeSide":"SELL","dealStatus":"FILLED","marginRate":1757.11,"commission":"-6","baseToUsdConversionRate":1757.11,"closePositionDetail":null,"moneyDigits":2},"bonusDepositWithdraw":null,"depositWithdraw":null,"errorCode":null,"isServerEvent":false,"clientMsgId":"56bb9cf0-6067-11f1-a52e-990f6c4c5917"},"keys":["payloadType","ctidTraderAccountId","executionType","position","order","deal","bonusDepositWithdraw","depositWithdraw","errorCode","isServerEvent","clientMsgId"]}
+[2026-06-04 22:47:18] [INFO] ProtoOAExecutionEvent received {"executionType":"ORDER_FILLED","positionId":"7317345","price":1757.11}
+[2026-06-04 22:47:18] [INFO] Trade response price extraction {"positionPrice":1757.11,"dealExecutionPrice":1757.11,"extractedPrice":1757.11,"executionType":"ORDER_FILLED"}
+[2026-06-04 22:47:18] [INFO] Trade executed and logged {"positionId":"7317345","entryPrice":1757.11}
+[2026-06-04 22:47:18] [INFO] Sending ProtoOAAmendPositionSLTPReq {"positionId":"7317345","symbol":"ETHUSD","sl":1830,"tp":1760,"clientMsgId":"56d7fe90-6067-11f1-a52e-990f6c4c5917","payload":"{\"ctidTraderAccountId\":47520188,\"positionId\":7317345,\"stopLoss\":1830,\"takeProfit\":1760}"}
+[2026-06-04 22:47:18] [INFO] Forwarding ProtoOAOrderErrorEvent {"eventType":"2132","descriptor":{"payloadType":"PROTO_OA_ORDER_ERROR_EVENT","ctidTraderAccountId":"47520188","errorCode":"TRADING_BAD_STOPS","orderId":"0","positionId":"0","description":"New TP for SELL position should be <= current ASK price. current ASK: 1757.71, TP: 1760.0","clientMsgId":"56d7fe90-6067-11f1-a52e-990f6c4c5917"},"keys":["payloadType","ctidTraderAccountId","errorCode","orderId","positionId","description","clientMsgId"]}
+[2026-06-04 22:47:18] [ERROR] ProtoOAAmendPositionSLTPReq rejected {"positionId":"7317345","symbol":"ETHUSD","sl":1830,"tp":1760,"errorCode":"TRADING_BAD_STOPS","description":"New TP for SELL position should be <= current ASK price. current ASK: 1757.71, TP: 1760.0"}
+[2026-06-04 22:47:18] [WARN] SL/TP amendment failed — trade still open without protection {"positionId":"7317345","error":"New TP for SELL position should be <= current ASK price. current ASK: 1757.71, TP: 1760.0"}
+[2026-06-04 22:47:18] [INFO] TradingView trade executed successfully {"positionId":"7317345","openPrice":1757.11,"slSet":false,"tpSet":false,"slError":"New TP for SELL position should be <= current ASK price. current ASK: 1757.71, TP: 1760.0","tpError":"New TP for SELL position should be <= current ASK price. current ASK: 1757.71, TP: 1760.0"}
+[2026-06-04 22:47:25] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:47:40] [INFO] Heartbeat sent
+[2026-06-04 22:47:50] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:47:56] [INFO] Webhook received signal {"rawSignal":"SELL SOLUSD SL=68.1399 TP=65.1075"}
+[2026-06-04 22:47:56] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"SOLUSD","sl":68.1399,"tp":65.1075,"volume":0.1}
+[2026-06-04 22:47:56] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"SOLUSD","sl":68.1399,"tp":65.1075,"volume":0.1}
+[2026-06-04 22:47:56] [INFO] All risk checks passed {"signal":{"direction":"SELL","symbol":"SOLUSD","sl":68.1399,"tp":65.1075,"volume":0.1}}
+[2026-06-04 22:47:56] [INFO] Webhook signal passed risk checks {"direction":"SELL","symbol":"SOLUSD","sl":68.1399,"tp":65.1075,"volume":0.1}
+[2026-06-04 22:47:56] [INFO] TradingView confirmation sent {"signal":{"direction":"SELL","symbol":"SOLUSD","sl":68.1399,"tp":65.1075,"volume":0.1},"messageId":92,"chatId":555334666}
+[2026-06-04 22:47:56] [INFO] Stored TradingView confirmation {"key":"SOLUSD:SELL","signal":{"direction":"SELL","symbol":"SOLUSD","sl":68.1399,"tp":65.1075,"volume":0.1}}
+[2026-06-04 22:48:02] [INFO] Executing TradingView signal from callback {"symbol":"SOLUSD","direction":"SELL","userId":555334666}
+[2026-06-04 22:48:02] [INFO] Retrieved signal for execution {"direction":"SELL","symbol":"SOLUSD","sl":68.1399,"tp":65.1075,"volume":0.1}
+[2026-06-04 22:48:02] [INFO] Executing trade {"symbol":"SOLUSD","direction":"SELL","volume":0.1,"sl":68.1399,"tp":65.1075}
+[2026-06-04 22:48:02] [INFO] Found symbolId {"symbol":"SOLUSD","symbolId":297}
+[2026-06-04 22:48:02] [INFO] Volume conversion {"userVolume":0.1,"lotSize":100,"ctraderUnits":10}
+[2026-06-04 22:48:02] [INFO] ProtoOANewOrderReq payload {"payload":"{\"ctidTraderAccountId\":47520188,\"symbolId\":297,\"orderType\":\"MARKET\",\"tradeSide\":\"SELL\",\"volume\":10,\"timeInForce\":\"IMMEDIATE_OR_CANCEL\"}"}
+[2026-06-04 22:48:02] [INFO] Sending ProtoOANewOrderReq (exact payload): {
+  ctidTraderAccountId: 47520188,
+  symbolId: 297,
+  orderType: 'MARKET',
+  tradeSide: 'SELL',
+  volume: 10,
+  timeInForce: 'IMMEDIATE_OR_CANCEL'
+}
+[2026-06-04 22:48:02] [INFO] ProtoOANewOrderReq sent {"result":{}}
+[2026-06-04 22:48:02] [INFO] Forwarding ProtoOAOrderErrorEvent {"eventType":"2132","descriptor":{"payloadType":"PROTO_OA_ORDER_ERROR_EVENT","ctidTraderAccountId":"47520188","errorCode":"TRADING_BAD_VOLUME","orderId":null,"positionId":null,"description":"Order volume = 0.10 is smaller than minimum allowed volume = 1.00.","clientMsgId":"71465a10-6067-11f1-a52e-990f6c4c5917"},"keys":["payloadType","ctidTraderAccountId","errorCode","orderId","positionId","description","clientMsgId"]}
+[2026-06-04 22:48:02] [INFO] ProtoOAOrderErrorEvent received {"ctidTraderAccountId":"47520188","errorCode":"TRADING_BAD_VOLUME","accountMatch":true}
+[2026-06-04 22:48:02] [ERROR] Full error object {"rawError":"{}","errorKeys":[],"errorType":"Error"}
+[2026-06-04 22:48:02] [ERROR] Trade execution error {"error":"Order error: TRADING_BAD_VOLUME","originalError":"Order error: TRADING_BAD_VOLUME"}
+[2026-06-04 22:48:02] [ERROR] TradingView trade execution failed {"error":"Order error: TRADING_BAD_VOLUME"}
+[2026-06-04 22:48:05] [INFO] Heartbeat sent
+[2026-06-04 22:48:14] [INFO] TradingView confirmation timeout - attempting to edit message {"messageId":91,"chatId":555334666}
+[2026-06-04 22:48:14] [INFO] Edited expired confirmation message
+[2026-06-04 22:48:15] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:48:30] [INFO] Heartbeat sent
+[2026-06-04 22:48:40] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:48:55] [INFO] Heartbeat sent
+[2026-06-04 22:48:56] [INFO] TradingView confirmation timeout - attempting to edit message {"messageId":92,"chatId":555334666}
+[2026-06-04 22:48:56] [INFO] Edited expired confirmation message
+[2026-06-04 22:49:05] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:49:20] [INFO] Heartbeat sent
+[2026-06-04 22:49:30] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:49:45] [INFO] Heartbeat sent
+[2026-06-04 22:49:55] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:50:10] [INFO] Heartbeat sent
+[2026-06-04 22:50:20] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:50:35] [INFO] Heartbeat sent
+[2026-06-04 22:50:45] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:51:00] [INFO] Heartbeat sent
+[2026-06-04 22:51:10] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:51:25] [INFO] Heartbeat sent
+[2026-06-04 22:51:28] [INFO] Received SIGTERM - initiating graceful shutdown...
+[2026-06-04 22:51:28] [INFO] Closing proxy server...
+[2026-06-04 22:51:28] [INFO] Stopping Telegram bot...
+[2026-06-04 22:51:28] [INFO] Proxy server closed
+[2026-06-04 22:51:28] [INFO] ✅ Bot fully operational
+[2026-06-04 22:51:28] [INFO] 📊 Proxy running on port 9009
+[2026-06-04 22:51:28] [INFO] 🤖 Telegram bot active
+[2026-06-04 22:51:28] [INFO] 💰 Account: 47520188
+[2026-06-04 22:51:28] [INFO] Received SIGTERM - initiating graceful shutdown...
+[2026-06-04 22:51:28] [INFO] Closing proxy server...
+[2026-06-04 22:51:28] [INFO] Stopping Telegram bot...
+[2026-06-04 22:51:28] [INFO] Proxy server closed
+[2026-06-04 22:51:28] [INFO] Telegram bot stopped
+[2026-06-04 22:51:28] [INFO] Telegram bot stopped
+[2026-06-04 22:51:28] [INFO] Stopping heartbeat...
+[2026-06-04 22:51:28] [INFO] Stopping heartbeat manager
+[2026-06-04 22:51:28] [INFO] Heartbeat stopped
+[2026-06-04 22:51:28] [INFO] Disconnecting from cTrader...
+[2026-06-04 22:51:28] [INFO] cTrader disconnected
+[2026-06-04 22:51:28] [INFO] ✅ Graceful shutdown complete
+[2026-06-04 22:51:40] [INFO] Starting Trading Bot...
+[2026-06-04 22:51:40] [INFO] Configuration loaded
+[2026-06-04 22:51:40] [INFO] Connecting to cTrader {"host":"live.ctraderapi.com","port":5035,"accountId":"47520188"}
+[2026-06-04 22:51:41] [INFO] cTrader socket opened
+[2026-06-04 22:51:41] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-06-04 22:51:41] [INFO] Application authenticated {"payloadType":"PROTO_OA_APPLICATION_AUTH_RES","clientMsgId":"f3acc480-6067-11f1-9074-378364fae8d9"}
+[2026-06-04 22:51:41] [INFO] Sending ProtoOAAccountAuthReq {"accessToken":"set","ctidTraderAccountId":"47520188"}
+[2026-06-04 22:51:41] [INFO] Account authenticated {"payloadType":"PROTO_OA_ACCOUNT_AUTH_RES","ctidTraderAccountId":"47520188","clientMsgId":"f3bcf120-6067-11f1-9074-378364fae8d9"}
+[2026-06-04 22:51:41] [INFO] cTrader authentication successful {"accountId":"47520188"}
+[2026-06-04 22:51:41] [INFO] cTrader authenticated - starting proxy and bot
+[2026-06-04 22:51:41] [INFO] Proxy server listening on port 9009
+[2026-06-04 22:51:41] [INFO] Starting heartbeat manager (25s interval, 10s timeout)
+[2026-06-04 22:51:41] [INFO] Telegram bot started
+[2026-06-04 22:51:56] [INFO] Webhook received signal {"rawSignal":"SELL SOLUSD SL=70 TP=64"}
+[2026-06-04 22:51:56] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"SOLUSD","sl":70,"tp":64,"volume":0.1}
+[2026-06-04 22:51:56] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"SOLUSD","sl":70,"tp":64,"volume":0.1}
+[2026-06-04 22:51:56] [INFO] All risk checks passed {"signal":{"direction":"SELL","symbol":"SOLUSD","sl":70,"tp":64,"volume":0.1}}
+[2026-06-04 22:51:56] [INFO] Webhook signal passed risk checks {"direction":"SELL","symbol":"SOLUSD","sl":70,"tp":64,"volume":0.1}
+[2026-06-04 22:51:56] [INFO] TradingView confirmation sent {"signal":{"direction":"SELL","symbol":"SOLUSD","sl":70,"tp":64,"volume":0.1},"messageId":93,"chatId":555334666}
+[2026-06-04 22:51:56] [INFO] Stored TradingView confirmation {"key":"SOLUSD:SELL","signal":{"direction":"SELL","symbol":"SOLUSD","sl":70,"tp":64,"volume":0.1}}
+[2026-06-04 22:52:00] [INFO] Executing TradingView signal from callback {"symbol":"SOLUSD","direction":"SELL","userId":555334666}
+[2026-06-04 22:52:00] [INFO] Retrieved signal for execution {"direction":"SELL","symbol":"SOLUSD","sl":70,"tp":64,"volume":0.1}
+[2026-06-04 22:52:00] [INFO] Executing trade {"symbol":"SOLUSD","direction":"SELL","volume":0.1,"sl":70,"tp":64}
+[2026-06-04 22:52:00] [INFO] Found symbolId {"symbol":"SOLUSD","symbolId":297}
+[2026-06-04 22:52:00] [INFO] Volume conversion {"userVolume":0.1,"lotSize":10000,"ctraderUnits":1000}
+[2026-06-04 22:52:00] [INFO] ProtoOANewOrderReq payload {"payload":"{\"ctidTraderAccountId\":47520188,\"symbolId\":297,\"orderType\":\"MARKET\",\"tradeSide\":\"SELL\",\"volume\":1000,\"timeInForce\":\"IMMEDIATE_OR_CANCEL\"}"}
+[2026-06-04 22:52:00] [INFO] Sending ProtoOANewOrderReq (exact payload): {
+  ctidTraderAccountId: 47520188,
+  symbolId: 297,
+  orderType: 'MARKET',
+  tradeSide: 'SELL',
+  volume: 1000,
+  timeInForce: 'IMMEDIATE_OR_CANCEL'
+}
+[2026-06-04 22:52:00] [INFO] ProtoOANewOrderReq sent {"result":{}}
+[2026-06-04 22:52:00] [INFO] Forwarding ProtoOAExecutionEvent {"eventType":"2126","descriptor":{"payloadType":"PROTO_OA_EXECUTION_EVENT","ctidTraderAccountId":"47520188","executionType":"ORDER_ACCEPTED","position":{"positionId":"7317509","tradeData":{"symbolId":"297","volume":"0","tradeSide":"SELL","openTimestamp":null,"label":null,"guaranteedStopLoss":false,"comment":null},"positionStatus":"POSITION_STATUS_CREATED","swap":"0","price":0,"stopLoss":null,"takeProfit":null,"utcLastUpdateTimestamp":null,"commission":"0","marginRate":0,"mirroringCommission":"0","guaranteedStopLoss":false,"usedMargin":"0","stopLossTriggerMethod":"TRADE","moneyDigits":2,"trailingStopLoss":null},"order":{"orderId":"9561711","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"SELL","openTimestamp":"1780613520464","label":null,"guaranteedStopLoss":false,"comment":null},"orderType":"MARKET","orderStatus":"ORDER_STATUS_ACCEPTED","expirationTimestamp":null,"executionPrice":null,"executedVolume":"0","utcLastUpdateTimestamp":"1780613520464","baseSlippagePrice":null,"slippageInPoints":null,"closingOrder":false,"limitPrice":null,"stopPrice":null,"stopLoss":null,"takeProfit":null,"clientOrderId":"ff2fb290-6067-11f1-9074-378364fae8d9","timeInForce":"IMMEDIATE_OR_CANCEL","positionId":"7317509","relativeStopLoss":null,"relativeTakeProfit":null,"isStopOut":null,"trailingStopLoss":null,"stopTriggerMethod":"TRADE"},"deal":null,"bonusDepositWithdraw":null,"depositWithdraw":null,"errorCode":null,"isServerEvent":false,"clientMsgId":"ff2fb290-6067-11f1-9074-378364fae8d9"},"keys":["payloadType","ctidTraderAccountId","executionType","position","order","deal","bonusDepositWithdraw","depositWithdraw","errorCode","isServerEvent","clientMsgId"]}
+[2026-06-04 22:52:00] [INFO] ProtoOAExecutionEvent received {"executionType":"ORDER_ACCEPTED","positionId":"7317509","price":0}
+[2026-06-04 22:52:00] [INFO] Forwarding ProtoOAExecutionEvent {"eventType":"2126","descriptor":{"payloadType":"PROTO_OA_EXECUTION_EVENT","ctidTraderAccountId":"47520188","executionType":"ORDER_FILLED","position":{"positionId":"7317509","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"SELL","openTimestamp":"1780613520605","label":null,"guaranteedStopLoss":false,"comment":null},"positionStatus":"POSITION_STATUS_OPEN","swap":"0","price":68.08,"stopLoss":null,"takeProfit":null,"utcLastUpdateTimestamp":"1780613520605","commission":"-22","marginRate":68.08,"mirroringCommission":"0","guaranteedStopLoss":false,"usedMargin":"20444","stopLossTriggerMethod":"TRADE","moneyDigits":2,"trailingStopLoss":null},"order":{"orderId":"9561711","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"SELL","openTimestamp":"1780613520464","label":null,"guaranteedStopLoss":false,"comment":null},"orderType":"MARKET","orderStatus":"ORDER_STATUS_FILLED","expirationTimestamp":null,"executionPrice":68.08,"executedVolume":"1000","utcLastUpdateTimestamp":"1780613520605","baseSlippagePrice":null,"slippageInPoints":null,"closingOrder":false,"limitPrice":null,"stopPrice":null,"stopLoss":null,"takeProfit":null,"clientOrderId":"ff2fb290-6067-11f1-9074-378364fae8d9","timeInForce":"IMMEDIATE_OR_CANCEL","positionId":"7317509","relativeStopLoss":null,"relativeTakeProfit":null,"isStopOut":null,"trailingStopLoss":null,"stopTriggerMethod":"TRADE"},"deal":{"dealId":"7949476","orderId":"9561711","positionId":"7317509","volume":"1000","filledVolume":"1000","symbolId":"297","createTimestamp":"1780613520464","executionTimestamp":"1780613520605","utcLastUpdateTimestamp":"1780613520605","executionPrice":68.08,"tradeSide":"SELL","dealStatus":"FILLED","marginRate":68.08,"commission":"-22","baseToUsdConversionRate":68.08,"closePositionDetail":null,"moneyDigits":2},"bonusDepositWithdraw":null,"depositWithdraw":null,"errorCode":null,"isServerEvent":false,"clientMsgId":"ff2fb290-6067-11f1-9074-378364fae8d9"},"keys":["payloadType","ctidTraderAccountId","executionType","position","order","deal","bonusDepositWithdraw","depositWithdraw","errorCode","isServerEvent","clientMsgId"]}
+[2026-06-04 22:52:00] [INFO] ProtoOAExecutionEvent received {"executionType":"ORDER_FILLED","positionId":"7317509","price":68.08}
+[2026-06-04 22:52:00] [INFO] Trade response price extraction {"positionPrice":68.08,"dealExecutionPrice":68.08,"extractedPrice":68.08,"executionType":"ORDER_FILLED"}
+[2026-06-04 22:52:00] [INFO] Trade executed and logged {"positionId":"7317509","entryPrice":68.08}
+[2026-06-04 22:52:00] [INFO] Sending ProtoOAAmendPositionSLTPReq {"positionId":"7317509","symbol":"SOLUSD","sl":70,"tp":64,"clientMsgId":"ff4cd780-6067-11f1-9074-378364fae8d9","payload":"{\"ctidTraderAccountId\":47520188,\"positionId\":7317509,\"stopLoss\":70,\"takeProfit\":64}"}
+[2026-06-04 22:52:00] [INFO] Forwarding ProtoOAExecutionEvent {"eventType":"2126","descriptor":{"payloadType":"PROTO_OA_EXECUTION_EVENT","ctidTraderAccountId":"47520188","executionType":"ORDER_ACCEPTED","position":{"positionId":"7317509","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"SELL","openTimestamp":"1780613520605","label":null,"guaranteedStopLoss":false,"comment":null},"positionStatus":"POSITION_STATUS_OPEN","swap":"0","price":68.08,"stopLoss":70,"takeProfit":64,"utcLastUpdateTimestamp":"1780613520653","commission":"-22","marginRate":68.08,"mirroringCommission":"0","guaranteedStopLoss":false,"usedMargin":"20444","stopLossTriggerMethod":"TRADE","moneyDigits":2,"trailingStopLoss":false},"order":{"orderId":"9561712","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"BUY","openTimestamp":"1780613520653","label":null,"guaranteedStopLoss":false,"comment":null},"orderType":"STOP_LOSS_TAKE_PROFIT","orderStatus":"ORDER_STATUS_ACCEPTED","expirationTimestamp":null,"executionPrice":null,"executedVolume":"0","utcLastUpdateTimestamp":"1780613520653","baseSlippagePrice":null,"slippageInPoints":null,"closingOrder":true,"limitPrice":64,"stopPrice":70,"stopLoss":null,"takeProfit":null,"clientOrderId":"ff4cd780-6067-11f1-9074-378364fae8d9","timeInForce":"GOOD_TILL_CANCEL","positionId":"7317509","relativeStopLoss":null,"relativeTakeProfit":null,"isStopOut":null,"trailingStopLoss":false,"stopTriggerMethod":"TRADE"},"deal":null,"bonusDepositWithdraw":null,"depositWithdraw":null,"errorCode":null,"isServerEvent":false,"clientMsgId":"ff4cd780-6067-11f1-9074-378364fae8d9"},"keys":["payloadType","ctidTraderAccountId","executionType","position","order","deal","bonusDepositWithdraw","depositWithdraw","errorCode","isServerEvent","clientMsgId"]}
+[2026-06-04 22:52:03] [INFO] ProtoOAAmendPositionSLTPReq succeeded {"positionId":"7317509","sl":70,"tp":64}
+[2026-06-04 22:52:03] [INFO] SL/TP amendment succeeded {"positionId":"7317509","slSet":true,"tpSet":true}
+[2026-06-04 22:52:03] [INFO] TradingView trade executed successfully {"positionId":"7317509","openPrice":68.08,"slSet":true,"tpSet":true}
+[2026-06-04 22:52:06] [INFO] Heartbeat sent
+[2026-06-04 22:52:10] [INFO] Forwarding ProtoOAExecutionEvent {"eventType":"2126","descriptor":{"payloadType":"PROTO_OA_EXECUTION_EVENT","ctidTraderAccountId":"47520188","executionType":"ORDER_ACCEPTED","position":{"positionId":"7317509","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"SELL","openTimestamp":"1780613520605","label":null,"guaranteedStopLoss":false,"comment":null},"positionStatus":"POSITION_STATUS_OPEN","swap":"0","price":68.08,"stopLoss":70,"takeProfit":64,"utcLastUpdateTimestamp":"1780613520653","commission":"-22","marginRate":68.08,"mirroringCommission":"0","guaranteedStopLoss":false,"usedMargin":"20444","stopLossTriggerMethod":"TRADE","moneyDigits":2,"trailingStopLoss":false},"order":{"orderId":"9561731","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"BUY","openTimestamp":"1780613530636","label":null,"guaranteedStopLoss":false,"comment":null},"orderType":"MARKET","orderStatus":"ORDER_STATUS_ACCEPTED","expirationTimestamp":null,"executionPrice":null,"executedVolume":"0","utcLastUpdateTimestamp":"1780613530636","baseSlippagePrice":null,"slippageInPoints":null,"closingOrder":true,"limitPrice":null,"stopPrice":null,"stopLoss":null,"takeProfit":null,"clientOrderId":"e1ae613a-8fe6-4a72-938c-2af981f62157","timeInForce":"IMMEDIATE_OR_CANCEL","positionId":"7317509","relativeStopLoss":null,"relativeTakeProfit":null,"isStopOut":null,"trailingStopLoss":null,"stopTriggerMethod":"TRADE"},"deal":null,"bonusDepositWithdraw":null,"depositWithdraw":null,"errorCode":null,"isServerEvent":false,"clientMsgId":"e1ae613a-8fe6-4a72-938c-2af981f62157"},"keys":["payloadType","ctidTraderAccountId","executionType","position","order","deal","bonusDepositWithdraw","depositWithdraw","errorCode","isServerEvent","clientMsgId"]}
+[2026-06-04 22:52:10] [INFO] Forwarding ProtoOAExecutionEvent {"eventType":"2126","descriptor":{"payloadType":"PROTO_OA_EXECUTION_EVENT","ctidTraderAccountId":"47520188","executionType":"ORDER_FILLED","position":{"positionId":"7317509","tradeData":{"symbolId":"297","volume":"0","tradeSide":"SELL","openTimestamp":"1780613520605","label":null,"guaranteedStopLoss":false,"comment":null},"positionStatus":"POSITION_STATUS_CREATED","swap":"0","price":0,"stopLoss":70,"takeProfit":64,"utcLastUpdateTimestamp":"1780613530779","commission":"0","marginRate":0,"mirroringCommission":"0","guaranteedStopLoss":false,"usedMargin":"0","stopLossTriggerMethod":"TRADE","moneyDigits":2,"trailingStopLoss":false},"order":{"orderId":"9561731","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"BUY","openTimestamp":"1780613530636","label":null,"guaranteedStopLoss":false,"comment":null},"orderType":"MARKET","orderStatus":"ORDER_STATUS_FILLED","expirationTimestamp":null,"executionPrice":68.11,"executedVolume":"1000","utcLastUpdateTimestamp":"1780613530779","baseSlippagePrice":null,"slippageInPoints":null,"closingOrder":true,"limitPrice":null,"stopPrice":null,"stopLoss":null,"takeProfit":null,"clientOrderId":"e1ae613a-8fe6-4a72-938c-2af981f62157","timeInForce":"IMMEDIATE_OR_CANCEL","positionId":"7317509","relativeStopLoss":null,"relativeTakeProfit":null,"isStopOut":null,"trailingStopLoss":null,"stopTriggerMethod":"TRADE"},"deal":{"dealId":"7949492","orderId":"9561731","positionId":"7317509","volume":"1000","filledVolume":"1000","symbolId":"297","createTimestamp":"1780613530636","executionTimestamp":"1780613530779","utcLastUpdateTimestamp":"1780613530779","executionPrice":68.11,"tradeSide":"BUY","dealStatus":"FILLED","marginRate":68.11,"commission":"-22","baseToUsdConversionRate":68.11,"closePositionDetail":{"entryPrice":68.08,"grossProfit":"-30","swap":"0","commission":"-44","balance":"2499727","quoteToDepositConversionRate":1,"closedVolume":"1000","balanceVersion":"5","moneyDigits":2,"pnlConversionFee":"0"},"moneyDigits":2},"bonusDepositWithdraw":null,"depositWithdraw":null,"errorCode":null,"isServerEvent":false,"clientMsgId":"e1ae613a-8fe6-4a72-938c-2af981f62157"},"keys":["payloadType","ctidTraderAccountId","executionType","position","order","deal","bonusDepositWithdraw","depositWithdraw","errorCode","isServerEvent","clientMsgId"]}
+[2026-06-04 22:52:10] [INFO] Forwarding ProtoOAExecutionEvent {"eventType":"2126","descriptor":{"payloadType":"PROTO_OA_EXECUTION_EVENT","ctidTraderAccountId":"47520188","executionType":"ORDER_CANCELLED","position":{"positionId":"7317509","tradeData":{"symbolId":"297","volume":"0","tradeSide":"SELL","openTimestamp":"1780613520605","label":null,"guaranteedStopLoss":false,"comment":null},"positionStatus":"POSITION_STATUS_CLOSED","swap":"0","price":0,"stopLoss":null,"takeProfit":null,"utcLastUpdateTimestamp":"1780613530779","commission":"0","marginRate":0,"mirroringCommission":"0","guaranteedStopLoss":false,"usedMargin":"0","stopLossTriggerMethod":"TRADE","moneyDigits":2,"trailingStopLoss":false},"order":{"orderId":"9561712","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"BUY","openTimestamp":"1780613520653","label":null,"guaranteedStopLoss":false,"comment":null},"orderType":"STOP_LOSS_TAKE_PROFIT","orderStatus":"ORDER_STATUS_CANCELLED","expirationTimestamp":null,"executionPrice":null,"executedVolume":"0","utcLastUpdateTimestamp":"1780613530780","baseSlippagePrice":null,"slippageInPoints":null,"closingOrder":true,"limitPrice":64,"stopPrice":70,"stopLoss":null,"takeProfit":null,"clientOrderId":"ff4cd780-6067-11f1-9074-378364fae8d9","timeInForce":"GOOD_TILL_CANCEL","positionId":"7317509","relativeStopLoss":null,"relativeTakeProfit":null,"isStopOut":null,"trailingStopLoss":false,"stopTriggerMethod":"TRADE"},"deal":null,"bonusDepositWithdraw":null,"depositWithdraw":null,"errorCode":null,"isServerEvent":true,"clientMsgId":"e1ae613a-8fe6-4a72-938c-2af981f62157"},"keys":["payloadType","ctidTraderAccountId","executionType","position","order","deal","bonusDepositWithdraw","depositWithdraw","errorCode","isServerEvent","clientMsgId"]}
+[2026-06-04 22:52:16] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:52:31] [INFO] Heartbeat sent
+[2026-06-04 22:52:41] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:52:56] [INFO] Heartbeat sent
+[2026-06-04 22:52:56] [INFO] TradingView confirmation timeout - attempting to edit message {"messageId":93,"chatId":555334666}
+[2026-06-04 22:52:56] [INFO] Edited expired confirmation message
+[2026-06-04 22:53:06] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:53:21] [INFO] Heartbeat sent
+[2026-06-04 22:53:31] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:53:43] [INFO] Webhook received signal {"rawSignal":"SELL SOLUSD SL=70 TP=64"}
+[2026-06-04 22:53:43] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"SOLUSD","sl":70,"tp":64,"volume":0.1}
+[2026-06-04 22:53:43] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"SOLUSD","sl":70,"tp":64,"volume":0.1}
+[2026-06-04 22:53:43] [INFO] All risk checks passed {"signal":{"direction":"SELL","symbol":"SOLUSD","sl":70,"tp":64,"volume":0.1}}
+[2026-06-04 22:53:43] [INFO] Webhook signal passed risk checks {"direction":"SELL","symbol":"SOLUSD","sl":70,"tp":64,"volume":0.1}
+[2026-06-04 22:53:43] [INFO] TradingView confirmation sent {"signal":{"direction":"SELL","symbol":"SOLUSD","sl":70,"tp":64,"volume":0.1},"messageId":94,"chatId":555334666}
+[2026-06-04 22:53:43] [INFO] Stored TradingView confirmation {"key":"SOLUSD:SELL","signal":{"direction":"SELL","symbol":"SOLUSD","sl":70,"tp":64,"volume":0.1}}
+[2026-06-04 22:53:46] [INFO] Heartbeat sent
+[2026-06-04 22:53:47] [INFO] Executing TradingView signal from callback {"symbol":"SOLUSD","direction":"SELL","userId":555334666}
+[2026-06-04 22:53:47] [INFO] Retrieved signal for execution {"direction":"SELL","symbol":"SOLUSD","sl":70,"tp":64,"volume":0.1}
+[2026-06-04 22:53:47] [INFO] Executing trade {"symbol":"SOLUSD","direction":"SELL","volume":0.1,"sl":70,"tp":64}
+[2026-06-04 22:53:47] [INFO] Found symbolId {"symbol":"SOLUSD","symbolId":297}
+[2026-06-04 22:53:47] [INFO] Volume conversion {"userVolume":0.1,"lotSize":10000,"ctraderUnits":1000}
+[2026-06-04 22:53:47] [INFO] ProtoOANewOrderReq payload {"payload":"{\"ctidTraderAccountId\":47520188,\"symbolId\":297,\"orderType\":\"MARKET\",\"tradeSide\":\"SELL\",\"volume\":1000,\"timeInForce\":\"IMMEDIATE_OR_CANCEL\"}"}
+[2026-06-04 22:53:47] [INFO] Sending ProtoOANewOrderReq (exact payload): {
+  ctidTraderAccountId: 47520188,
+  symbolId: 297,
+  orderType: 'MARKET',
+  tradeSide: 'SELL',
+  volume: 1000,
+  timeInForce: 'IMMEDIATE_OR_CANCEL'
+}
+[2026-06-04 22:53:47] [INFO] ProtoOANewOrderReq sent {"result":{}}
+[2026-06-04 22:53:47] [INFO] Forwarding ProtoOAExecutionEvent {"eventType":"2126","descriptor":{"payloadType":"PROTO_OA_EXECUTION_EVENT","ctidTraderAccountId":"47520188","executionType":"ORDER_ACCEPTED","position":{"positionId":"7317569","tradeData":{"symbolId":"297","volume":"0","tradeSide":"SELL","openTimestamp":null,"label":null,"guaranteedStopLoss":false,"comment":null},"positionStatus":"POSITION_STATUS_CREATED","swap":"0","price":0,"stopLoss":null,"takeProfit":null,"utcLastUpdateTimestamp":null,"commission":"0","marginRate":0,"mirroringCommission":"0","guaranteedStopLoss":false,"usedMargin":"0","stopLossTriggerMethod":"TRADE","moneyDigits":2,"trailingStopLoss":null},"order":{"orderId":"9561797","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"SELL","openTimestamp":"1780613627079","label":null,"guaranteedStopLoss":false,"comment":null},"orderType":"MARKET","orderStatus":"ORDER_STATUS_ACCEPTED","expirationTimestamp":null,"executionPrice":null,"executedVolume":"0","utcLastUpdateTimestamp":"1780613627079","baseSlippagePrice":null,"slippageInPoints":null,"closingOrder":false,"limitPrice":null,"stopPrice":null,"stopLoss":null,"takeProfit":null,"clientOrderId":"3ebc5030-6068-11f1-9074-378364fae8d9","timeInForce":"IMMEDIATE_OR_CANCEL","positionId":"7317569","relativeStopLoss":null,"relativeTakeProfit":null,"isStopOut":null,"trailingStopLoss":null,"stopTriggerMethod":"TRADE"},"deal":null,"bonusDepositWithdraw":null,"depositWithdraw":null,"errorCode":null,"isServerEvent":false,"clientMsgId":"3ebc5030-6068-11f1-9074-378364fae8d9"},"keys":["payloadType","ctidTraderAccountId","executionType","position","order","deal","bonusDepositWithdraw","depositWithdraw","errorCode","isServerEvent","clientMsgId"]}
+[2026-06-04 22:53:47] [INFO] ProtoOAExecutionEvent received {"executionType":"ORDER_ACCEPTED","positionId":"7317569","price":0}
+[2026-06-04 22:53:47] [INFO] Forwarding ProtoOAExecutionEvent {"eventType":"2126","descriptor":{"payloadType":"PROTO_OA_EXECUTION_EVENT","ctidTraderAccountId":"47520188","executionType":"ORDER_FILLED","position":{"positionId":"7317569","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"SELL","openTimestamp":"1780613627212","label":null,"guaranteedStopLoss":false,"comment":null},"positionStatus":"POSITION_STATUS_OPEN","swap":"0","price":68.07,"stopLoss":null,"takeProfit":null,"utcLastUpdateTimestamp":"1780613627212","commission":"-22","marginRate":68.08,"mirroringCommission":"0","guaranteedStopLoss":false,"usedMargin":"20444","stopLossTriggerMethod":"TRADE","moneyDigits":2,"trailingStopLoss":null},"order":{"orderId":"9561797","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"SELL","openTimestamp":"1780613627079","label":null,"guaranteedStopLoss":false,"comment":null},"orderType":"MARKET","orderStatus":"ORDER_STATUS_FILLED","expirationTimestamp":null,"executionPrice":68.07,"executedVolume":"1000","utcLastUpdateTimestamp":"1780613627212","baseSlippagePrice":null,"slippageInPoints":null,"closingOrder":false,"limitPrice":null,"stopPrice":null,"stopLoss":null,"takeProfit":null,"clientOrderId":"3ebc5030-6068-11f1-9074-378364fae8d9","timeInForce":"IMMEDIATE_OR_CANCEL","positionId":"7317569","relativeStopLoss":null,"relativeTakeProfit":null,"isStopOut":null,"trailingStopLoss":null,"stopTriggerMethod":"TRADE"},"deal":{"dealId":"7949544","orderId":"9561797","positionId":"7317569","volume":"1000","filledVolume":"1000","symbolId":"297","createTimestamp":"1780613627079","executionTimestamp":"1780613627212","utcLastUpdateTimestamp":"1780613627212","executionPrice":68.07,"tradeSide":"SELL","dealStatus":"FILLED","marginRate":68.08,"commission":"-22","baseToUsdConversionRate":68.08,"closePositionDetail":null,"moneyDigits":2},"bonusDepositWithdraw":null,"depositWithdraw":null,"errorCode":null,"isServerEvent":false,"clientMsgId":"3ebc5030-6068-11f1-9074-378364fae8d9"},"keys":["payloadType","ctidTraderAccountId","executionType","position","order","deal","bonusDepositWithdraw","depositWithdraw","errorCode","isServerEvent","clientMsgId"]}
+[2026-06-04 22:53:47] [INFO] ProtoOAExecutionEvent received {"executionType":"ORDER_FILLED","positionId":"7317569","price":68.07}
+[2026-06-04 22:53:47] [INFO] Trade response price extraction {"positionPrice":68.07,"dealExecutionPrice":68.07,"extractedPrice":68.07,"executionType":"ORDER_FILLED"}
+[2026-06-04 22:53:47] [INFO] Trade executed and logged {"positionId":"7317569","entryPrice":68.07}
+[2026-06-04 22:53:47] [INFO] Sending ProtoOAAmendPositionSLTPReq {"positionId":"7317569","symbol":"SOLUSD","sl":70,"tp":64,"clientMsgId":"3ed88ac0-6068-11f1-9074-378364fae8d9","payload":"{\"ctidTraderAccountId\":47520188,\"positionId\":7317569,\"stopLoss\":70,\"takeProfit\":64}"}
+[2026-06-04 22:53:47] [INFO] Forwarding ProtoOAExecutionEvent {"eventType":"2126","descriptor":{"payloadType":"PROTO_OA_EXECUTION_EVENT","ctidTraderAccountId":"47520188","executionType":"ORDER_ACCEPTED","position":{"positionId":"7317569","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"SELL","openTimestamp":"1780613627212","label":null,"guaranteedStopLoss":false,"comment":null},"positionStatus":"POSITION_STATUS_OPEN","swap":"0","price":68.07,"stopLoss":70,"takeProfit":64,"utcLastUpdateTimestamp":"1780613627265","commission":"-22","marginRate":68.08,"mirroringCommission":"0","guaranteedStopLoss":false,"usedMargin":"20444","stopLossTriggerMethod":"TRADE","moneyDigits":2,"trailingStopLoss":false},"order":{"orderId":"9561798","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"BUY","openTimestamp":"1780613627265","label":null,"guaranteedStopLoss":false,"comment":null},"orderType":"STOP_LOSS_TAKE_PROFIT","orderStatus":"ORDER_STATUS_ACCEPTED","expirationTimestamp":null,"executionPrice":null,"executedVolume":"0","utcLastUpdateTimestamp":"1780613627265","baseSlippagePrice":null,"slippageInPoints":null,"closingOrder":true,"limitPrice":64,"stopPrice":70,"stopLoss":null,"takeProfit":null,"clientOrderId":"3ed88ac0-6068-11f1-9074-378364fae8d9","timeInForce":"GOOD_TILL_CANCEL","positionId":"7317569","relativeStopLoss":null,"relativeTakeProfit":null,"isStopOut":null,"trailingStopLoss":false,"stopTriggerMethod":"TRADE"},"deal":null,"bonusDepositWithdraw":null,"depositWithdraw":null,"errorCode":null,"isServerEvent":false,"clientMsgId":"3ed88ac0-6068-11f1-9074-378364fae8d9"},"keys":["payloadType","ctidTraderAccountId","executionType","position","order","deal","bonusDepositWithdraw","depositWithdraw","errorCode","isServerEvent","clientMsgId"]}
+[2026-06-04 22:53:50] [INFO] ProtoOAAmendPositionSLTPReq succeeded {"positionId":"7317569","sl":70,"tp":64}
+[2026-06-04 22:53:50] [INFO] SL/TP amendment succeeded {"positionId":"7317569","slSet":true,"tpSet":true}
+[2026-06-04 22:53:50] [INFO] TradingView trade executed successfully {"positionId":"7317569","openPrice":68.07,"slSet":true,"tpSet":true}
+[2026-06-04 22:53:56] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:53:59] [INFO] Forwarding ProtoOAExecutionEvent {"eventType":"2126","descriptor":{"payloadType":"PROTO_OA_EXECUTION_EVENT","ctidTraderAccountId":"47520188","executionType":"ORDER_ACCEPTED","position":{"positionId":"7317569","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"SELL","openTimestamp":"1780613627212","label":null,"guaranteedStopLoss":false,"comment":null},"positionStatus":"POSITION_STATUS_OPEN","swap":"0","price":68.07,"stopLoss":70,"takeProfit":64,"utcLastUpdateTimestamp":"1780613627265","commission":"-22","marginRate":68.08,"mirroringCommission":"0","guaranteedStopLoss":false,"usedMargin":"20444","stopLossTriggerMethod":"TRADE","moneyDigits":2,"trailingStopLoss":false},"order":{"orderId":"9561820","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"BUY","openTimestamp":"1780613639136","label":null,"guaranteedStopLoss":false,"comment":null},"orderType":"MARKET","orderStatus":"ORDER_STATUS_ACCEPTED","expirationTimestamp":null,"executionPrice":null,"executedVolume":"0","utcLastUpdateTimestamp":"1780613639136","baseSlippagePrice":null,"slippageInPoints":null,"closingOrder":true,"limitPrice":null,"stopPrice":null,"stopLoss":null,"takeProfit":null,"clientOrderId":"5881c80b-181a-4305-9f69-f586af9c1cb3","timeInForce":"IMMEDIATE_OR_CANCEL","positionId":"7317569","relativeStopLoss":null,"relativeTakeProfit":null,"isStopOut":null,"trailingStopLoss":null,"stopTriggerMethod":"TRADE"},"deal":null,"bonusDepositWithdraw":null,"depositWithdraw":null,"errorCode":null,"isServerEvent":false,"clientMsgId":"5881c80b-181a-4305-9f69-f586af9c1cb3"},"keys":["payloadType","ctidTraderAccountId","executionType","position","order","deal","bonusDepositWithdraw","depositWithdraw","errorCode","isServerEvent","clientMsgId"]}
+[2026-06-04 22:53:59] [INFO] Forwarding ProtoOAExecutionEvent {"eventType":"2126","descriptor":{"payloadType":"PROTO_OA_EXECUTION_EVENT","ctidTraderAccountId":"47520188","executionType":"ORDER_FILLED","position":{"positionId":"7317569","tradeData":{"symbolId":"297","volume":"0","tradeSide":"SELL","openTimestamp":"1780613627212","label":null,"guaranteedStopLoss":false,"comment":null},"positionStatus":"POSITION_STATUS_CREATED","swap":"0","price":0,"stopLoss":70,"takeProfit":64,"utcLastUpdateTimestamp":"1780613639268","commission":"0","marginRate":0,"mirroringCommission":"0","guaranteedStopLoss":false,"usedMargin":"0","stopLossTriggerMethod":"TRADE","moneyDigits":2,"trailingStopLoss":false},"order":{"orderId":"9561820","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"BUY","openTimestamp":"1780613639136","label":null,"guaranteedStopLoss":false,"comment":null},"orderType":"MARKET","orderStatus":"ORDER_STATUS_FILLED","expirationTimestamp":null,"executionPrice":68.17,"executedVolume":"1000","utcLastUpdateTimestamp":"1780613639268","baseSlippagePrice":null,"slippageInPoints":null,"closingOrder":true,"limitPrice":null,"stopPrice":null,"stopLoss":null,"takeProfit":null,"clientOrderId":"5881c80b-181a-4305-9f69-f586af9c1cb3","timeInForce":"IMMEDIATE_OR_CANCEL","positionId":"7317569","relativeStopLoss":null,"relativeTakeProfit":null,"isStopOut":null,"trailingStopLoss":null,"stopTriggerMethod":"TRADE"},"deal":{"dealId":"7949566","orderId":"9561820","positionId":"7317569","volume":"1000","filledVolume":"1000","symbolId":"297","createTimestamp":"1780613639136","executionTimestamp":"1780613639268","utcLastUpdateTimestamp":"1780613639268","executionPrice":68.17,"tradeSide":"BUY","dealStatus":"FILLED","marginRate":68.17,"commission":"-22","baseToUsdConversionRate":68.17,"closePositionDetail":{"entryPrice":68.07,"grossProfit":"-100","swap":"0","commission":"-44","balance":"2499583","quoteToDepositConversionRate":1,"closedVolume":"1000","balanceVersion":"6","moneyDigits":2,"pnlConversionFee":"0"},"moneyDigits":2},"bonusDepositWithdraw":null,"depositWithdraw":null,"errorCode":null,"isServerEvent":false,"clientMsgId":"5881c80b-181a-4305-9f69-f586af9c1cb3"},"keys":["payloadType","ctidTraderAccountId","executionType","position","order","deal","bonusDepositWithdraw","depositWithdraw","errorCode","isServerEvent","clientMsgId"]}
+[2026-06-04 22:53:59] [INFO] Forwarding ProtoOAExecutionEvent {"eventType":"2126","descriptor":{"payloadType":"PROTO_OA_EXECUTION_EVENT","ctidTraderAccountId":"47520188","executionType":"ORDER_CANCELLED","position":{"positionId":"7317569","tradeData":{"symbolId":"297","volume":"0","tradeSide":"SELL","openTimestamp":"1780613627212","label":null,"guaranteedStopLoss":false,"comment":null},"positionStatus":"POSITION_STATUS_CLOSED","swap":"0","price":0,"stopLoss":null,"takeProfit":null,"utcLastUpdateTimestamp":"1780613639268","commission":"0","marginRate":0,"mirroringCommission":"0","guaranteedStopLoss":false,"usedMargin":"0","stopLossTriggerMethod":"TRADE","moneyDigits":2,"trailingStopLoss":false},"order":{"orderId":"9561798","tradeData":{"symbolId":"297","volume":"1000","tradeSide":"BUY","openTimestamp":"1780613627265","label":null,"guaranteedStopLoss":false,"comment":null},"orderType":"STOP_LOSS_TAKE_PROFIT","orderStatus":"ORDER_STATUS_CANCELLED","expirationTimestamp":null,"executionPrice":null,"executedVolume":"0","utcLastUpdateTimestamp":"1780613639269","baseSlippagePrice":null,"slippageInPoints":null,"closingOrder":true,"limitPrice":64,"stopPrice":70,"stopLoss":null,"takeProfit":null,"clientOrderId":"3ed88ac0-6068-11f1-9074-378364fae8d9","timeInForce":"GOOD_TILL_CANCEL","positionId":"7317569","relativeStopLoss":null,"relativeTakeProfit":null,"isStopOut":null,"trailingStopLoss":false,"stopTriggerMethod":"TRADE"},"deal":null,"bonusDepositWithdraw":null,"depositWithdraw":null,"errorCode":null,"isServerEvent":true,"clientMsgId":"5881c80b-181a-4305-9f69-f586af9c1cb3"},"keys":["payloadType","ctidTraderAccountId","executionType","position","order","deal","bonusDepositWithdraw","depositWithdraw","errorCode","isServerEvent","clientMsgId"]}
+[2026-06-04 22:54:00] [INFO] Forwarding ProtoOAExecutionEvent {"eventType":"2126","descriptor":{"payloadType":"PROTO_OA_EXECUTION_EVENT","ctidTraderAccountId":"47520188","executionType":"ORDER_ACCEPTED","position":{"positionId":"7317345","tradeData":{"symbolId":"323","volume":"10","tradeSide":"SELL","openTimestamp":"1780613237979","label":null,"guaranteedStopLoss":false,"comment":null},"positionStatus":"POSITION_STATUS_OPEN","swap":"0","price":1757.11,"stopLoss":null,"takeProfit":null,"utcLastUpdateTimestamp":"1780613237979","commission":"-6","marginRate":1757.11,"mirroringCommission":"0","guaranteedStopLoss":false,"usedMargin":"5277","stopLossTriggerMethod":"TRADE","moneyDigits":2,"trailingStopLoss":null},"order":{"orderId":"9561821","tradeData":{"symbolId":"323","volume":"10","tradeSide":"BUY","openTimestamp":"1780613640125","label":null,"guaranteedStopLoss":false,"comment":null},"orderType":"MARKET","orderStatus":"ORDER_STATUS_ACCEPTED","expirationTimestamp":null,"executionPrice":null,"executedVolume":"0","utcLastUpdateTimestamp":"1780613640125","baseSlippagePrice":null,"slippageInPoints":null,"closingOrder":true,"limitPrice":null,"stopPrice":null,"stopLoss":null,"takeProfit":null,"clientOrderId":"79f95ebd-f2fc-402a-8133-106df1927413","timeInForce":"IMMEDIATE_OR_CANCEL","positionId":"7317345","relativeStopLoss":null,"relativeTakeProfit":null,"isStopOut":null,"trailingStopLoss":null,"stopTriggerMethod":"TRADE"},"deal":null,"bonusDepositWithdraw":null,"depositWithdraw":null,"errorCode":null,"isServerEvent":false,"clientMsgId":"79f95ebd-f2fc-402a-8133-106df1927413"},"keys":["payloadType","ctidTraderAccountId","executionType","position","order","deal","bonusDepositWithdraw","depositWithdraw","errorCode","isServerEvent","clientMsgId"]}
+[2026-06-04 22:54:00] [INFO] Forwarding ProtoOAExecutionEvent {"eventType":"2126","descriptor":{"payloadType":"PROTO_OA_EXECUTION_EVENT","ctidTraderAccountId":"47520188","executionType":"ORDER_FILLED","position":{"positionId":"7317345","tradeData":{"symbolId":"323","volume":"0","tradeSide":"SELL","openTimestamp":"1780613237979","label":null,"guaranteedStopLoss":false,"comment":null},"positionStatus":"POSITION_STATUS_CLOSED","swap":"0","price":0,"stopLoss":null,"takeProfit":null,"utcLastUpdateTimestamp":"1780613640277","commission":"0","marginRate":0,"mirroringCommission":"0","guaranteedStopLoss":false,"usedMargin":"0","stopLossTriggerMethod":"TRADE","moneyDigits":2,"trailingStopLoss":null},"order":{"orderId":"9561821","tradeData":{"symbolId":"323","volume":"10","tradeSide":"BUY","openTimestamp":"1780613640125","label":null,"guaranteedStopLoss":false,"comment":null},"orderType":"MARKET","orderStatus":"ORDER_STATUS_FILLED","expirationTimestamp":null,"executionPrice":1763.02,"executedVolume":"10","utcLastUpdateTimestamp":"1780613640277","baseSlippagePrice":null,"slippageInPoints":null,"closingOrder":true,"limitPrice":null,"stopPrice":null,"stopLoss":null,"takeProfit":null,"clientOrderId":"79f95ebd-f2fc-402a-8133-106df1927413","timeInForce":"IMMEDIATE_OR_CANCEL","positionId":"7317345","relativeStopLoss":null,"relativeTakeProfit":null,"isStopOut":null,"trailingStopLoss":null,"stopTriggerMethod":"TRADE"},"deal":{"dealId":"7949567","orderId":"9561821","positionId":"7317345","volume":"10","filledVolume":"10","symbolId":"323","createTimestamp":"1780613640125","executionTimestamp":"1780613640277","utcLastUpdateTimestamp":"1780613640277","executionPrice":1763.02,"tradeSide":"BUY","dealStatus":"FILLED","marginRate":1763.02,"commission":"-6","baseToUsdConversionRate":1763.02,"closePositionDetail":{"entryPrice":1757.11,"grossProfit":"-59","swap":"0","commission":"-12","balance":"2499512","quoteToDepositConversionRate":1,"closedVolume":"10","balanceVersion":"7","moneyDigits":2,"pnlConversionFee":"0"},"moneyDigits":2},"bonusDepositWithdraw":null,"depositWithdraw":null,"errorCode":null,"isServerEvent":false,"clientMsgId":"79f95ebd-f2fc-402a-8133-106df1927413"},"keys":["payloadType","ctidTraderAccountId","executionType","position","order","deal","bonusDepositWithdraw","depositWithdraw","errorCode","isServerEvent","clientMsgId"]}
+[2026-06-04 22:54:11] [INFO] Heartbeat sent
+[2026-06-04 22:54:21] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-04 22:54:36] [INFO] Heartbeat sent
+[2026-06-04 22:54:43] [INFO] TradingView confirmation timeout - attempting to edit message {"messageId":94,"chatId":555334666}
+[2026-06-04 22:54:43] [INFO] Edited expired confirmation message
+[2026-06-04 22:54:46] [WARN] Heartbeat timeout - marking connection as stale
