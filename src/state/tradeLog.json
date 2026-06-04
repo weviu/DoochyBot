@@ -1,1 +1,99 @@
-[]
+[
+  {
+    "symbol": "BTCUSD",
+    "direction": "BUY",
+    "volume": 0.01,
+    "sl": 64000,
+    "tp": 87000,
+    "openTime": "2026-06-01 10:03:57",
+    "status": "open"
+  },
+  {
+    "symbol": "BTCUSD",
+    "direction": "BUY",
+    "volume": 1,
+    "sl": 64000,
+    "tp": 87000,
+    "positionId": "7186038",
+    "openTime": "2026-06-01 10:15:19",
+    "status": "open"
+  },
+  {
+    "symbol": "BTCUSD",
+    "direction": "SELL",
+    "volume": 1,
+    "positionId": "7186941",
+    "openTime": "2026-06-01 10:16:45",
+    "status": "open"
+  },
+  {
+    "symbol": "BTCUSD",
+    "direction": "BUY",
+    "volume": 1,
+    "positionId": "7187961",
+    "openTime": "2026-06-01 10:18:11",
+    "status": "open"
+  },
+  {
+    "symbol": "BTCUSD",
+    "direction": "SELL",
+    "volume": 1,
+    "positionId": "7188497",
+    "openTime": "2026-06-01 10:19:03",
+    "status": "open",
+    "entryPrice": 1.16486
+  },
+  {
+    "symbol": "BTCUSD",
+    "direction": "BUY",
+    "volume": 1,
+    "positionId": "7188686",
+    "openTime": "2026-06-01 10:19:39",
+    "status": "open",
+    "sl": 64000,
+    "tp": 87000,
+    "entryPrice": 1.16487
+  },
+  {
+    "symbol": "BTCUSD",
+    "direction": "SELL",
+    "volume": 1,
+    "positionId": "7188702",
+    "openTime": "2026-06-01 10:19:42",
+    "status": "open",
+    "entryPrice": 1.16486
+  },
+  {
+    "symbol": "BTCUSD",
+    "direction": "BUY",
+    "volume": 0.01,
+    "positionId": "7241447",
+    "openTime": "2026-06-02 11:17:08",
+    "status": "open",
+    "sl": 64000,
+    "tp": 67000,
+    "entryPrice": 1.16445
+  },
+  {
+    "symbol": "BTCUSD",
+    "direction": "BUY",
+    "volume": 0.01,
+    "positionId": "7241688",
+    "openTime": "2026-06-02 11:32:35",
+    "status": "open",
+    "sl": 64000,
+    "tp": 67000,
+    "entryPrice": 69401
+  },
+  {
+    "symbol": "BTCUSD",
+    "direction": "BUY",
+    "volume": 0.01,
+    "positionId": "7241734",
+    "openTime": "2026-06-02 11:34:41",
+    "status": "open",
+    "sl": 64000,
+    "tp": 70000,
+    "entryPrice": 69390.55
+  }
+]

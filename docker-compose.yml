@@ -26,6 +26,7 @@ services:
     volumes:
       # Persist state files and logs
       - ./data:/app/data
+      - ./src/state:/app/src/state
       # Keep node_modules in container (don't mount from host)
       # This prevents node_modules from being overwritten on Windows/Mac
     

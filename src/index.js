@@ -42,6 +42,11 @@ async function main() {
 
     logger.info('Configuration loaded');
 
+    // Variables for later cleanup (declared outside try block for shutdown access)
+    let proxy = null;
+    let heartbeat = null;
+    let bot = null;
+
     // 2. Create cTrader connection
     const connection = new ConnectionManager(config.ctrader);
 
@@ -57,11 +62,6 @@ async function main() {
 
     // 4. Start cTrader connection
     await connection.connect();
-
-    // Variables for later cleanup
-    let proxy = null;
-    let heartbeat = null;
-    let bot = null;
 
     async function startProxyAndBot() {
       try {

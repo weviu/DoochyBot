@@ -161,10 +161,12 @@ class TelegramBot {
   setupCallbackHandler() {
     this.bot.on('callback_query', async (ctx) => {
       const data = ctx.callbackQuery.data;
+      const chatId = ctx.chat.id;
+      const messageId = ctx.callbackQuery.message.message_id;
 
       if (data === 'cancel') {
         await ctx.answerCallbackQuery('Cancelled');
-        await ctx.editMessageText('❌ Trade cancelled');
+        await this.bot.api.editMessageText(chatId, messageId, '❌ Trade cancelled');
         return;
       }
 
@@ -221,7 +223,9 @@ class TelegramBot {
 
             logger.info('Trade executed successfully', result.data);
             await ctx.answerCallbackQuery('✅ Trade executed');
-            await ctx.editMessageText(
+            await this.bot.api.editMessageText(
+              chatId,
+              messageId,
               `✅ Executed\n` +
               `${signal.direction} ${signal.volume} ${signal.symbol}\n` +
               `Order #${result.data.orderId}`
@@ -229,7 +233,7 @@ class TelegramBot {
           } else {
             logger.error('Trade execution failed', { error: result.error });
             await ctx.answerCallbackQuery('❌ Execution failed');
-            await ctx.editMessageText(`❌ Failed: ${result.error}`);
+            await this.bot.api.editMessageText(chatId, messageId, `❌ Failed: ${result.error}`);
           }
         } catch (err) {
           logger.error('Error executing callback', { error: err.message });
@@ -241,7 +245,7 @@ class TelegramBot {
       if (data === 'tv_cancel') {
         try {
           await ctx.answerCallbackQuery('Cancelled');
-          await ctx.editMessageText('❌ TradingView signal cancelled by user');
+          await this.bot.api.editMessageText(chatId, messageId, '❌ TradingView signal cancelled by user');
           logger.info('TradingView signal cancelled', { userId: ctx.from.id });
         } catch (err) {
           logger.error('Error cancelling TradingView signal', { error: err.message });
@@ -262,7 +266,7 @@ class TelegramBot {
           const confirmation = this.getTVConfirmation(symbol, direction);
           if (!confirmation) {
             await ctx.answerCallbackQuery('Confirmation expired or not found');
-            await ctx.editMessageText('❌ Trade confirmation expired. Please send signal again.');
+            await this.bot.api.editMessageText(chatId, messageId, '❌ Trade confirmation expired. Please send signal again.');
             return;
           }
 
@@ -301,7 +305,9 @@ class TelegramBot {
 
             logger.info('TradingView trade executed successfully', result.data);
             await ctx.answerCallbackQuery('✅ Trade executed');
-            await ctx.editMessageText(
+            await this.bot.api.editMessageText(
+              chatId,
+              messageId,
               `✅ TradingView Trade Executed\n` +
               `${direction} ${signal.volume} ${symbol}\n` +
               `Entry: ${result.data.openPrice}\n` +
@@ -310,13 +316,13 @@ class TelegramBot {
           } else {
             logger.error('TradingView trade execution failed', { error: result.error });
             await ctx.answerCallbackQuery('❌ Execution failed');
-            await ctx.editMessageText(`❌ Execution failed: ${result.error || 'Unknown error'}`);
+            await this.bot.api.editMessageText(chatId, messageId, `❌ Execution failed: ${result.error || 'Unknown error'}`);
           }
         } catch (err) {
           logger.error('Error executing TradingView callback', { error: err.message, stack: err.stack });
           await ctx.answerCallbackQuery('❌ Error executing trade');
           try {
-            await ctx.editMessageText(`❌ Error: ${err.message}`);
+            await this.bot.api.editMessageText(chatId, messageId, `❌ Error: ${err.message}`);
           } catch (editErr) {
             logger.error('Failed to edit error message', { error: editErr.message });
           }

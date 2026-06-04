@@ -40,6 +40,39 @@ class ConnectionManager extends EventEmitter {
         port: this.port
       });
 
+      // Forward all events from the underlying connection to this manager
+      // This allows listeners on ConnectionManager to receive CTrader events
+      this.connection.on('ProtoOAExecutionEvent', (event) => {
+        // CTraderLayerEvent wraps payload in descriptor getter
+        const descriptor = event.descriptor || {};
+        logger.info('Forwarding ProtoOAExecutionEvent', {
+          eventType: event.type,
+          descriptor: descriptor,
+          keys: Object.keys(descriptor)
+        });
+        this.emit('ProtoOAExecutionEvent', descriptor);
+      });
+
+      this.connection.on('ProtoOAOrderErrorEvent', (event) => {
+        // CTraderLayerEvent wraps payload in descriptor getter
+        const descriptor = event.descriptor || {};
+        logger.info('Forwarding ProtoOAOrderErrorEvent', {
+          eventType: event.type,
+          descriptor: descriptor,
+          keys: Object.keys(descriptor)
+        });
+        this.emit('ProtoOAOrderErrorEvent', descriptor);
+      });
+
+      this.connection.on('ProtoOATradeStatusEvent', (event) => {
+        const descriptor = event.descriptor || {};
+        logger.info('Forwarding ProtoOATradeStatusEvent', {
+          eventType: event.type,
+          descriptor: descriptor
+        });
+        this.emit('ProtoOATradeStatusEvent', descriptor);
+      });
+
       // Wait for socket to open (TCP connection established)
       await this.connection.open();
       logger.info('cTrader socket opened');
@@ -55,7 +88,8 @@ class ConnectionManager extends EventEmitter {
       logger.info('cTrader authentication successful', { accountId: this.accountId });
       this.emit('authenticated');
     } catch (err) {
-      logger.error('Failed to connect to cTrader', { error: err.message });
+      const errDetail = err?.message || JSON.stringify(err, null, 2) || String(err);
+      logger.error('Failed to connect to cTrader', { error: errDetail, raw: err });
       this.scheduleReconnect();
     }
   }
@@ -78,18 +112,30 @@ class ConnectionManager extends EventEmitter {
   }
 
   async authenticateAccount() {
-    logger.info('Sending ProtoOAAccountAuthReq');
+    logger.info('Sending ProtoOAAccountAuthReq', {
+      accessToken: this.accessToken ? 'set' : 'missing',
+      ctidTraderAccountId: this.accountId
+    });
     
     try {
+      // Note: cTrader uses 'ctidTraderAccountId' for the account ID field
+      // Must be sent as integer, not string
       const response = await this.connection.sendCommand('ProtoOAAccountAuthReq', {
         accessToken: this.accessToken,
-        accountId: parseInt(this.accountId)
+        ctidTraderAccountId: parseInt(this.accountId)
       });
       
       logger.info('Account authenticated', response);
       return response;
     } catch (err) {
-      logger.error('Account auth failed', { error: err.message });
+      const descriptor = err?.descriptor || err?.payload || {};
+      logger.error('Account auth failed', {
+        message: err.message,
+        descriptor,
+        errorCode: descriptor.errorCode,
+        description: descriptor.description,
+        raw: JSON.stringify(err)
+      });
       throw err;
     }
   }

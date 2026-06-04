@@ -40,7 +40,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:9009/health', (r) => { if (r.statusCode !== 200) throw new Error(r.statusCode); })" || exit 1
 
 # Use dumb-init to handle signals properly (important for graceful shutdown)
-ENTRYPOINT ["/usr/sbin/dumb-init", "--"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
 # Start bot
 CMD ["npm", "start"]

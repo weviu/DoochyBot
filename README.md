@@ -1,372 +1,123 @@
-  Automated Trading Bot with TradingView Integration
+# ctraderLayer
 
-A production-ready Node.js trading bot that connects to cTrader's Open API, receives trading signals from TradingView, and executes trades with Telegram confirmations.
-
-Features:
--  REST API proxy to cTrader Open API (port )
--  TradingView webhook integration for automated signals
--  Telegram bot with user confirmations and controls
--  Risk management with -point validation system
--  Graceful shutdown with proper cleanup
--  Production-ready with PM and Docker support
--  Real-time position tracking and P&L calculation
+A Node.js trading bot that connects TradingView signals → Telegram confirmation → cTrader execution via the cTrader Open API (WebSocket).
 
 ---
 
-  Table of Contents
+## Architecture
 
-- [Quick Start](quick-start)
-- [System Architecture](system-architecture)
-- [Installation](installation)
-- [Configuration](configuration)
-- [Usage](usage)
-- [TradingView Integration](tradingview-integration)
-- [API Endpoints](api-endpoints)
-- [Telegram Commands](telegram-commands)
-- [Deployment](deployment)
-- [Troubleshooting](troubleshooting)
+```
+TradingView Alert
+      │
+      ▼ POST /webhook
+Express Proxy (port 9009)
+      │                    │
+      ▼                    ▼
+cTrader Open API      Telegram Bot
+(WebSocket/TLS)       (grammY, polling)
+live.ctraderapi.com:5035
+```
+
+**Key files:**
+
+| File | Role |
+|------|------|
+| `src/index.js` | Entry point — loads config, starts connection, then proxy+bot |
+| `src/proxy/connection.js` | WebSocket manager, event forwarding, reconnect logic |
+| `src/proxy/server.js` | Express HTTP server |
+| `src/proxy/routes/trade.js` | POST /trade — market order + SL/TP amendment |
+| `src/proxy/amendPosition.js` | Sends ProtoOAAmendPositionSLTPReq after fill |
+| `src/proxy/heartbeat.js` | 25s keep-alive pings |
+| `src/bot/bot.js` | Telegram bot (grammY) |
+| `src/state/tradeLog.json` | Trade history (JSON array) |
+| `data/bot.log` | Application log |
 
 ---
 
-  Quick Start
+## Setup
 
- Prerequisites
-- Node.js v+
-- npm or yarn
-- cTrader Open API credentials
-- Telegram Bot Token
-- Public domain with SSL (for webhooks)
-
- Installation
+### 1. Install
 
 ```bash
- Clone repository
-git clone <repo-url>
-cd ctraderLayer
-
- Install dependencies
-npm install
-
- Copy environment template
-cp .env.example .env
-
- Edit configuration
-nano .env
-
- Start bot (test mode - no cTrader needed)
-node src/index-test.js
-
- Or production mode (with cTrader)
-npm start
-```
-
- First Run Checklist
-
-- [ ] Update `.env` with your credentials
-- [ ] Send `/setchatid` in Telegram to register
-- [ ] Test webhook: `node test-webhook.js "BUY BTCUSD SL= TP="`
-- [ ] View positions: `cat data/positions.json | jq .`
-- [ ] Check logs: `tail -f data/bot.log`
-
----
-
-  System Architecture
-
-```
-
-                   TradingView Alert                 
-              Sends: BUY BTCUSD SL= TP=   
-
-                          POST /webhook
-                         ↓
-
-         nginx Reverse Proxy (aprhunter.route.com)  
-                    Port  (HTTPS)                 
-
-                          http://localhost:
-                         ↓
-
-          Express Proxy Server (Port )           
-  • Webhook receiver                                 
-  • Risk gate validation                             
-  • Telegram confirmation sender                     
-  • REST API endpoints                               
-
-                                     
-           
-          cTrader API        Telegram Bot    
-          Port           (grammY)        
-          WebSocket                          
-           
-        
-State Files:
- settings.json (config, chatId, symbols)
- positions.json (open trades)
- tradeLog.json (execution history)
-```
-
----
-
-  Installation
-
- . Clone & Setup
-
-```bash
-git clone <repo-url>
-cd ctraderLayer
 npm install
 ```
 
- . Environment Variables
-
-Create `.env` file:
+### 2. Configure `.env`
 
 ```env
- cTrader Configuration
-CTRADER_HOST=demo.ctraderapi.com
-CTRADER_PORT=
+CTRADER_HOST=live.ctraderapi.com
+CTRADER_PORT=5035
+
 CLIENT_ID=your_client_id
 CLIENT_SECRET=your_client_secret
 ACCESS_TOKEN=your_access_token
 REFRESH_TOKEN=your_refresh_token
-ACCOUNT_ID=your_account_id
+ACCOUNT_ID=47483124          # internal account ID — see note below
 
- Proxy Server
-PROXY_PORT=
+PROXY_PORT=9009
 
- Telegram Bot
 TELEGRAM_BOT_TOKEN=your_bot_token
-ALLOWED_USERS=user_id_,user_id_
+ALLOWED_USERS=123456789,987654321
 
- Environment
 NODE_ENV=production
 ```
 
- . Initial Data Files
+> **ACCOUNT_ID is the internal cTrader ID, not the display ID.**
+> The display ID shown in the cTrader UI (e.g. 17124220) is different.
+> Run `node lookup-account-id.js` to find the correct internal ID for any access token.
 
-Bot creates automatically:
-```
-data/
- settings.json        Trading configuration
- positions.json       Open positions
- tradeLog.json        Trade history
- bot.log             Application logs
-```
-
----
-
-  Configuration
-
- settings.json
-
-```json
-{
-  "paused": false,
-  "chatId": ,
-  "allowedSymbols": ["BTCUSD", "XAUUSD", "XAGUSD"],
-  "symbolLotSizes": {
-    "BTCUSD": .,
-    "XAUUSD": .,
-    "XAGUSD": .
-  },
-  "maxPositions": ,
-  "maxTotalExposure": ,
-  "dailyLossLimit": ,
-  "blackoutTimes": []
-}
-```
-
- Update Settings via Telegram
-
-```
-/symbols                            List allowed symbols
-/symbols add ETHUSDT .           Add new symbol
-/symbols remove XAGUSD             Remove symbol
-/risk daily                       Set % daily loss limit
-/risk size BTCUSD .            Set lot size for BTCUSD
-/pause                             Pause trading (block new signals)
-/resume                            Resume trading
-```
-
----
-
-  Usage
-
- Test Mode (No cTrader Required)
-
-Perfect for testing TradingView integration:
-
-```bash
-node src/index-test.js
-```
-
-Output:
-```
- Proxy running on port 
- Telegram bot active
- TEST MODE: Mock connection (trades simulated)
-```
-
- Production Mode (Real cTrader)
+### 3. Start
 
 ```bash
 npm start
 ```
 
-Logs will show:
-```
- Connecting to cTrader...
- Authenticated to cTrader
- Starting heartbeat (s interval)
- Telegram bot connected
-```
+---
 
- Test Webhook Signal
+## Utility Scripts
+
+### Find internal account ID
 
 ```bash
-node test-webhook.js "BUY BTCUSD SL= TP="
+node lookup-account-id.js
 ```
 
-Expected response:
+Connects, authenticates, and prints all accounts linked to the current `ACCESS_TOKEN` with their internal `ctidTraderAccountId`.
+
+### Find symbol IDs for an account
+
+```bash
+node lookup-symbols.js
 ```
- Signal received
- Checking risk gates...
- Sending Telegram confirmation...
-⏱ Waiting  seconds for user approval
-```
+
+Prints all symbols available on the account. Symbol IDs vary per broker — always verify after switching accounts.
 
 ---
 
-  TradingView Integration
+## API Endpoints
 
- Setup Steps
+All on `http://localhost:9009`.
 
-Step : Register Your Telegram Chat
+### Health check
 
-In Telegram, send to your bot:
-```
-/setchatid
-```
-
-Response: " Chat ID saved!"
-
-Step : Create TradingView Alert
-
-. Go to your TradingView chart
-. Create/edit your strategy
-. Add alert with:
-   - Webhook URL: `https://aprhunter.route.com/webhook`
-   - Message: `BUY BTCUSD SL= TP=`
-. Set alert to fire on your conditions
-
-Step : Confirm Execution
-
-When alert fires:
-. Telegram sends confirmation message with Execute/Cancel buttons
-. Click Execute to place trade
-. -second timeout (after that, confirmation expires)
-
- Signal Format
-
-```
-{DIRECTION} {SYMBOL} SL={PRICE} [TP={PRICE}]
-```
-
-Valid Directions: `BUY`, `SELL`, `LONG`, `SHORT`
-
-Examples:
-```
-BUY BTCUSD SL= TP=
-SELL XAUUSD SL=
-LONG EURUSD SL=.
-SHORT GBPUSD SL=. TP=.
-```
-
- Pine Script Example
-
-```pine
-//@version=
-strategy("My Trading Strategy", overlay=true)
-
-// Your strategy logic here
-if longCondition
-    alertMessage = "BUY BTCUSD SL= TP="
-    strategy.entry("Long", strategy.long)
-    alert(alertMessage)
-
-if shortCondition
-    alertMessage = "SELL BTCUSD SL= TP="
-    strategy.entry("Short", strategy.short)
-    alert(alertMessage)
-```
-
----
-
-  API Endpoints
-
-All endpoints on `https://aprhunter.route.com` (or `http://localhost:` locally)
-
- Health Check
 ```bash
 GET /health
 ```
 
-Response:
-```json
-{
-  "success": true,
-  "data": {
-    "connected": true,
-    "authenticated": true,
-    "accountId": ""
-  }
-}
-```
+### Account balance
 
- Get Account Balance
 ```bash
 GET /balance
 ```
 
-Response:
-```json
-{
-  "success": true,
-  "data": {
-    "equity": ,
-    "margin": ,
-    "freeMargin": ,
-    "usedMargin": 
-  }
-}
-```
+### Open positions
 
- Get Open Positions
 ```bash
 GET /positions
 ```
 
-Response:
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "positionId": ,
-      "symbol": "BTCUSD",
-      "direction": "BUY",
-      "volume": .,
-      "entryPrice": ,
-      "currentPrice": ,
-      "pnl": ,
-      "stopLoss": ,
-      "takeProfit": 
-    }
-  ]
-}
-```
+### Execute trade
 
- Execute Trade
 ```bash
 POST /trade
 Content-Type: application/json
@@ -374,376 +125,169 @@ Content-Type: application/json
 {
   "symbol": "BTCUSD",
   "direction": "BUY",
-  "volume": .,
-  "sl": ,
-  "tp": 
+  "volume": 0.01,
+  "sl": 67000,
+  "tp": 72000
 }
 ```
 
- Close Position
-```bash
-POST /close/{positionId}
+Response (success):
+```json
+{
+  "success": true,
+  "data": {
+    "positionId": "7241688",
+    "openPrice": 69401,
+    "slSet": true,
+    "tpSet": true
+  }
+}
 ```
 
- Close All Positions
+Response (trade filled, but SL/TP rejected):
+```json
+{
+  "success": true,
+  "data": {
+    "positionId": "7241688",
+    "openPrice": 69401,
+    "slSet": false,
+    "tpSet": false,
+    "slError": "New TP for BUY position should be >= current BID price..."
+  }
+}
+```
+
+**SL/TP rules for MARKET orders:**
+- cTrader does not allow SL/TP on MARKET order requests
+- They are set via `ProtoOAAmendPositionSLTPReq` after `ORDER_FILLED`
+- For BUY: SL must be below entry price, TP must be above entry price
+- For SELL: SL must be above entry price, TP must be below entry price
+
+### Close position
+
+```bash
+POST /close/:positionId
+```
+
+### Close all positions
+
 ```bash
 POST /closeall
 ```
 
- TradingView Webhook
+### TradingView webhook
+
 ```bash
 POST /webhook
-Content-Type: text/plain
+Content-Type: application/json
 
-BUY BTCUSD SL= TP=
+{ "symbol": "BTCUSD", "direction": "BUY", "volume": 0.01, "sl": 67000, "tp": 72000 }
 ```
 
 ---
 
-  Telegram Commands
+## Symbol Reference
 
-| Command | Purpose | Example |
-|---------|---------|---------|
-| `/start` | Welcome message | `/start` |
-| `/help` | Show all commands | `/help` |
-| `/setchatid` | Register your chat (do this first!) | `/setchatid` |
-| `/status` | Account status & daily P&L | `/status` |
-| `/balance` | Show equity/margin | `/balance` |
-| `/positions` | List open trades | `/positions` |
-| `/pause` | Disable new signals | `/pause` |
-| `/resume` | Enable signals | `/resume` |
-| `/symbols` | List allowed symbols | `/symbols` |
-| `/symbols add COIN SIZE` | Add symbol | `/symbols add ETHUSDT .` |
-| `/symbols remove COIN` | Remove symbol | `/symbols remove XAGUSD` |
-| `/risk daily PCT` | Set daily loss limit | `/risk daily ` |
-| `/risk size COIN VOL` | Set lot size | `/risk size BTCUSD .` |
-| `/closeall` | Close all positions | `/closeall` |
-| `/tv` | TradingView setup guide | `/tv` |
+Verified on FTMO live account 47483124. Run `node lookup-symbols.js` when switching accounts.
+
+| Symbol | cTrader ID | Lot Size | Min vol | Max vol |
+|--------|-----------|----------|---------|---------|
+| EURUSD | 1 | 10,000,000 | 0.01 lot | very large |
+| GBPUSD | 2 | 10,000,000 | 0.01 lot | very large |
+| USDJPY | 4 | 10,000,000 | 0.01 lot | very large |
+| AUDUSD | 5 | 10,000,000 | 0.01 lot | very large |
+| USDCHF | 6 | 10,000,000 | 0.01 lot | very large |
+| USDCAD | 8 | 10,000,000 | 0.01 lot | very large |
+| NZDUSD | 12 | 10,000,000 | 0.01 lot | very large |
+| XAUUSD / GOLD | 41 | 10,000 | 0.01 lot | very large |
+| USOIL / OIL | 273 | 10,000 | 0.01 lot | 100 lots |
+| ETHUSD | 323 | 1,000 | 0.01 lot | 5 lots |
+| BTCUSD | 324 | 100 | 0.01 lot | 5 lots |
+
+**Volume conversion:** `protocol_volume = user_lots × lot_size`
+
+Example — BTCUSD 0.01 lots:
+```
+0.01 × 100 = 1 protocol unit  →  cTrader displays as 0.01
+```
 
 ---
 
-  Deployment
+## cTrader API Quirks
 
- Option : PM (Recommended for Production)
+These caused bugs and are documented here to prevent regressions.
 
-```bash
- Install PM globally
-npm install -g pm
-
- Start bot with PM
-pm start ecosystem.config.js
-
- View logs
-pm logs DoochyBot
-
- Monitor
-pm monit
-
- Stop
-pm stop DoochyBot
-
- Auto-restart on reboot
-pm startup
-pm save
+### 1. Event wrapper
+Events from the library arrive wrapped in a `CTraderLayerEvent` with non-enumerable properties. Always extract via `.descriptor`:
+```javascript
+const descriptor = event.descriptor || {};
 ```
 
- Option : Docker
-
-```bash
- Build image
-docker build -t trading-bot .
-
- Run container
-docker run -d \
-  --name trading-bot \
-  -p : \
-  -v $(pwd)/data:/app/data \
-  --env-file .env \
-  trading-bot
-
- View logs
-docker logs -f trading-bot
-
- Stop
-docker stop trading-bot
+### 2. Account ID as string
+`ctidTraderAccountId` in events arrives as a **string**, even though it looks like a number.
+Always compare with `String()`:
+```javascript
+String(event.ctidTraderAccountId) === String(connection.accountId)
 ```
 
- Option : Docker Compose
+### 3. No SL/TP on MARKET orders
+```
+Error: "SL/TP in absolute values are allowed only for order types: [LIMIT, STOP, STOP_LIMIT]"
+```
+Use `ProtoOAAmendPositionSLTPReq` after `ORDER_FILLED`. See `src/proxy/amendPosition.js`.
+
+### 4. Amendment has no response type
+`ProtoOAAmendPositionSLTPReq` has no matching `...Res`. The library auto-resolves it with `{}`.
+Errors come back as `ProtoOAOrderErrorEvent` carrying the original `clientMsgId`.
+The amendment module passes a custom `clientMsgId` and listens for an error event matching it for 3 seconds — silence = success.
+
+### 5. ORDER_ACCEPTED vs ORDER_FILLED
+- `ORDER_ACCEPTED`: position exists but `price = 0`
+- `ORDER_FILLED`: has actual `executionPrice`
+
+Always wait for `ORDER_FILLED` before capturing entry price or running amendment.
+
+### 6. Register listeners before sending
+Events can arrive before the `sendCommand` async returns. Register listeners first:
+```javascript
+connection.on('ProtoOAExecutionEvent', handler);  // first
+await connection.connection.sendCommand('ProtoOANewOrderReq', payload);  // then
+```
+
+### 7. Heartbeat timeouts are non-critical
+Logs show `[WARN] Heartbeat timeout` periodically. cTrader does not respond to heartbeat pings. Trades execute normally despite these warnings.
+
+---
+
+## Deployment
+
+### PM2
 
 ```bash
- Start
+pm2 start ecosystem.config.js
+pm2 logs
+pm2 monit
+```
+
+### Docker Compose
+
+```bash
 docker-compose up -d
-
- Logs
 docker-compose logs -f
-
- Stop
-docker-compose down
 ```
+
+The `.env.docker` file is used by Docker Compose.
 
 ---
 
-  Security Considerations
-
- Before Production:
-
-- [ ] Use strong Telegram bot token
-- [ ] Restrict `/setchatid` to authenticated users only
-- [ ] Use HTTPS only (nginx with SSL )
-- [ ] Keep `.env` secret (never commit to git)
-- [ ] Use IP whitelisting if possible
-- [ ] Monitor webhook access logs
-- [ ] Set rate limits on `/webhook` endpoint
-
- Production Checklist:
+## Logs
 
 ```bash
- Set proper file permissions
-chmod  .env
-chmod  data/
-
- Use environment variables, not .env in production
-export CTRADER_HOST=...
-export CLIENT_ID=...
- ... etc
-
- Run with PM
-pm start ecosystem.config.js --env production
+tail -f data/bot.log
 ```
 
----
-
-  Troubleshooting
-
- Webhook Returns  Bad Gateway
-
-Problem: `https://aprhunter.route.com/webhook` returns 
-
-Solutions:
-. Check bot is running: `curl http://localhost:/health`
-. Verify nginx config: `sudo nginx -t`
-. Check logs: `sudo tail - /var/log/nginx/error.log`
-. Restart nginx: `sudo systemctl restart nginx`
-
- No Telegram Confirmation Appearing
-
-Problem: Webhook receives signal but no Telegram message
-
-Solutions:
-. Check `/setchatid` was sent: `cat data/settings.json | grep chatId`
-. If empty, send `/setchatid` in Telegram
-. Verify bot token is correct in `.env`
-. Check logs: `tail -f data/bot.log | grep -i telegram`
-
- "Unsupported symbol" Error
-
-Problem: Signal rejected because symbol not in whitelist
-
-Solutions:
+Trade history:
 ```bash
- Add symbol via Telegram
-/symbols add ETHUSDT .
-
- Or edit settings.json directly
-cat data/settings.json | jq .allowedSymbols
+cat src/state/tradeLog.json
 ```
-
- Connection Refused on Port 
-
-Problem: `curl http://localhost:/health` fails
-
-Solutions:
-```bash
- Check if bot is running
-ps aux | grep "node src"
-
- Check if port is in use
-lsof -i :
-
- Start bot
-npm start
- or
-node src/index-test.js
-```
-
- cTrader Authentication Fails
-
-Problem: Logs show "Application auth failed"
-
-Solutions:
-. Verify credentials in `.env`
-. Check account ID is correct
-. Confirm API access is approved
-. Test with test mode: `node src/index-test.js`
-
- -Second Timeout Too Short
-
-Problem: Not enough time to click confirmation button
-
-Solution: Modify in `src/bot/confirm.js` line :
-```javascript
-const timeout = ; // Change to  for  minutes
-```
-
----
-
-  File Structure
-
-```
-ctraderLayer/
- src/
-    index.js               Main entry point
-    index-test.js          Test mode (no cTrader)
-    proxy/
-       server.js          Express HTTP server
-       connection.js      cTrader connection manager
-       heartbeat.js       Keep-alive heartbeats
-       routes/
-           health.js
-           balance.js
-           positions.js
-           trade.js
-           close.js
-           webhook.js     TradingView receiver
-    bot/
-       bot.js             Telegram bot (grammY)
-       instance.js        Bot instance holder
-       parser.js          Signal parser
-       riskGate.js        Risk validation
-       confirm.js         TradingView confirmation
-       commands/          Telegram command handlers
-    utils/
-        logger.js          File + console logging
- data/
-    settings.json          Configuration (runtime)
-    positions.json         Open trades
-    tradeLog.json          Trade history
-    bot.log               Application logs
- docs/
-    TRADINGVIEW-SETUP.md   TradingView integration guide
-    TRADINGVIEW-QUICK.md   Quick reference
-    TEST-WEBHOOK.md        Testing guide
-    DEPLOYMENT.md          Deployment options
- .env                       Environment variables (secret!)
- .env.example              Template
- .gitignore                Git ignore rules
- package.json              Dependencies
- package-lock.json         Lock file
- ecosystem.config.js       PM configuration
- Dockerfile                Container image
- docker-compose.yml        Docker orchestration
- test-webhook.js           CLI webhook tester
- README.md                This file
-```
-
----
-
-  Documentation
-
-- [TRADINGVIEW-SETUP.md](docs/TRADINGVIEW-SETUP.md) - Complete TradingView integration guide
-- [TRADINGVIEW-QUICK.md](docs/TRADINGVIEW-QUICK.md) - Quick reference card
-- [TEST-WEBHOOK.md](docs/TEST-WEBHOOK.md) - Testing procedures
-- [DEPLOYMENT.md](docs/DEPLOYMENT.md) - Production deployment options
-
----
-
-  Risk Management
-
-The bot validates signals through  sequential checks before execution:
-
-. Paused Check - Is trading paused?
-. Symbol Whitelist - Is symbol allowed?
-. Weekend Check - No trading on weekends
-. Blackout Times - Outside restricted hours?
-. Max Positions - Under position limit?
-. Max Exposure - Under exposure limit?
-. Daily Loss - Not exceeded daily loss limit?
-. Duplicate - Not duplicate signal within s?
-
-If any check fails, the signal is rejected and user is notified.
-
----
-
-  Development
-
- Local Development
-
-```bash
- Install dev dependencies
-npm install --save-dev nodemon
-
- Run with auto-reload
-npx nodemon src/index-test.js
-
- Test mode allows full development without cTrader
-```
-
- Adding New Commands
-
-Create file `src/bot/commands/mycommand.js`:
-
-```javascript
-const logger = require('../../utils/logger');
-
-module.exports = () => {
-  return async (ctx) => {
-    try {
-      await ctx.reply('Hello from mycommand!');
-      logger.info('My command executed');
-    } catch (err) {
-      logger.error('My command error', { error: err.message });
-      await ctx.reply(` Error: ${err.message}`);
-    }
-  };
-};
-```
-
-Register in `src/bot/bot.js`:
-
-```javascript
-const myCmd = require('./commands/mycommand');
-this.bot.command('mycommand', myCmd());
-```
-
----
-
-  Support
-
-Issues?
-. Check logs: `tail -f data/bot.log`
-. Read [Troubleshooting](troubleshooting)
-. Check documentation files in `docs/`
-. Verify `.env` configuration
-
-Common Issues:
-- See [Troubleshooting](troubleshooting) section above
-
----
-
-  License
-
-MIT License - See LICENSE file for details
-
----
-
-  Quick Demo
-
-```bash
- . Start bot in test mode
-node src/index-test.js
-
- . In another terminal, send a test signal
-node test-webhook.js "BUY BTCUSD SL= TP="
-
- . In Telegram, you'll see confirmation (if /setchatid was sent)
- . Click Execute or Cancel
-
- . Check the position was saved
-cat data/positions.json | jq .
-```
-
----
-
-Made with  for automated trading
-
-Questions? Check the `/tv` command in Telegram for setup help!
