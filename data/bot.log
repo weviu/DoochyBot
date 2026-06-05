@@ -5787,3 +5787,6 @@
 [2026-06-05 00:05:27] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"SELL","symbol":"ETHUSD","sl":1774,"tp":1721,"volume":0.01},"reason":"Max open positions (8) reached"}
 [2026-06-05 00:05:42] [INFO] Heartbeat sent
 [2026-06-05 00:05:52] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-05 00:06:07] [INFO] Heartbeat sent
+[2026-06-05 00:06:17] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-05 00:06:32] [INFO] Heartbeat sent
