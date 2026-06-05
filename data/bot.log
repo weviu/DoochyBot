@@ -5722,3 +5722,54 @@
 [2026-06-05 00:02:10] [INFO] Heartbeat sent
 [2026-06-05 00:02:20] [WARN] Heartbeat timeout - marking connection as stale
 [2026-06-05 00:02:35] [INFO] Heartbeat sent
+[2026-06-05 00:02:45] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-05 00:03:00] [INFO] Heartbeat sent
+[2026-06-05 00:03:10] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-05 00:03:25] [INFO] Heartbeat sent
+[2026-06-05 00:03:31] [INFO] Webhook received signal {"rawSignal":"SELL BNBUSD SL=607.25 TP=587.78"}
+[2026-06-05 00:03:31] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"BNBUSD","sl":607.25,"tp":587.78,"volume":0.1}
+[2026-06-05 00:03:31] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"BNBUSD","sl":607.25,"tp":587.78,"volume":0.1}
+[2026-06-05 00:03:31] [WARN] Risk check failed: max positions {"signal":{"direction":"SELL","symbol":"BNBUSD","sl":607.25,"tp":587.78,"volume":0.1},"current":8}
+[2026-06-05 00:03:31] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"SELL","symbol":"BNBUSD","sl":607.25,"tp":587.78,"volume":0.1},"reason":"Max open positions (8) reached"}
+[2026-06-05 00:03:34] [INFO] Received SIGTERM - initiating graceful shutdown...
+[2026-06-05 00:03:34] [INFO] Closing proxy server...
+[2026-06-05 00:03:34] [INFO] Stopping Telegram bot...
+[2026-06-05 00:03:34] [INFO] Proxy server closed
+[2026-06-05 00:03:34] [INFO] ✅ Bot fully operational
+[2026-06-05 00:03:34] [INFO] 📊 Proxy running on port 9009
+[2026-06-05 00:03:34] [INFO] 🤖 Telegram bot active
+[2026-06-05 00:03:34] [INFO] 💰 Account: 47520188
+[2026-06-05 00:03:34] [INFO] Received SIGTERM - initiating graceful shutdown...
+[2026-06-05 00:03:34] [INFO] Closing proxy server...
+[2026-06-05 00:03:34] [INFO] Stopping Telegram bot...
+[2026-06-05 00:03:34] [INFO] Proxy server closed
+[2026-06-05 00:03:34] [INFO] Telegram bot stopped
+[2026-06-05 00:03:34] [INFO] Telegram bot stopped
+[2026-06-05 00:03:34] [INFO] Stopping heartbeat...
+[2026-06-05 00:03:34] [INFO] Stopping heartbeat manager
+[2026-06-05 00:03:34] [INFO] Heartbeat stopped
+[2026-06-05 00:03:34] [INFO] Disconnecting from cTrader...
+[2026-06-05 00:03:34] [INFO] cTrader disconnected
+[2026-06-05 00:03:34] [INFO] ✅ Graceful shutdown complete
+[2026-06-05 00:03:36] [INFO] Starting Trading Bot...
+[2026-06-05 00:03:36] [INFO] Configuration loaded
+[2026-06-05 00:03:36] [INFO] Connecting to cTrader {"host":"live.ctraderapi.com","port":5035,"accountId":"47520188"}
+[2026-06-05 00:03:36] [INFO] cTrader socket opened
+[2026-06-05 00:03:36] [INFO] Sending ProtoOAApplicationAuthReq
+[2026-06-05 00:03:36] [INFO] Application authenticated {"payloadType":"PROTO_OA_APPLICATION_AUTH_RES","clientMsgId":"00188060-6072-11f1-8530-bf38b75a0921"}
+[2026-06-05 00:03:36] [INFO] Sending ProtoOAAccountAuthReq {"accessToken":"set","ctidTraderAccountId":"47520188"}
+[2026-06-05 00:03:37] [INFO] Account authenticated {"payloadType":"PROTO_OA_ACCOUNT_AUTH_RES","ctidTraderAccountId":"47520188","clientMsgId":"0021cf30-6072-11f1-8530-bf38b75a0921"}
+[2026-06-05 00:03:37] [INFO] cTrader authentication successful {"accountId":"47520188"}
+[2026-06-05 00:03:37] [INFO] cTrader authenticated - starting proxy and bot
+[2026-06-05 00:03:37] [INFO] Proxy server listening on port 9009
+[2026-06-05 00:03:37] [INFO] Starting heartbeat manager (25s interval, 10s timeout)
+[2026-06-05 00:03:37] [INFO] Telegram bot started
+[2026-06-05 00:04:02] [INFO] Heartbeat sent
+[2026-06-05 00:04:12] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-05 00:04:27] [INFO] Heartbeat sent
+[2026-06-05 00:04:34] [INFO] Message not a valid signal {"text":"BUY BTC","error":"Stop loss (SL) is required. Format: SL=65000"}
+[2026-06-05 00:04:37] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-05 00:04:43] [INFO] Message not a valid signal {"text":"BUY BTCUSD","error":"Stop loss (SL) is required. Format: SL=65000"}
+[2026-06-05 00:04:51] [ERROR] Positions command error {"error":"Cannot read properties of undefined (reading 'toFixed')"}
+[2026-06-05 00:04:52] [INFO] Heartbeat sent
+[2026-06-05 00:05:02] [WARN] Heartbeat timeout - marking connection as stale
