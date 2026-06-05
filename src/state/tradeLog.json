@@ -150,5 +150,38 @@
     "sl": 69.9645,
     "tp": 68.072,
     "entryPrice": 68.12
+  },
+  {
+    "symbol": "ETHUSD",
+    "direction": "SELL",
+    "volume": 0.01,
+    "positionId": "7318131",
+    "openTime": "2026-06-04 23:30:27",
+    "status": "open",
+    "sl": 1830,
+    "tp": 1760,
+    "entryPrice": 1760.8
+  },
+  {
+    "symbol": "BNBUSD",
+    "direction": "BUY",
+    "volume": 0.1,
+    "positionId": "7318164",
+    "openTime": "2026-06-04 23:32:02",
+    "status": "open",
+    "sl": 588.67,
+    "tp": 604.48,
+    "entryPrice": 602.7
+  },
+  {
+    "symbol": "BNBUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7318246",
+    "openTime": "2026-06-04 23:40:43",
+    "status": "open",
+    "sl": 606.9,
+    "tp": 591.04,
+    "entryPrice": 604.14
   }
 ]

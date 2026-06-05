@@ -10,46 +10,19 @@ module.exports = (connection) => {
         });
       }
 
-      // Send ProtoOAPositionListReq
-      if (connection.connection.sendCommand && typeof connection.connection.sendCommand === 'function') {
-        await connection.connection.sendCommand('ProtoOAPositionListReq', {
-          accountId: connection.accountId
-        });
-      } else {
-        await connection.connection.send({
-          type: 'ProtoOAPositionListReq',
-          accountId: connection.accountId
-        });
-      }
-
-      // Wait for response
-      const response = await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Position list timeout'));
-        }, 5000);
-
-        const handler = (msg) => {
-          if (msg.type === 'ProtoOAPositionListRes') {
-            clearTimeout(timeout);
-            connection.removeListener('message', handler);
-            resolve(msg);
-          }
-        };
-
-        connection.on('message', handler);
+      const response = await connection.connection.sendCommand('ProtoOAReconcileReq', {
+        ctidTraderAccountId: parseInt(connection.accountId)
       });
 
-      const positions = (response.positions || []).map(pos => ({
+      const positions = (response.position || []).map(pos => ({
         positionId: pos.positionId,
-        symbol: pos.symbol,
-        direction: pos.direction, // BUY or SELL
-        volume: pos.volume,
-        openPrice: pos.openPrice,
-        currentPrice: pos.currentPrice,
+        symbolId: pos.tradeData?.symbolId,
+        direction: pos.tradeData?.tradeSide,
+        volume: pos.tradeData?.volume,
+        openPrice: pos.price,
         sl: pos.stopLoss,
         tp: pos.takeProfit,
-        pnl: pos.pnl,
-        openTime: pos.openTime
+        openTime: pos.tradeData?.openTimestamp
       }));
 
       res.json({

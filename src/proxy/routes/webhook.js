@@ -1,12 +1,13 @@
 const logger = require('../../utils/logger');
 const { parseSignal } = require('../../bot/parser');
-const { checkRisks, loadSettings } = require('../../bot/riskGate');
-const { sendConfirmation, sendAlert, executeTradingViewTrade } = require('../../bot/confirm');
+const { checkRisks, loadSettings, loadPositions, loadTradeLog } = require('../../bot/riskGate');
+const { sendConfirmation, sendAlert, sendReversalAlert, sendReversalRejected, executeTradingViewTrade } = require('../../bot/confirm');
+const { checkReversal } = require('../../bot/reversalGuard');
+const fetch = require('node-fetch');
 
 module.exports = (connection) => {
   return async (req, res) => {
     try {
-      // req.body should be raw text string like "BUY BTCUSD SL=65000 TP=67000"
       const rawSignal = req.body;
 
       if (!rawSignal || typeof rawSignal !== 'string') {
@@ -49,7 +50,77 @@ module.exports = (connection) => {
       const settings = loadSettings();
 
       if (settings.requireConfirmation === false) {
-        // Auto-execute and send alert
+        // ── Reversal detection ─────────────────────────────────────────────
+        const openPositions = loadPositions();
+        const conflicting = openPositions.filter(
+          p => p.symbol === signal.symbol && p.direction !== signal.direction
+        );
+
+        if (conflicting.length > 0) {
+          const tradeHistory = loadTradeLog();
+
+          // Enrich the first conflicting position with openTime from tradeLog
+          const firstConflict = conflicting[0];
+          const logEntry = tradeHistory.find(e => String(e.positionId) === String(firstConflict.positionId));
+          const enrichedPosition = { ...firstConflict, openTime: logEntry ? logEntry.openTime : null };
+
+          const reversalCheck = checkReversal(enrichedPosition, signal, tradeHistory);
+
+          if (!reversalCheck.allowed) {
+            logger.warn('Reversal rejected', { symbol: signal.symbol, reason: reversalCheck.reason });
+            await sendReversalRejected(signal, reversalCheck.reason);
+            return res.status(403).json({ success: false, reason: reversalCheck.reason });
+          }
+
+          // Reversal approved — close all conflicting positions
+          logger.info('Reversal approved', {
+            symbol: signal.symbol,
+            closing: conflicting.map(p => p.positionId)
+          });
+
+          for (const pos of conflicting) {
+            try {
+              const closeRes = await fetch(`http://localhost:9009/close/${pos.positionId}`, {
+                method: 'POST'
+              });
+              const closeData = await closeRes.json();
+              if (!closeData.success) {
+                logger.warn('Close failed during reversal', {
+                  positionId: pos.positionId,
+                  error: closeData.error
+                });
+              } else {
+                logger.info('Closed position for reversal', { positionId: pos.positionId });
+              }
+            } catch (closeErr) {
+              logger.error('Error closing position during reversal', {
+                positionId: pos.positionId,
+                error: closeErr.message
+              });
+            }
+          }
+
+          // Let the close settle before opening the new position
+          await new Promise(r => setTimeout(r, 1000));
+
+          // Execute the new trade with reversal metadata
+          const reversalMeta = {
+            type: 'reversal',
+            closedPositionId: conflicting[0].positionId,
+            reversalReason: 'Stronger opposite signal'
+          };
+
+          const result = await executeTradingViewTrade(signal, reversalMeta);
+          await sendReversalAlert(signal, conflicting, result);
+
+          return res.json({
+            success: result.success,
+            message: result.success ? 'Reversal executed' : `Reversal failed: ${result.error}`,
+            data: result.data
+          });
+        }
+
+        // ── Normal auto-execute (no conflicting position) ─────────────────
         const result = await executeTradingViewTrade(signal);
         await sendAlert(signal, result);
         return res.json({
@@ -59,7 +130,7 @@ module.exports = (connection) => {
         });
       }
 
-      // Send Telegram confirmation
+      // ── Manual confirmation flow ───────────────────────────────────────────
       try {
         await sendConfirmation(signal);
 

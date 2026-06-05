@@ -28,7 +28,7 @@ module.exports = () => {
 
       await ctx.reply(enable
         ? '✅ Confirmation enabled — signals will require approval before executing'
-        : '⚡ Confirmation disabled — signals will auto-execute and send an alert'
+        : '⚡️ Confirmation disabled. signals will auto execute'
       );
       logger.info('Confirmation setting updated', { requireConfirmation: enable });
     } catch (err) {

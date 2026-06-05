@@ -10,43 +10,20 @@ module.exports = (connection) => {
         });
       }
 
-      // Send ProtoOAAccountInfoReq to get balance info
-      if (connection.connection.sendCommand && typeof connection.connection.sendCommand === 'function') {
-        await connection.connection.sendCommand('ProtoOAAccountInfoReq', {
-          accountId: connection.accountId
-        });
-      } else {
-        await connection.connection.send({
-          type: 'ProtoOAAccountInfoReq',
-          accountId: connection.accountId
-        });
-      }
-
-      // Wait for response with timeout
-      const response = await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Account info timeout'));
-        }, 5000);
-
-        const handler = (msg) => {
-          if (msg.type === 'ProtoOAAccountInfoRes') {
-            clearTimeout(timeout);
-            connection.removeListener('message', handler);
-            resolve(msg);
-          }
-        };
-
-        connection.on('message', handler);
+      const response = await connection.connection.sendCommand('ProtoOATraderReq', {
+        ctidTraderAccountId: parseInt(connection.accountId)
       });
+
+      const trader = response.trader || {};
+      // balance is stored as integer; moneyDigits gives the exponent (divide by 10^moneyDigits)
+      const divisor = Math.pow(10, trader.moneyDigits || 2);
 
       res.json({
         success: true,
         data: {
-          equity: response.equity || 0,
-          balance: response.balance || 0,
-          margin: response.margin || 0,
-          freeMargin: response.freeMargin || 0,
-          marginLevel: response.marginLevel || 0
+          balance: (trader.balance || 0) / divisor,
+          leverage: trader.leverageInCents ? trader.leverageInCents / 100 : null,
+          currency: trader.depositAssetId || null
         }
       });
     } catch (err) {

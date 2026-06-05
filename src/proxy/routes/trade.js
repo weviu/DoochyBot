@@ -95,7 +95,7 @@ module.exports = (connection) => {
         });
       }
 
-      const { symbol, direction, volume, sl, tp } = req.body;
+      const { symbol, direction, volume, sl, tp, meta } = req.body;
 
       // Validate required fields
       if (!symbol || !direction || volume === undefined) {
@@ -269,7 +269,8 @@ module.exports = (connection) => {
         volume,
         positionId,
         openTime: timestamp,
-        status: 'open'
+        status: 'open',
+        ...(meta || {})
       };
 
       // Add optional fields

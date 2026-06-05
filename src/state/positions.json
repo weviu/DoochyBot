@@ -43,5 +43,29 @@
     "sl": 69.9645,
     "tp": 68.072,
     "entryPrice": 68.12
+  },
+  {
+    "positionId": "7318131",
+    "symbol": "ETHUSD",
+    "direction": "SELL",
+    "volume": 0.01,
+    "sl": 1830,
+    "tp": 1760
+  },
+  {
+    "positionId": "7318164",
+    "symbol": "BNBUSD",
+    "direction": "BUY",
+    "volume": 0.1,
+    "sl": 588.67,
+    "tp": 604.48
+  },
+  {
+    "positionId": "7318246",
+    "symbol": "BNBUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "sl": 606.9,
+    "tp": 591.04
   }
 ]

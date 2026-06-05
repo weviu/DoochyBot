@@ -86,21 +86,24 @@ async function sendConfirmation(signal) {
  * Store pending TradingView confirmation for button handler
  * Called from webhook after signal is confirmed by user
  */
-async function executeTradingViewTrade(signal) {
+async function executeTradingViewTrade(signal, meta = null) {
   try {
     logger.info('Executing TradingView trade', signal);
 
     const fetch = require('node-fetch');
+    const body = {
+      symbol: signal.symbol,
+      direction: signal.direction,
+      volume: signal.volume,
+      sl: signal.sl,
+      tp: signal.tp
+    };
+    if (meta) body.meta = meta;
+
     const response = await fetch('http://localhost:9009/trade', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        symbol: signal.symbol,
-        direction: signal.direction,
-        volume: signal.volume,
-        sl: signal.sl,
-        tp: signal.tp
-      })
+      body: JSON.stringify(body)
     });
 
     const result = await response.json();
@@ -159,6 +162,51 @@ async function sendAlert(signal, result) {
   }
 }
 
+async function sendReversalAlert(signal, closedPositions, result) {
+  try {
+    const bot = getBot();
+    const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+    if (!settings.chatId) return;
+    const chatId = parseInt(settings.chatId);
+
+    const closedLines = closedPositions.map(pos => {
+      const price = pos.entryPrice ? ` @ ${pos.entryPrice}` : '';
+      return `🔄 Reversal: Closed ${pos.direction} ${pos.symbol}${price}`;
+    }).join('\n');
+
+    if (result.success) {
+      await bot.api.sendMessage(chatId,
+        `${closedLines}\n` +
+        `⚡️ Auto-executing ${signal.direction} ${signal.symbol} @ ${result.data.openPrice || 'Market'}\n` +
+        `SL: ${signal.sl} | TP: ${signal.tp || 'None'}`
+      );
+    } else {
+      await bot.api.sendMessage(chatId,
+        `${closedLines}\n` +
+        `❌ Reversal open failed: ${result.error}`
+      );
+    }
+  } catch (err) {
+    logger.error('Failed to send reversal alert', { error: err.message });
+  }
+}
+
+async function sendReversalRejected(signal, reason) {
+  try {
+    const bot = getBot();
+    const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+    if (!settings.chatId) return;
+    const chatId = parseInt(settings.chatId);
+
+    await bot.api.sendMessage(chatId,
+      `🚫 Reversal blocked: ${signal.symbol} ${signal.direction}\n` +
+      `Reason: ${reason}`
+    );
+  } catch (err) {
+    logger.error('Failed to send reversal rejected message', { error: err.message });
+  }
+}
+
 function clearConfirmationTimeout(key) {
   if (activeTimeouts.has(key)) {
     clearTimeout(activeTimeouts.get(key));
@@ -169,6 +217,8 @@ function clearConfirmationTimeout(key) {
 module.exports = {
   sendConfirmation,
   sendAlert,
+  sendReversalAlert,
+  sendReversalRejected,
   executeTradingViewTrade,
   clearConfirmationTimeout
 };

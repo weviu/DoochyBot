@@ -75,5 +75,5 @@
   "maxTotalExposure": 1,
   "dailyLossLimit": 8,
   "blackoutTimes": [],
-  "requireConfirmation": true
+  "requireConfirmation": false
 }
