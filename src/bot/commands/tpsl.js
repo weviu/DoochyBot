@@ -40,10 +40,13 @@ module.exports = () => {
 
         await ctx.reply(
           `⚙️ SL/TP Settings\n` +
-          `Mode: ${mode}\n` +
-          `Pivot mode: SL buffer ${slPct}% | TP buffer ${tpPct}%\n` +
-          `Dollar mode: SL ${slUSD} | TP ${tpUSD}` +
-          (symLines.length ? `\nPer-symbol overrides:\n${symLines.join('\n')}` : '')
+          `Mode: ${mode} | SL ${slUSD} | TP ${tpUSD}` +
+          (symLines.length ? `\nPer-symbol overrides:\n${symLines.join('\n')}` : '') +
+          `\n\n/tpsl mode <pivot|dollar|auto>\n` +
+          `/tpsl usd sl <amount> — Dollar SL\n` +
+          `/tpsl usd tp <amount> — Dollar TP\n` +
+          `/tpsl usd sl <SYMBOL> <amount> — Per-symbol SL\n` +
+          `/tpsl usd tp <SYMBOL> <amount> — Per-symbol TP`
         );
         return;
       }

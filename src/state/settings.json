@@ -30,7 +30,8 @@
     "FETUSD",
     "XLMUSD",
     "NEOUSD",
-    "DASHUSD"
+    "DASHUSD",
+    "BTCUSD"
   ],
   "symbolLotSizes": {
     "ETHUSD": 0.5,
@@ -61,7 +62,8 @@
     "FETUSD": 0.1,
     "XLMUSD": 0.1,
     "NEOUSD": 0.1,
-    "DASHUSD": 0.1
+    "DASHUSD": 0.1,
+    "BTCUSD": 0.1
   },
   "maxPositions": 12,
   "maxTotalExposure": 999999,
@@ -75,7 +77,7 @@
   },
   "symbolStopLossUSD": {},
   "riskMode": "fixed",
-  "riskPercent": 1.0,
+  "riskPercent": 1,
   "tpsl_mode": "auto",
   "sl_buffer_percent": 0.25,
   "tp_buffer_percent": 0.15,

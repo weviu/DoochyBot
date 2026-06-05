@@ -88,6 +88,7 @@ module.exports = (connection) => {
       }
 
       // Percent-risk sizing: override fixed lot size when mode = 'percent' and SL is present
+      const settings = loadSettings();
       let effectiveVolume = volume;
       const riskMode = settings.riskMode ?? 'fixed';
       if (riskMode === 'percent' && sl != null) {
@@ -277,7 +278,6 @@ module.exports = (connection) => {
       let effectiveSL = sl;
       let effectiveTP = tp;
 
-      const settings = loadSettings();
       const tpslMode = settings.tpsl_mode ?? 'auto';
 
       if (entryPrice) {
