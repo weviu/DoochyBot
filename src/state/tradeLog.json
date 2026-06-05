@@ -360,5 +360,16 @@
     "sl": 255.7,
     "tp": 243,
     "entryPrice": 242.19
+  },
+  {
+    "symbol": "XAUUSD",
+    "direction": "SELL",
+    "volume": 0.05,
+    "positionId": "7321273",
+    "openTime": "2026-06-05 01:16:21",
+    "status": "open",
+    "sl": 4487.27,
+    "tp": 4440.46,
+    "entryPrice": 4463.58
   }
 ]

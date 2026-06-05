@@ -50,4 +50,28 @@ const SYMBOL_LOT_SIZE = {
   'GRTUSD':  100000000,
 };
 
-module.exports = { SYMBOL_LOT_SIZE, SYMBOL_PRICE_DECIMALS };
+// symbolName → cTrader symbolId (verified against account 47483124)
+const COMMON_SYMBOLS = {
+  'EURUSD':      1, 'GBPUSD':      2, 'USDJPY':      4, 'AUDUSD':      5,
+  'USDCHF':      6, 'USDCAD':      8, 'NZDUSD':     12,
+  'XAUUSD':     41, 'GOLD':        41, 'XAGUSD':     42,
+  'XPDUSD':     95, 'XPTUSD':     97, 'XCUUSD':    325,
+  'USOIL':     273, 'OIL':        273, 'US500.cash': 270, 'US100.cash': 275,
+  'US30.cash': 283,
+  'ETHUSD':    323, 'BTCUSD':    324, 'ADAUSD':    316, 'DOGEUSD':   317,
+  'XRPUSD':   318, 'NEOUSD':    319, 'DASHUSD':   320, 'XMRUSD':    321,
+  'LTCUSD':   322, 'DOTUSD':    335, 'AAVUSD':    284, 'XLMUSD':    291,
+  'GALUSD':   292, 'NERUSD':    294, 'LNKUSD':    295, 'AVAUSD':    296,
+  'SOLUSD':   297, 'BNBUSD':    298, 'BARUSD':    299, 'XTZUSD':    300,
+  'SANUSD':   302, 'BCHUSD':    303, 'ETCUSD':    304, 'UNIUSD':    305,
+  'ALGUSD':   306, 'VECUSD':    307, 'MANUSD':    309, 'IMXUSD':    310,
+  'GRTUSD':   311, 'ICPUSD':    312, 'FETUSD':    336,
+};
+
+// Reverse map: cTrader symbolId → symbolName (first match wins for duplicates)
+const SYMBOL_ID_TO_NAME = {};
+for (const [name, id] of Object.entries(COMMON_SYMBOLS)) {
+  if (!(id in SYMBOL_ID_TO_NAME)) SYMBOL_ID_TO_NAME[id] = name;
+}
+
+module.exports = { SYMBOL_LOT_SIZE, SYMBOL_PRICE_DECIMALS, COMMON_SYMBOLS, SYMBOL_ID_TO_NAME };
