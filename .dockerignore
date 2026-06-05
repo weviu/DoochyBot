@@ -20,3 +20,6 @@ coverage
 .github
 .vscode
 .idea
+
+# folders
+data/

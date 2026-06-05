@@ -5773,3 +5773,17 @@
 [2026-06-05 00:04:51] [ERROR] Positions command error {"error":"Cannot read properties of undefined (reading 'toFixed')"}
 [2026-06-05 00:04:52] [INFO] Heartbeat sent
 [2026-06-05 00:05:02] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-05 00:05:17] [INFO] Heartbeat sent
+[2026-06-05 00:05:18] [INFO] Webhook received signal {"rawSignal":"BUY BNBUSD SL=585.43 TP=604.82"}
+[2026-06-05 00:05:18] [INFO] Signal parsed successfully {"direction":"BUY","symbol":"BNBUSD","sl":585.43,"tp":604.82,"volume":0.1}
+[2026-06-05 00:05:18] [INFO] Webhook signal parsed {"direction":"BUY","symbol":"BNBUSD","sl":585.43,"tp":604.82,"volume":0.1}
+[2026-06-05 00:05:18] [WARN] Risk check failed: max positions {"signal":{"direction":"BUY","symbol":"BNBUSD","sl":585.43,"tp":604.82,"volume":0.1},"current":8}
+[2026-06-05 00:05:18] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"BUY","symbol":"BNBUSD","sl":585.43,"tp":604.82,"volume":0.1},"reason":"Max open positions (8) reached"}
+[2026-06-05 00:05:27] [WARN] Heartbeat timeout - marking connection as stale
+[2026-06-05 00:05:27] [INFO] Webhook received signal {"rawSignal":"SELL ETHUSD SL=1774.0 TP=1721.0"}
+[2026-06-05 00:05:27] [INFO] Signal parsed successfully {"direction":"SELL","symbol":"ETHUSD","sl":1774,"tp":1721,"volume":0.01}
+[2026-06-05 00:05:27] [INFO] Webhook signal parsed {"direction":"SELL","symbol":"ETHUSD","sl":1774,"tp":1721,"volume":0.01}
+[2026-06-05 00:05:27] [WARN] Risk check failed: max positions {"signal":{"direction":"SELL","symbol":"ETHUSD","sl":1774,"tp":1721,"volume":0.01},"current":8}
+[2026-06-05 00:05:27] [WARN] Webhook signal rejected by risk gate {"signal":{"direction":"SELL","symbol":"ETHUSD","sl":1774,"tp":1721,"volume":0.01},"reason":"Max open positions (8) reached"}
+[2026-06-05 00:05:42] [INFO] Heartbeat sent
+[2026-06-05 00:05:52] [WARN] Heartbeat timeout - marking connection as stale
