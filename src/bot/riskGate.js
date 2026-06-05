@@ -1,7 +1,7 @@
 const logger = require('../utils/logger');
 const fs = require('fs');
 const path = require('path');
-const { getDailyPnL, isDailyLossLimitExceeded } = require('../utils/pnl');
+const dailyPnL = require('../proxy/dailyPnL');
 const { syncPositions, getLastSyncTime } = require('../proxy/syncPositions');
 
 const SETTINGS_FILE = path.join(__dirname, '../state/settings.json');
@@ -113,10 +113,10 @@ async function checkRisks(signal, lastSignalTime = {}) {
     return { passed: false, reason };
   }
 
-  // Check 7: Daily loss limit?
-  if (isDailyLossLimitExceeded(settings.dailyLossLimit)) {
-    const reason = `Daily loss limit (${settings.dailyLossLimit}%) reached`;
-    logger.warn('Risk check failed: daily loss limit', { signal });
+  // Check 7: Daily loss limit (auto-locked by dailyPnL module when limit breached)
+  if (dailyPnL.isLocked()) {
+    const reason = `Daily loss limit reached — trading locked. Use /pnl reset to unlock.`;
+    logger.warn('Risk check failed: trading locked by daily loss limit', { signal });
     return { passed: false, reason };
   }
 

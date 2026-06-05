@@ -7,6 +7,7 @@ const { loadSettings } = require('../../bot/riskGate');
 const { SYMBOL_LOT_SIZE, SYMBOL_PRICE_DECIMALS, COMMON_SYMBOLS } = require('../../utils/symbols');
 const { calculateDollar } = require('../../bot/slTpCalculator');
 const holdTimer = require('../holdTimer');
+const { getRawPrice, decodeSpotPrice } = require('../priceCache');
 
 const TRADE_LOG_FILE = path.join(__dirname, '../../state/tradeLog.json');
 
@@ -85,12 +86,48 @@ module.exports = (connection) => {
           error: `No lot size configured for symbol "${symbol}". Add it to SYMBOL_LOT_SIZE.`
         });
       }
-      const volumeInCTraderUnits = Math.round(volume * lotSize);
+
+      // Percent-risk sizing: override fixed lot size when mode = 'percent' and SL is present
+      let effectiveVolume = volume;
+      const riskMode = settings.riskMode ?? 'fixed';
+      if (riskMode === 'percent' && sl != null) {
+        try {
+          const traderRes = await connection.connection.sendCommand('ProtoOATraderReq', {
+            ctidTraderAccountId: parseInt(connection.accountId)
+          });
+          const trader = traderRes.trader || {};
+          const equity = (trader.balance || 0) / Math.pow(10, trader.moneyDigits || 2);
+
+          const priceData = getRawPrice(symbolId);
+          if (equity > 0 && priceData) {
+            const isBuy = directionUpper === 'BUY';
+            const rawSpot = isBuy ? priceData.ask : priceData.bid;
+            // Use SL as reference price to decode the raw pipette value (same magnitude)
+            const entryEstimate = decodeSpotPrice(rawSpot, sl);
+            if (entryEstimate != null) {
+              const slDistance = Math.abs(entryEstimate - sl);
+              if (slDistance > 0) {
+                const riskAmount = equity * ((settings.riskPercent ?? 1.0) / 100);
+                const calculated = riskAmount / (slDistance * lotSize * 0.01);
+                effectiveVolume = Math.max(0.01, Math.floor(calculated * 100) / 100);
+                logger.info('Percent-risk volume calculated', {
+                  equity, riskAmount, slDistance, calculated, effectiveVolume
+                });
+              }
+            }
+          }
+        } catch (err) {
+          logger.warn('Percent-risk sizing failed — using fixed lot size', { error: err.message });
+        }
+      }
+
+      const volumeInCTraderUnits = Math.round(effectiveVolume * lotSize);
 
       logger.info('Volume conversion', {
-        userVolume: volume,
+        userVolume: effectiveVolume,
         lotSize,
-        ctraderUnits: volumeInCTraderUnits
+        ctraderUnits: volumeInCTraderUnits,
+        riskMode
       });
 
       // Build the ProtoOANewOrderReq payload

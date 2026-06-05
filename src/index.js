@@ -9,6 +9,7 @@ const HeartbeatManager = require('./proxy/heartbeat');
 const TelegramBot = require('./bot/bot');
 const { init: initSync, startSync } = require('./proxy/syncPositions');
 const { init: initPriceCache } = require('./proxy/priceCache');
+const dailyPnL = require('./proxy/dailyPnL');
 
 const POSITIONS_FILE = path.join(__dirname, 'state/positions.json');
 
@@ -67,6 +68,13 @@ async function main() {
       const isClosed = pos.positionStatus === 'POSITION_STATUS_CLOSED' || pos.positionStatus === 2;
       if (!isClosed) return;
 
+      // Update daily realized P&L (async — balance fetch for limit check)
+      if (event.deal) {
+        dailyPnL.onPositionClose(event.deal).catch(err =>
+          logger.warn('dailyPnL.onPositionClose error', { error: err.message })
+        );
+      }
+
       try {
         const positions = JSON.parse(fs.readFileSync(POSITIONS_FILE, 'utf-8'));
         const updated = positions.filter(p => String(p.positionId) !== String(pos.positionId));
@@ -108,7 +116,12 @@ async function main() {
         initSync(connection);
         startSync(30000);
 
-        // 6c. Subscribe to live spot prices for PnL display
+        // 6c. Initialise daily P&L tracker (fetches today's history from cTrader)
+        dailyPnL.init(connection).catch(err =>
+          logger.warn('Daily P&L init failed', { error: err.message })
+        );
+
+        // 6d. Subscribe to live spot prices for PnL display
         initPriceCache(connection);
 
         // 7. Start Telegram bot

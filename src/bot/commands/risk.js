@@ -9,13 +9,16 @@ module.exports = () => {
     try {
       const args = ctx.message.text.split(' ').slice(1);
 
-      if (args.length < 1 || (args.length < 2 && args[0].toLowerCase() !== 'apply')) {
+      const noArgCmds = ['apply', 'mode', 'percent'];
+      if (args.length < 1 || (args.length < 2 && !noArgCmds.includes(args[0]?.toLowerCase()))) {
         await ctx.reply(
           `Usage:\n` +
-          `/risk daily <percent> - Set daily loss limit\n` +
-          `/risk size <symbol> <volume> - Set lot size for symbol\n` +
+          `/risk daily <percent> - Set daily loss limit %\n` +
           `/risk positions <number> - Set max open positions (1-50)\n` +
-          `/risk apply - Apply current dollar TP/SL targets to all open positions\n\n` +
+          `/risk size <symbol> <volume> - Set fixed lot size for symbol\n` +
+          `/risk mode <fixed|percent> - Switch sizing mode\n` +
+          `/risk percent <value> - Set risk % per trade (percent mode)\n` +
+          `/risk apply - Apply current dollar TP/SL to all open positions\n\n` +
           `To set dollar SL/TP amounts use /tpsl usd sl and /tpsl usd tp`
         );
         return;
@@ -58,6 +61,36 @@ module.exports = () => {
         fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
         await ctx.reply(`Lot size for ${symbol} set to ${volume}`);
         logger.info('Lot size updated', { symbol, volume });
+      } else if (args[0].toLowerCase() === 'mode') {
+        const mode = args[1]?.toLowerCase();
+        if (!['fixed', 'percent'].includes(mode)) {
+          await ctx.reply('❌ Usage: /risk mode <fixed|percent>');
+          return;
+        }
+        settings.riskMode = mode;
+        fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+        if (mode === 'percent') {
+          const pct = settings.riskPercent ?? 1.0;
+          await ctx.reply(`✅ Sizing mode: percent — risking ${pct}% equity per trade\nSL must be present in signal for this to work.`);
+        } else {
+          await ctx.reply(`✅ Sizing mode: fixed — using lot sizes from /risk size`);
+        }
+        logger.info('riskMode updated', { mode });
+      } else if (args[0].toLowerCase() === 'percent') {
+        if (args.length < 2) {
+          const current = settings.riskPercent ?? 1.0;
+          await ctx.reply(`Risk per trade: ${current}%\nUsage: /risk percent <value>  (e.g. 1.0)`);
+          return;
+        }
+        const pct = parseFloat(args[1]);
+        if (isNaN(pct) || pct <= 0 || pct > 10) {
+          await ctx.reply('❌ Risk percent must be between 0.01 and 10');
+          return;
+        }
+        settings.riskPercent = pct;
+        fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+        await ctx.reply(`✅ Risk per trade set to ${pct}%`);
+        logger.info('riskPercent updated', { pct });
       } else if (args[0].toLowerCase() === 'apply') {
         const currentSettings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
         if (!currentSettings.takeProfitUSD && !currentSettings.stopLossUSD) {

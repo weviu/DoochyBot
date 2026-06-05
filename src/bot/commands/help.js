@@ -14,9 +14,11 @@ module.exports = () => {
         `/setchatid - Configure chat for TradingView webhook confirmations\n` +
         `/tv - TradingView webhook setup instructions\n\n` +
         `/closeall - Close all open positions (with confirmation)\n\n` +
-        `/risk daily <percent> - Set daily loss limit\n` +
-        `/risk size <symbol> <volume> - Set lot size for a symbol\n` +
+        `/risk daily <percent> - Set daily loss limit %\n` +
         `/risk positions <number> - Set max open positions (1-50)\n` +
+        `/risk size <symbol> <volume> - Set fixed lot size for symbol\n` +
+        `/risk mode <fixed|percent> - Switch position sizing mode\n` +
+        `/risk percent <value> - Set risk % per trade (percent mode)\n` +
         `/risk apply - Apply current dollar TP/SL to all open positions\n\n` +
         `/symbols - List allowed symbols\n` +
         `/symbols add <symbol> <volume> - Add new symbol\n` +
@@ -31,6 +33,8 @@ module.exports = () => {
         `/tpsl usd tp <SYMBOL> <amount> - Per-symbol TP override\n\n` +
         `/minhold - Show minimum hold duration\n` +
         `/minhold <seconds> - Set minimum hold (0 to disable)\n\n` +
+        `/pnl - Show today's realized + unrealized P&L\n` +
+        `/pnl reset - Unlock trading after daily loss limit\n\n` +
         `/export - Export trade history as .txt (last 7 days)\n` +
         `/export 2026-06-01 - Export from date\n` +
         `/export 2026-06-01 2026-06-05 - Export date range\n` +
