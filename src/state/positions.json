@@ -67,5 +67,21 @@
     "volume": 0.1,
     "sl": 606.9,
     "tp": 591.04
+  },
+  {
+    "positionId": "7318952",
+    "symbol": "BNBUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "sl": 607.25,
+    "tp": 587.78
+  },
+  {
+    "positionId": "7318957",
+    "symbol": "ETHUSD",
+    "direction": "SELL",
+    "volume": 0.01,
+    "sl": 1774,
+    "tp": 1721
   }
 ]

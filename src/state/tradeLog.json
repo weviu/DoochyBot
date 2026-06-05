@@ -183,5 +183,30 @@
     "sl": 606.9,
     "tp": 591.04,
     "entryPrice": 604.14
+  },
+  {
+    "symbol": "BNBUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7318952",
+    "openTime": "2026-06-05 00:10:28",
+    "status": "open",
+    "type": "reversal",
+    "closedPositionId": "7317869",
+    "reversalReason": "Stronger opposite signal",
+    "sl": 607.25,
+    "tp": 587.78,
+    "entryPrice": 605.47
+  },
+  {
+    "symbol": "ETHUSD",
+    "direction": "SELL",
+    "volume": 0.01,
+    "positionId": "7318957",
+    "openTime": "2026-06-05 00:10:41",
+    "status": "open",
+    "sl": 1774,
+    "tp": 1721,
+    "entryPrice": 1767.18
   }
 ]
