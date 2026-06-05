@@ -1,50 +1,10 @@
 [
   {
-    "positionId": "7325577",
-    "symbol": "ETCUSD",
+    "positionId": "7360406",
+    "symbol": "UNIUSD",
     "direction": "SELL",
     "volume": 0.1,
-    "sl": 7.0609,
-    "tp": 6.8369
-  },
-  {
-    "positionId": "7329444",
-    "symbol": "ETCUSD",
-    "direction": "SELL",
-    "volume": 0.1,
-    "sl": 7.0609,
-    "tp": 6.8369
-  },
-  {
-    "positionId": "7331199",
-    "symbol": "SOLUSD",
-    "direction": "SELL",
-    "volume": 0.1,
-    "sl": 66.5894,
-    "tp": 64.0626
-  },
-  {
-    "positionId": "7333717",
-    "symbol": "DOTUSD",
-    "direction": "SELL",
-    "volume": 0.1,
-    "sl": 0.994146,
-    "tp": 0.946751
-  },
-  {
-    "positionId": "7334816",
-    "symbol": "DOTUSD",
-    "direction": "SELL",
-    "volume": 0.1,
-    "sl": 0.994146,
-    "tp": 0.946751
-  },
-  {
-    "positionId": "7337854",
-    "symbol": "DOTUSD",
-    "direction": "SELL",
-    "volume": 0.1,
-    "sl": 0.994146,
-    "tp": 0.946751
+    "sl": 2.4337,
+    "tp": 2.2888
   }
 ]

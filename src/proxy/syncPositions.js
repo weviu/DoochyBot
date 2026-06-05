@@ -73,14 +73,19 @@ async function _applyDollarTargets(livePositions, localPositions) {
       newSL = parseFloat((direction === 'BUY' ? entryPrice - delta : entryPrice + delta).toFixed(priceDecimals));
     }
 
-    const result = await amendPositionSLTP(_connection, pos.positionId, local.symbol, newSL, newTP);
+    // Preserve any existing SL/TP that we are not overwriting.
+    // Omitting a field from ProtoOAAmendPositionSLTPReq sends 0, which clears it on cTrader.
+    const finalSL = newSL !== null ? newSL : (pos.stopLoss > 0 ? pos.stopLoss : null);
+    const finalTP = newTP !== null ? newTP : (pos.takeProfit > 0 ? pos.takeProfit : null);
+
+    const result = await amendPositionSLTP(_connection, pos.positionId, local.symbol, finalSL, finalTP);
 
     if (result.success) {
       applied++;
       logger.info('Dollar-based SL/TP applied', {
-        positionId: pos.positionId, symbol: local.symbol, direction, newTP, newSL
+        positionId: pos.positionId, symbol: local.symbol, direction, newTP: finalTP, newSL: finalSL
       });
-      results.push({ positionId: pos.positionId, symbol: local.symbol, direction, newTP, newSL, success: true });
+      results.push({ positionId: pos.positionId, symbol: local.symbol, direction, newTP: finalTP, newSL: finalSL, success: true });
     } else {
       skipped++;
       logger.warn('Failed to apply dollar-based SL/TP', {

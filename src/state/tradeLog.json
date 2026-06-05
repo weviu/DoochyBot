@@ -968,5 +968,104 @@
     "sl": 0.994146,
     "tp": 0.946751,
     "entryPrice": 0.985
+  },
+  {
+    "symbol": "BNBUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7340040",
+    "openTime": "2026-06-05 14:20:59",
+    "status": "open",
+    "sl": 607.25,
+    "tp": 587.78,
+    "entryPrice": 589.42
+  },
+  {
+    "symbol": "DOGEUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7340191",
+    "openTime": "2026-06-05 14:24:31",
+    "status": "open",
+    "sl": 0.085834,
+    "tp": 0.082784,
+    "entryPrice": 0.08285
+  },
+  {
+    "symbol": "XRPUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7340544",
+    "openTime": "2026-06-05 14:30:49",
+    "status": "open",
+    "sl": 1.1385,
+    "tp": 1.1042,
+    "entryPrice": 1.1063
+  },
+  {
+    "symbol": "ETCUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7340577",
+    "openTime": "2026-06-05 14:31:33",
+    "status": "open",
+    "sl": 6.8437,
+    "tp": 6.463,
+    "entryPrice": 6.807
+  },
+  {
+    "symbol": "ADAUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7341084",
+    "openTime": "2026-06-05 14:38:06",
+    "status": "open",
+    "sl": 0.164143,
+    "tp": 0.14889,
+    "entryPrice": 0.1628
+  },
+  {
+    "symbol": "XAUUSD",
+    "direction": "SELL",
+    "volume": 0.05,
+    "positionId": "7343002",
+    "openTime": "2026-06-05 15:02:19",
+    "status": "open",
+    "sl": 4414.45,
+    "tp": 4367.71,
+    "entryPrice": 4363.31
+  },
+  {
+    "symbol": "XRPUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7349394",
+    "openTime": "2026-06-05 15:24:32",
+    "status": "open",
+    "sl": 1.1385,
+    "tp": 1.1042,
+    "entryPrice": 1.1053
+  },
+  {
+    "symbol": "XRPUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7349880",
+    "openTime": "2026-06-05 15:31:31",
+    "status": "open",
+    "sl": 1.1385,
+    "tp": 1.1042,
+    "entryPrice": 1.1039
+  },
+  {
+    "symbol": "UNIUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7360406",
+    "openTime": "2026-06-05 16:14:20",
+    "status": "open",
+    "sl": 2.4337,
+    "tp": 2.2888,
+    "entryPrice": 2.4249
   }
 ]
