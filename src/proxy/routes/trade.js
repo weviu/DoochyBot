@@ -6,6 +6,7 @@ const { amendPositionSLTP } = require('../amendPosition');
 const { loadSettings } = require('../../bot/riskGate');
 const { SYMBOL_LOT_SIZE, SYMBOL_PRICE_DECIMALS, COMMON_SYMBOLS } = require('../../utils/symbols');
 const { calculateDollar } = require('../../bot/slTpCalculator');
+const holdTimer = require('../holdTimer');
 
 const TRADE_LOG_FILE = path.join(__dirname, '../../state/tradeLog.json');
 
@@ -273,27 +274,47 @@ module.exports = (connection) => {
       let tpSet = false;
       let slError;
       let tpError;
+      let tpDeferred = false;
+
+      const minHoldSeconds = settings.minHoldSeconds ?? 0;
 
       if (effectiveSL != null || effectiveTP != null) {
-        const amendResult = await amendPositionSLTP(connection, positionId, symbol, effectiveSL, effectiveTP);
-        if (amendResult.success) {
-          slSet = effectiveSL != null;
-          tpSet = effectiveTP != null;
-          logger.info('SL/TP amendment succeeded', { positionId, slSet, tpSet });
+        if (minHoldSeconds > 0 && effectiveTP != null) {
+          // Minimum hold active: set SL now, defer TP until hold timer elapses
+          if (effectiveSL != null) {
+            const slResult = await amendPositionSLTP(connection, positionId, symbol, effectiveSL, null);
+            if (slResult.success) {
+              slSet = true;
+            } else {
+              slError = slResult.error;
+              logger.warn('SL amendment failed during hold-timer trade', { positionId, error: slResult.error });
+            }
+          }
+          holdTimer.schedule(connection, positionId, symbol, effectiveTP, minHoldSeconds * 1000);
+          tpDeferred = true;
+          logger.info('Hold timer active — TP deferred', { positionId, minHoldSeconds, effectiveTP });
         } else {
-          if (effectiveSL != null) slError = amendResult.error;
-          if (effectiveTP != null) tpError = amendResult.error;
-          logger.warn('SL/TP amendment failed — trade still open without protection', {
-            positionId,
-            error: amendResult.error
-          });
+          const amendResult = await amendPositionSLTP(connection, positionId, symbol, effectiveSL, effectiveTP);
+          if (amendResult.success) {
+            slSet = effectiveSL != null;
+            tpSet = effectiveTP != null;
+            logger.info('SL/TP amendment succeeded', { positionId, slSet, tpSet });
+          } else {
+            if (effectiveSL != null) slError = amendResult.error;
+            if (effectiveTP != null) tpError = amendResult.error;
+            logger.warn('SL/TP amendment failed — trade still open without protection', {
+              positionId,
+              error: amendResult.error
+            });
+          }
         }
       }
 
       const responseData = { positionId, openPrice: entryPrice };
-      if (sl != null || tp != null) {
+      if (sl != null || tp != null || tpDeferred) {
         responseData.slSet = slSet;
         responseData.tpSet = tpSet;
+        if (tpDeferred) responseData.tpDeferred = true;
         if (slError) responseData.slError = slError;
         if (tpError) responseData.tpError = tpError;
       }

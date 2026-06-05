@@ -27,6 +27,8 @@ module.exports = () => {
         `/tpsl tp <percent> - Pivot TP buffer % (0.05–5.0)\n` +
         `/tpsl usd sl <amount> - Dollar SL amount\n` +
         `/tpsl usd tp <amount> - Dollar TP amount\n\n` +
+        `/minhold - Show minimum hold duration\n` +
+        `/minhold <seconds> - Set minimum hold (0 to disable)\n\n` +
         `/export - Export trade history as .txt (last 7 days)\n` +
         `/export 2026-06-01 - Export from date\n` +
         `/export 2026-06-01 2026-06-05 - Export date range\n` +

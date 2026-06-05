@@ -935,5 +935,38 @@
     "sl": 0.164143,
     "tp": 0.14889,
     "entryPrice": 0.1627
+  },
+  {
+    "symbol": "ADAUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7336471",
+    "openTime": "2026-06-05 13:31:04",
+    "status": "open",
+    "sl": 0.164143,
+    "tp": 0.14889,
+    "entryPrice": 0.1629
+  },
+  {
+    "symbol": "XAUUSD",
+    "direction": "SELL",
+    "volume": 0.05,
+    "positionId": "7336795",
+    "openTime": "2026-06-05 13:32:41",
+    "status": "open",
+    "sl": 4444.89,
+    "tp": 4410.05,
+    "entryPrice": 4407.69
+  },
+  {
+    "symbol": "DOTUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7337854",
+    "openTime": "2026-06-05 13:46:46",
+    "status": "open",
+    "sl": 0.994146,
+    "tp": 0.946751,
+    "entryPrice": 0.985
   }
 ]

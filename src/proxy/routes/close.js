@@ -1,6 +1,7 @@
 const logger = require('../../utils/logger');
 const fs = require('fs');
 const path = require('path');
+const holdTimer = require('../holdTimer');
 
 const POSITIONS_FILE = path.join(__dirname, '../../state/positions.json');
 
@@ -42,6 +43,9 @@ module.exports = (connection) => {
       const volume = parseInt(livePosition.tradeData.volume);
 
       logger.info('Closing position', { positionId, volume });
+
+      // Cancel any deferred TP timer before closing
+      holdTimer.cancel(positionId);
 
       // ProtoOAClosePositionReq has no matching Res — sendCommand resolves immediately after send
       await connection.connection.sendCommand('ProtoOAClosePositionReq', {

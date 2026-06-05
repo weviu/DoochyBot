@@ -80,6 +80,7 @@ class TelegramBot {
     const confirmCmd = require('./commands/confirm');
     const exportCmd = require('./commands/export');
     const tpslCmd = require('./commands/tpsl');
+    const minholdCmd = require('./commands/minhold');
 
     // Register commands
     this.bot.command('status', statusCmd(this.proxyUrl));
@@ -96,6 +97,7 @@ class TelegramBot {
     this.bot.command('confirm', confirmCmd());
     this.bot.command('export', exportCmd(this.proxyUrl));
     this.bot.command('tpsl', tpslCmd());
+    this.bot.command('minhold', minholdCmd());
   }
 
   setupSignalHandler() {

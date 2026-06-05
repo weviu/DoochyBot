@@ -70,9 +70,10 @@
   "dailyLossLimit": 8,
   "blackoutTimes": [],
   "requireConfirmation": false,
-  "takeProfitUSD": 17,
+  "takeProfitUSD": 15,
   "stopLossUSD": 30,
   "tpsl_mode": "auto",
   "sl_buffer_percent": 0.25,
-  "tp_buffer_percent": 0.15
+  "tp_buffer_percent": 0.15,
+  "minHoldSeconds": 0
 }

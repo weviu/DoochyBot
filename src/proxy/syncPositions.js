@@ -3,6 +3,7 @@ const path = require('path');
 const logger = require('../utils/logger');
 const { SYMBOL_LOT_SIZE, SYMBOL_PRICE_DECIMALS } = require('../utils/symbols');
 const { amendPositionSLTP } = require('./amendPosition');
+const holdTimer = require('./holdTimer');
 
 const POSITIONS_FILE = path.join(__dirname, '../state/positions.json');
 const SETTINGS_FILE = path.join(__dirname, '../state/settings.json');
@@ -35,7 +36,7 @@ async function _applyDollarTargets(livePositions, localPositions) {
   const results = [];
 
   for (const pos of livePositions) {
-    const needsTP = settings.takeProfitUSD && !(pos.takeProfit > 0);
+    const needsTP = settings.takeProfitUSD && !(pos.takeProfit > 0) && !holdTimer.hasPending(String(pos.positionId));
     const needsSL = settings.stopLossUSD && !(pos.stopLoss > 0);
 
     if (!needsTP && !needsSL) { skipped++; continue; }

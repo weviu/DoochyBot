@@ -24,14 +24,6 @@
     "tp": 64.0626
   },
   {
-    "positionId": "7331442",
-    "symbol": "DOTUSD",
-    "direction": "SELL",
-    "volume": 0.1,
-    "sl": 1.056969,
-    "tp": 0.993154
-  },
-  {
     "positionId": "7333717",
     "symbol": "DOTUSD",
     "direction": "SELL",
@@ -48,11 +40,11 @@
     "tp": 0.946751
   },
   {
-    "positionId": "7334927",
-    "symbol": "ADAUSD",
+    "positionId": "7337854",
+    "symbol": "DOTUSD",
     "direction": "SELL",
     "volume": 0.1,
-    "sl": 0.164143,
-    "tp": 0.14889
+    "sl": 0.994146,
+    "tp": 0.946751
   }
 ]

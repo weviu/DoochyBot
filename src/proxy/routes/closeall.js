@@ -1,4 +1,5 @@
 const logger = require('../../utils/logger');
+const holdTimer = require('../holdTimer');
 
 module.exports = (connection) => {
   return async (req, res) => {
@@ -11,6 +12,9 @@ module.exports = (connection) => {
       }
 
       logger.info('Closing all positions');
+
+      // Cancel all deferred TP timers before closing
+      holdTimer.cancelAll();
 
       // First get all positions
       if (connection.connection.sendCommand && typeof connection.connection.sendCommand === 'function') {
