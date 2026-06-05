@@ -117,7 +117,7 @@ class TelegramBot {
         }
 
         // Check risks
-        const riskCheck = checkRisks(signal, this.lastSignalTime);
+        const riskCheck = await checkRisks(signal, this.lastSignalTime);
         if (!riskCheck.passed) {
           await ctx.reply(`❌ ${riskCheck.reason}`);
           return;

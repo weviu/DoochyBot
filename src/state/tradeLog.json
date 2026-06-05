@@ -208,5 +208,66 @@
     "sl": 1774,
     "tp": 1721,
     "entryPrice": 1767.18
+  },
+  {
+    "symbol": "LTCUSD",
+    "direction": "BUY",
+    "volume": 0.1,
+    "positionId": "7320249",
+    "openTime": "2026-06-05 00:35:13",
+    "status": "open",
+    "sl": 45.5591,
+    "tp": 47.3755,
+    "entryPrice": 45.74
+  },
+  {
+    "symbol": "XRPUSD",
+    "direction": "BUY",
+    "volume": 0.1,
+    "positionId": "7320257",
+    "openTime": "2026-06-05 00:35:53",
+    "status": "open",
+    "sl": 1.1328,
+    "tp": 1.1721,
+    "entryPrice": 1.1697
+  },
+  {
+    "symbol": "XAUUSD",
+    "direction": "SELL",
+    "volume": 0.05,
+    "positionId": "7320265",
+    "openTime": "2026-06-05 00:36:14",
+    "status": "open",
+    "sl": 4487.27,
+    "tp": 4440.46,
+    "entryPrice": 4464.38
+  },
+  {
+    "symbol": "LTCUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7320529",
+    "openTime": "2026-06-05 00:40:33",
+    "status": "open",
+    "type": "reversal",
+    "closedPositionId": "7320249",
+    "reversalReason": "Stronger opposite signal",
+    "sl": 47.5653,
+    "tp": 45.7418,
+    "entryPrice": 45.6
+  },
+  {
+    "symbol": "XRPUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7320535",
+    "openTime": "2026-06-05 00:41:14",
+    "status": "open",
+    "type": "reversal",
+    "closedPositionId": "7320257",
+    "reversalReason": "Stronger opposite signal",
+    "sl": 1.1768,
+    "tp": 1.1374,
+    "entryPrice": 1.1689
   }
 ]

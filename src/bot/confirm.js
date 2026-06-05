@@ -143,7 +143,7 @@ async function sendAlert(signal, result) {
 
     if (result.success) {
       await bot.api.sendMessage(chatId,
-        `⚡️ Auto executed Signal\n` +
+        `★ Auto executed Signal\n` +
         `${signal.direction} ${signal.symbol}\n` +
         `Entry: ${result.data.openPrice || 'Market'}\n` +
         `TP: ${signal.tp || 'None'}\n` +

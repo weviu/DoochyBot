@@ -2,6 +2,7 @@ const logger = require('../utils/logger');
 const fs = require('fs');
 const path = require('path');
 const { getDailyPnL, isDailyLossLimitExceeded } = require('../utils/pnl');
+const { syncPositions, getLastSyncTime } = require('../proxy/syncPositions');
 
 const SETTINGS_FILE = path.join(__dirname, '../state/settings.json');
 const POSITIONS_FILE = path.join(__dirname, '../state/positions.json');
@@ -44,9 +45,8 @@ function loadTradeLog() {
  * Run all risk checks before executing a trade
  * Returns: { passed: boolean, reason?: string }
  */
-function checkRisks(signal, lastSignalTime = {}) {
+async function checkRisks(signal, lastSignalTime = {}) {
   const settings = loadSettings();
-  const positions = loadPositions();
 
   // Check 1: Is trading paused?
   if (settings.paused) {
@@ -83,6 +83,16 @@ function checkRisks(signal, lastSignalTime = {}) {
       }
     }
   }
+
+  // Sync positions.json if stale (>15s) before position-count checks
+  if (Date.now() - getLastSyncTime() > 15000) {
+    try {
+      await syncPositions();
+    } catch (err) {
+      logger.warn('Position sync failed in risk gate — using cached data', { error: err.message });
+    }
+  }
+  const positions = loadPositions();
 
   // Check 5: Max open positions?
   if (positions.length >= settings.maxPositions) {

@@ -7,6 +7,7 @@ const ConnectionManager = require('./proxy/connection');
 const ProxyServer = require('./proxy/server');
 const HeartbeatManager = require('./proxy/heartbeat');
 const TelegramBot = require('./bot/bot');
+const { init: initSync, startSync } = require('./proxy/syncPositions');
 
 const POSITIONS_FILE = path.join(__dirname, 'state/positions.json');
 
@@ -101,6 +102,10 @@ async function main() {
         // 6. Start heartbeat
         heartbeat = new HeartbeatManager(connection);
         heartbeat.start();
+
+        // 6b. Start position sync (immediate + every 30s)
+        initSync(connection);
+        startSync(30000);
 
         // 7. Start Telegram bot
         bot = new TelegramBot(config.telegram.token, config.telegram.allowedUsers);

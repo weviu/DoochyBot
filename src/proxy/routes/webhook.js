@@ -36,7 +36,7 @@ module.exports = (connection) => {
       logger.info('Webhook signal parsed', signal);
 
       // Run risk gate
-      const riskCheck = checkRisks(signal, {});
+      const riskCheck = await checkRisks(signal, {});
       if (!riskCheck.passed) {
         logger.warn('Webhook signal rejected by risk gate', { signal, reason: riskCheck.reason });
         return res.status(403).json({
