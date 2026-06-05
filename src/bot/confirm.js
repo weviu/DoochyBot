@@ -143,11 +143,11 @@ async function sendAlert(signal, result) {
 
     if (result.success) {
       await bot.api.sendMessage(chatId,
-        `⚡ Auto-executed TradingView Signal\n` +
-        `${signal.direction} ${signal.volume} ${signal.symbol}\n` +
+        `⚡️ Auto executed Signal\n` +
+        `${signal.direction} ${signal.symbol}\n` +
         `Entry: ${result.data.openPrice || 'Market'}\n` +
-        `SL: ${signal.sl}\n` +
         `TP: ${signal.tp || 'None'}\n` +
+        `SL: ${signal.sl}\n` +
         `Order #${result.data.positionId}`
       );
     } else {

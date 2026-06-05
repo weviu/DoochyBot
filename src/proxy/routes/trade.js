@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const util = require('util');
 const { amendPositionSLTP } = require('../amendPosition');
+const { loadSettings } = require('../../bot/riskGate');
 
 const TRADE_LOG_FILE = path.join(__dirname, '../../state/tradeLog.json');
 
@@ -286,21 +287,55 @@ module.exports = (connection) => {
         entryPrice
       });
 
-      // Amend SL/TP on the filled position if values were provided
+      // Dollar-based SL/TP targets override signal values when configured.
+      // contractSize = cTrader volume units × 0.01 (volume is stored in "cents" per protocol).
+      // priceDelta = dollarTarget / contractSize
+      let effectiveSL = sl;
+      let effectiveTP = tp;
+
+      const settings = loadSettings();
+      if (entryPrice && (settings.stopLossUSD || settings.takeProfitUSD)) {
+        const contractSize = volumeInCTraderUnits * 0.01;
+        if (contractSize > 0) {
+          if (settings.stopLossUSD) {
+            const delta = settings.stopLossUSD / contractSize;
+            effectiveSL = parseFloat((directionUpper === 'BUY'
+              ? entryPrice - delta
+              : entryPrice + delta).toFixed(8));
+          }
+          if (settings.takeProfitUSD) {
+            const delta = settings.takeProfitUSD / contractSize;
+            effectiveTP = parseFloat((directionUpper === 'BUY'
+              ? entryPrice + delta
+              : entryPrice - delta).toFixed(8));
+          }
+          logger.info('Dollar-based SL/TP applied', {
+            positionId,
+            entryPrice,
+            contractSize,
+            stopLossUSD: settings.stopLossUSD,
+            takeProfitUSD: settings.takeProfitUSD,
+            effectiveSL,
+            effectiveTP
+          });
+        }
+      }
+
+      // Amend SL/TP on the filled position
       let slSet = false;
       let tpSet = false;
       let slError;
       let tpError;
 
-      if (sl != null || tp != null) {
-        const amendResult = await amendPositionSLTP(connection, positionId, symbol, sl, tp);
+      if (effectiveSL != null || effectiveTP != null) {
+        const amendResult = await amendPositionSLTP(connection, positionId, symbol, effectiveSL, effectiveTP);
         if (amendResult.success) {
-          slSet = sl != null;
-          tpSet = tp != null;
+          slSet = effectiveSL != null;
+          tpSet = effectiveTP != null;
           logger.info('SL/TP amendment succeeded', { positionId, slSet, tpSet });
         } else {
-          if (sl != null) slError = amendResult.error;
-          if (tp != null) tpError = amendResult.error;
+          if (effectiveSL != null) slError = amendResult.error;
+          if (effectiveTP != null) tpError = amendResult.error;
           logger.warn('SL/TP amendment failed — trade still open without protection', {
             positionId,
             error: amendResult.error

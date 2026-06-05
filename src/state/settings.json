@@ -38,7 +38,7 @@
   ],
   "symbolLotSizes": {
     "BTCUSD": 0.01,
-    "ETHUSD": 0.01,
+    "ETHUSD": 7,
     "XAUUSD": 0.05,
     "XAGUSD": 0.1,
     "ADAUSD": 0.1,
@@ -75,5 +75,7 @@
   "maxTotalExposure": 1,
   "dailyLossLimit": 8,
   "blackoutTimes": [],
-  "requireConfirmation": false
+  "requireConfirmation": false,
+  "takeProfitUSD": 10,
+  "stopLossUSD": null
 }

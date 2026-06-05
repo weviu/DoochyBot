@@ -19,7 +19,6 @@ module.exports = (proxyUrl) => {
         `Equity: $${(data.equity || 0).toFixed(2)}\n` +
         `Balance: $${(data.balance || 0).toFixed(2)}\n` +
         `Margin Used: $${(data.margin || 0).toFixed(2)}\n` +
-        `Free Margin: $${(data.freeMargin || 0).toFixed(2)}\n` +
         `Margin Level: ${(data.marginLevel || 0).toFixed(2)}%`;
 
       await ctx.reply(balanceText);

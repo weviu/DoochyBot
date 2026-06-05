@@ -14,7 +14,9 @@ module.exports = () => {
           `Usage:\n` +
           `/risk daily <percent>  - Set daily loss limit\n` +
           `/risk size <symbol> <volume> - Set lot size for symbol\n` +
-          `/risk positions <number> - Set max open positions (1-50)`
+          `/risk positions <number> - Set max open positions (1-50)\n` +
+          `/risk tp <amount|off> - Set profit target in USD per deal\n` +
+          `/risk sl <amount|off> - Set loss limit in USD per deal`
         );
         return;
       }
@@ -45,6 +47,40 @@ module.exports = () => {
         fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
         await ctx.reply(`Max positions set to ${number}`);
         logger.info('Max positions updated', { number });
+      } else if (args[0].toLowerCase() === 'tp') {
+        if (args[1].toLowerCase() === 'off') {
+          settings.takeProfitUSD = null;
+          fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+          await ctx.reply('📊 Take profit target disabled');
+          logger.info('Take profit target disabled');
+        } else {
+          const amount = parseFloat(args[1]);
+          if (isNaN(amount) || amount <= 0) {
+            await ctx.reply('❌ Invalid amount. Use a positive number or "off"');
+            return;
+          }
+          settings.takeProfitUSD = amount;
+          fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+          await ctx.reply(`📊 Take profit target set to $${amount} per deal`);
+          logger.info('Take profit target updated', { amount });
+        }
+      } else if (args[0].toLowerCase() === 'sl') {
+        if (args[1].toLowerCase() === 'off') {
+          settings.stopLossUSD = null;
+          fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+          await ctx.reply('📊 Stop loss target disabled');
+          logger.info('Stop loss target disabled');
+        } else {
+          const amount = parseFloat(args[1]);
+          if (isNaN(amount) || amount <= 0) {
+            await ctx.reply('❌ Invalid amount. Use a positive number or "off"');
+            return;
+          }
+          settings.stopLossUSD = amount;
+          fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+          await ctx.reply(`📊 Stop loss target set to $${amount} per deal`);
+          logger.info('Stop loss target updated', { amount });
+        }
       } else if (args[0].toLowerCase() === 'size') {
         const symbol = args[1].toUpperCase();
         const volume = parseFloat(args[2]);
