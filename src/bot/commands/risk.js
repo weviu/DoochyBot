@@ -32,7 +32,7 @@ module.exports = () => {
         }
         settings.dailyLossLimit = percent;
         fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
-        await ctx.reply(`📊 Daily loss limit set to ${percent}%`);
+        await ctx.reply(`Daily loss limit set to ${percent}%`);
         logger.info('Daily loss limit updated', { percent });
       } else if (args[0].toLowerCase() === 'positions') {
         if (args.length < 2) {
@@ -52,7 +52,7 @@ module.exports = () => {
         if (args[1].toLowerCase() === 'off') {
           settings.takeProfitUSD = null;
           fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
-          await ctx.reply('📊 Take profit target disabled');
+          await ctx.reply('Take profit target disabled');
           logger.info('Take profit target disabled');
         } else {
           const amount = parseFloat(args[1]);
@@ -62,14 +62,14 @@ module.exports = () => {
           }
           settings.takeProfitUSD = amount;
           fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
-          await ctx.reply(`📊 Take profit target set to $${amount} per deal`);
+          await ctx.reply(`Take profit target set to $${amount} per deal`);
           logger.info('Take profit target updated', { amount });
         }
       } else if (args[0].toLowerCase() === 'sl') {
         if (args[1].toLowerCase() === 'off') {
           settings.stopLossUSD = null;
           fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
-          await ctx.reply('📊 Stop loss target disabled');
+          await ctx.reply('Stop loss target disabled');
           logger.info('Stop loss target disabled');
         } else {
           const amount = parseFloat(args[1]);
@@ -79,7 +79,7 @@ module.exports = () => {
           }
           settings.stopLossUSD = amount;
           fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
-          await ctx.reply(`📊 Stop loss target set to $${amount} per deal`);
+          await ctx.reply(`Stop loss target set to $${amount} per deal`);
           logger.info('Stop loss target updated', { amount });
         }
       } else if (args[0].toLowerCase() === 'size') {
@@ -91,7 +91,7 @@ module.exports = () => {
         }
         settings.symbolLotSizes[symbol] = volume;
         fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
-        await ctx.reply(`📊 Lot size for ${symbol} set to ${volume}`);
+        await ctx.reply(`Lot size for ${symbol} set to ${volume}`);
         logger.info('Lot size updated', { symbol, volume });
       } else if (args[0].toLowerCase() === 'apply') {
         const currentSettings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
