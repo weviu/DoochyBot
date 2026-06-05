@@ -1,10 +1,14 @@
 require('dotenv').config();
 
+const fs = require('fs');
+const path = require('path');
 const logger = require('./utils/logger');
 const ConnectionManager = require('./proxy/connection');
 const ProxyServer = require('./proxy/server');
 const HeartbeatManager = require('./proxy/heartbeat');
 const TelegramBot = require('./bot/bot');
+
+const POSITIONS_FILE = path.join(__dirname, 'state/positions.json');
 
 async function main() {
   logger.info('Starting Trading Bot...');
@@ -51,6 +55,30 @@ async function main() {
     const connection = new ConnectionManager(config.ctrader);
 
     // 3. Setup connection event handlers
+
+    // Keep positions.json in sync with cTrader: remove positions closed externally
+    connection.on('ProtoOAExecutionEvent', (event) => {
+      const pos = event.position;
+      if (!pos || !pos.positionId) return;
+
+      // positionStatus is 'POSITION_STATUS_CLOSED' (string) or 2 (number) depending on protobuf encoding
+      const isClosed = pos.positionStatus === 'POSITION_STATUS_CLOSED' || pos.positionStatus === 2;
+      if (!isClosed) return;
+
+      try {
+        const positions = JSON.parse(fs.readFileSync(POSITIONS_FILE, 'utf-8'));
+        const updated = positions.filter(p => String(p.positionId) !== String(pos.positionId));
+        if (updated.length !== positions.length) {
+          fs.writeFileSync(POSITIONS_FILE, JSON.stringify(updated, null, 2));
+          logger.info('Position closed externally — removed from positions.json', {
+            positionId: pos.positionId
+          });
+        }
+      } catch (err) {
+        logger.error('Failed to sync positions.json on external close', { error: err.message });
+      }
+    });
+
     connection.on('authenticated', () => {
       logger.info('cTrader authenticated - starting proxy and bot');
       startProxyAndBot();
