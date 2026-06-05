@@ -124,6 +124,15 @@ async function main() {
         // 6d. Subscribe to live spot prices for PnL display
         initPriceCache(connection);
 
+        // Log active profile
+        try {
+          const _settings = JSON.parse(require('fs').readFileSync(
+            require('path').join(__dirname, 'state/settings.json'), 'utf-8'
+          ));
+          const _profile = _settings.activeProfile ?? 'custom';
+          logger.info(`Active profile: ${_profile} (daily loss: ${_settings.dailyLossLimit ?? '?'}%, risk: ${_settings.riskPercent ?? '?'}%, max positions: ${_settings.maxPositions ?? '?'})`);
+        } catch (_) {}
+
         // 7. Start Telegram bot
         bot = new TelegramBot(config.telegram.token, config.telegram.allowedUsers);
         await bot.start();

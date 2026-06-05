@@ -65,7 +65,7 @@ async function checkRisks(signal, lastSignalTime = {}) {
   // Check 3: Is it a weekday (not weekend)?
   const now = new Date();
   const dayOfWeek = now.getDay();
-  if (dayOfWeek === 0 || dayOfWeek === 6) {
+  if ((dayOfWeek === 0 || dayOfWeek === 6) && !settings.weekendTrading) {
     const reason = 'Trading is closed on weekends';
     logger.warn('Risk check failed: weekend', { signal });
     return { passed: false, reason };

@@ -79,5 +79,7 @@
   "tpsl_mode": "auto",
   "sl_buffer_percent": 0.25,
   "tp_buffer_percent": 0.15,
-  "minHoldSeconds": 0
+  "minHoldSeconds": 0,
+  "activeProfile": "custom",
+  "weekendTrading": false
 }

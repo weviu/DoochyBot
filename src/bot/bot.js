@@ -75,13 +75,14 @@ class TelegramBot {
     const riskCmd = require('./commands/risk');
     const symbolsCmd = require('./commands/symbols');
     const setchatidCmd = require('./commands/setchatid');
-    const tvCmd = require('./commands/tv');
     const helpCmd = require('./commands/help');
     const confirmCmd = require('./commands/confirm');
     const exportCmd = require('./commands/export');
     const tpslCmd = require('./commands/tpsl');
     const minholdCmd = require('./commands/minhold');
     const pnlCmd = require('./commands/pnl');
+    const profileCmd = require('./commands/profile');
+    const weekendCmd = require('./commands/weekend');
 
     // Register commands
     this.bot.command('status', statusCmd(this.proxyUrl));
@@ -93,13 +94,14 @@ class TelegramBot {
     this.bot.command('risk', riskCmd());
     this.bot.command('symbols', symbolsCmd());
     this.bot.command('setchatid', setchatidCmd());
-    this.bot.command('tv', tvCmd());
     this.bot.command('help', helpCmd());
     this.bot.command('confirm', confirmCmd());
     this.bot.command('export', exportCmd(this.proxyUrl));
     this.bot.command('tpsl', tpslCmd());
     this.bot.command('minhold', minholdCmd());
     this.bot.command('pnl', pnlCmd(this.proxyUrl));
+    this.bot.command('profile', profileCmd());
+    this.bot.command('weekend', weekendCmd());
   }
 
   setupSignalHandler() {

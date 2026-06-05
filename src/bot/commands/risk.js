@@ -3,6 +3,21 @@ const fs = require('fs');
 const path = require('path');
 
 const SETTINGS_FILE = path.join(__dirname, '../../state/settings.json');
+const PROFILES_FILE = path.join(__dirname, '../../state/profiles.json');
+
+function syncToActiveProfile(settings, fields) {
+  const active = settings.activeProfile;
+  if (!active || active === 'custom') return;
+  try {
+    const profiles = JSON.parse(fs.readFileSync(PROFILES_FILE, 'utf-8'));
+    if (profiles[active]) {
+      Object.assign(profiles[active], fields);
+      fs.writeFileSync(PROFILES_FILE, JSON.stringify(profiles, null, 2));
+    }
+  } catch (err) {
+    logger.warn('Could not sync setting to active profile', { error: err.message });
+  }
+}
 
 module.exports = () => {
   return async (ctx) => {
@@ -34,6 +49,7 @@ module.exports = () => {
         }
         settings.dailyLossLimit = percent;
         fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+        syncToActiveProfile(settings, { dailyLossLimit: percent });
         await ctx.reply(`Daily loss limit set to ${percent}%`);
         logger.info('Daily loss limit updated', { percent });
       } else if (args[0].toLowerCase() === 'positions') {
@@ -89,6 +105,7 @@ module.exports = () => {
         }
         settings.riskPercent = pct;
         fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+        syncToActiveProfile(settings, { riskPercent: pct });
         await ctx.reply(`✅ Risk per trade set to ${pct}%`);
         logger.info('riskPercent updated', { pct });
       } else if (args[0].toLowerCase() === 'apply') {

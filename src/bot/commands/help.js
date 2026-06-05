@@ -11,34 +11,17 @@ module.exports = () => {
         `/pause - Pause trading (disable new signals)\n` +
         `/resume - Resume trading\n` +
         `/confirm on|off - Enable/disable signal confirmation (off = auto-execute)\n` +
-        `/setchatid - Configure chat for TradingView webhook confirmations\n` +
-        `/tv - TradingView webhook setup instructions\n\n` +
+        `/setchatid - Configure chat for TradingView webhook confirmations\n\n` +
         `/closeall - Close all open positions (with confirmation)\n\n` +
-        `/risk daily <percent> - Set daily loss limit %\n` +
-        `/risk positions <number> - Set max open positions (1-50)\n` +
-        `/risk size <symbol> <volume> - Set fixed lot size for symbol\n` +
-        `/risk mode <fixed|percent> - Switch position sizing mode\n` +
-        `/risk percent <value> - Set risk % per trade (percent mode)\n` +
-        `/risk apply - Apply current dollar TP/SL to all open positions\n\n` +
-        `/symbols - List allowed symbols\n` +
-        `/symbols add <symbol> <volume> - Add new symbol\n` +
-        `/symbols remove <symbol> - Remove symbol\n\n` +
-        `/tpsl - Show SL/TP mode & current values\n` +
-        `/tpsl mode <pivot|dollar|auto> - Set mode\n` +
-        `/tpsl sl <percent> - Pivot SL buffer % (0.05–5.0)\n` +
-        `/tpsl tp <percent> - Pivot TP buffer % (0.05–5.0)\n` +
-        `/tpsl usd sl <amount> - Dollar SL amount (all symbols)\n` +
-        `/tpsl usd tp <amount> - Dollar TP amount (all symbols)\n` +
-        `/tpsl usd sl <SYMBOL> <amount> - Per-symbol SL override\n` +
-        `/tpsl usd tp <SYMBOL> <amount> - Per-symbol TP override\n\n` +
-        `/minhold - Show minimum hold duration\n` +
-        `/minhold <seconds> - Set minimum hold (0 to disable)\n\n` +
+        `/risk - Risk management: loss limits, position sizing, exposure\n` +
+        `/symbols - Manage allowed trading symbols and lot sizes\n` +
+        `/tpsl - Configure SL/TP mode (pivot/dollar/auto) and dollar amounts\n` +
+        `/profile - Switch or manage prop firm profiles\n` +
+        `/weekend on|off - Enable or disable weekend trading\n\n` +
+        `/minhold [seconds] - Show or set minimum position hold time (0 = off)\n\n` +
         `/pnl - Show today's realized + unrealized P&L\n` +
         `/pnl reset - Unlock trading after daily loss limit\n\n` +
-        `/export - Export trade history as .txt (last 7 days)\n` +
-        `/export 2026-06-01 - Export from date\n` +
-        `/export 2026-06-01 2026-06-05 - Export date range\n` +
-        `/export 2026-06-01_12:00 2026-06-05_23:59 - With time\n\n` +
+        `/export - Export trade history as .txt file\n\n` +
         `/help - Show this help message\n\n` +
         `📊 Signal Format:\n` +
         `BUY BTCUSD SL=65000 TP=67000\n` +

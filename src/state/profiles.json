@@ -1,0 +1,23 @@
+{
+  "ftmo": {
+    "dailyLossLimit": 5,
+    "riskPercent": 1.0,
+    "maxPositions": 3,
+    "maxTotalExposure": 1.0,
+    "weekendTrading": false
+  },
+  "instantfunding": {
+    "dailyLossLimit": 4,
+    "riskPercent": 1.5,
+    "maxPositions": 5,
+    "maxTotalExposure": 2.0,
+    "weekendTrading": true
+  },
+  "eleonex": {
+    "dailyLossLimit": 5,
+    "riskPercent": 1.5,
+    "maxPositions": 5,
+    "maxTotalExposure": 2.0,
+    "weekendTrading": true
+  }
+}
