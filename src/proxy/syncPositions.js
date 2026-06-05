@@ -1,8 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const logger = require('../utils/logger');
+const { SYMBOL_LOT_SIZE, SYMBOL_PRICE_DECIMALS } = require('../utils/symbols');
+const { amendPositionSLTP } = require('./amendPosition');
 
 const POSITIONS_FILE = path.join(__dirname, '../state/positions.json');
+const SETTINGS_FILE = path.join(__dirname, '../state/settings.json');
 
 let _connection = null;
 let lastSyncTime = 0;
@@ -10,6 +13,110 @@ let _syncInterval = null;
 
 function init(connection) {
   _connection = connection;
+}
+
+function _loadSettings() {
+  try { return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8')); } catch { return {}; }
+}
+
+/**
+ * Apply dollar-based TP/SL to any live positions that are missing them.
+ * livePositions: array from ProtoOAReconcileReq response.position
+ * localPositions: current contents of positions.json (already synced)
+ * Returns { applied, skipped, results }
+ */
+async function _applyDollarTargets(livePositions, localPositions) {
+  const settings = _loadSettings();
+  if (!settings.takeProfitUSD && !settings.stopLossUSD) return { applied: 0, skipped: 0, results: [] };
+
+  const localMap = new Map(localPositions.map(p => [String(p.positionId), p]));
+
+  let applied = 0, skipped = 0;
+  const results = [];
+
+  for (const pos of livePositions) {
+    const needsTP = settings.takeProfitUSD && !(pos.takeProfit > 0);
+    const needsSL = settings.stopLossUSD && !(pos.stopLoss > 0);
+
+    if (!needsTP && !needsSL) { skipped++; continue; }
+
+    const local = localMap.get(String(pos.positionId));
+    if (!local) { skipped++; continue; }
+
+    const lotSize = SYMBOL_LOT_SIZE[local.symbol];
+    if (!lotSize) {
+      logger.warn('applyDollarTargets: unknown symbol', { symbol: local.symbol });
+      skipped++;
+      continue;
+    }
+
+    const entryPrice = pos.price || local.entryPrice;
+    if (!entryPrice) { skipped++; continue; }
+
+    const direction = local.direction ||
+      (pos.tradeData?.tradeSide === 'SELL' || pos.tradeData?.tradeSide === 2 ? 'SELL' : 'BUY');
+
+    const volumeInCTraderUnits = parseInt(pos.tradeData?.volume) || 0;
+    const contractSize = volumeInCTraderUnits * 0.01;
+    if (contractSize <= 0) { skipped++; continue; }
+
+    let newTP = null, newSL = null;
+    const priceDecimals = SYMBOL_PRICE_DECIMALS[local.symbol] ?? 5;
+
+    if (needsTP) {
+      const delta = settings.takeProfitUSD / contractSize;
+      newTP = parseFloat((direction === 'BUY' ? entryPrice + delta : entryPrice - delta).toFixed(priceDecimals));
+    }
+    if (needsSL) {
+      const delta = settings.stopLossUSD / contractSize;
+      newSL = parseFloat((direction === 'BUY' ? entryPrice - delta : entryPrice + delta).toFixed(priceDecimals));
+    }
+
+    const result = await amendPositionSLTP(_connection, pos.positionId, local.symbol, newSL, newTP);
+
+    if (result.success) {
+      applied++;
+      logger.info('Dollar-based SL/TP applied', {
+        positionId: pos.positionId, symbol: local.symbol, direction, newTP, newSL
+      });
+      results.push({ positionId: pos.positionId, symbol: local.symbol, direction, newTP, newSL, success: true });
+    } else {
+      skipped++;
+      logger.warn('Failed to apply dollar-based SL/TP', {
+        positionId: pos.positionId, symbol: local.symbol, error: result.error
+      });
+      results.push({ positionId: pos.positionId, symbol: local.symbol, success: false, error: result.error });
+    }
+  }
+
+  if (applied > 0) {
+    logger.info('Dollar target pass complete', { applied, skipped });
+  }
+
+  return { applied, skipped, results };
+}
+
+/**
+ * Public: fetch live positions from cTrader, apply dollar targets to any missing TP/SL.
+ * Used by /risk apply command.
+ */
+async function applyDollarTargets() {
+  if (!_connection || !_connection.isConnected || !_connection.isAuthenticated) {
+    throw new Error('Not connected to cTrader');
+  }
+
+  const response = await _connection.connection.sendCommand('ProtoOAReconcileReq', {
+    ctidTraderAccountId: parseInt(_connection.accountId)
+  });
+
+  const livePositions = response.position || [];
+
+  let localPositions = [];
+  try {
+    localPositions = JSON.parse(fs.readFileSync(POSITIONS_FILE, 'utf-8'));
+  } catch {}
+
+  return _applyDollarTargets(livePositions, localPositions);
 }
 
 /**
@@ -27,14 +134,13 @@ async function syncPositions() {
     ctidTraderAccountId: parseInt(_connection.accountId)
   });
 
-  const liveIds = new Set(
-    (response.position || []).map(p => String(p.positionId))
-  );
+  const livePositions = response.position || [];
+  const liveIds = new Set(livePositions.map(p => String(p.positionId)));
 
   let localPositions = [];
   try {
     localPositions = JSON.parse(fs.readFileSync(POSITIONS_FILE, 'utf-8'));
-  } catch (err) {
+  } catch {
     // File missing or corrupt — start fresh
   }
 
@@ -52,6 +158,13 @@ async function syncPositions() {
     });
   } else {
     logger.info('Position sync complete', { live: liveIds.size, local: synced.length });
+  }
+
+  // Apply dollar-based TP/SL to any open positions that are missing them
+  if (livePositions.length > 0) {
+    await _applyDollarTargets(livePositions, synced).catch(err =>
+      logger.warn('Dollar target application failed during sync', { error: err.message })
+    );
   }
 }
 
@@ -76,4 +189,4 @@ function getLastSyncTime() {
   return lastSyncTime;
 }
 
-module.exports = { init, syncPositions, startSync, getLastSyncTime };
+module.exports = { init, syncPositions, startSync, getLastSyncTime, applyDollarTargets };

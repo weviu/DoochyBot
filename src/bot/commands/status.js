@@ -28,7 +28,7 @@ module.exports = (proxyUrl) => {
 
       const statusText =
         `📊 Status\n` +
-        `Connection: ${health.data.status === 'connected' ? '✅ Connected' : '❌ Disconnected'}\n` +
+        `Connection: ${health.data.status === 'connected' ? 'Connected' : 'Disconnected'}\n` +
         `Account: ${health.data.accountId}\n` +
         `Open Positions: ${posCount}\n` +
         `Daily PnL: ${dailyPnL > 0 ? '📈' : '📉'} ${dailyPnL.toFixed(2)}%\n` +

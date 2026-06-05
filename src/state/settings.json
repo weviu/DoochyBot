@@ -37,10 +37,10 @@
     "DASHUSD"
   ],
   "symbolLotSizes": {
-    "BTCUSD": 0.01,
-    "ETHUSD": 7,
+    "BTCUSD": 0.25,
+    "ETHUSD": 5,
     "XAUUSD": 0.05,
-    "XAGUSD": 0.1,
+    "XAGUSD": 0.5,
     "ADAUSD": 0.1,
     "DOGEUSD": 0.1,
     "XRPUSD": 0.1,
@@ -72,7 +72,7 @@
     "DASHUSD": 0.1
   },
   "maxPositions": 7,
-  "maxTotalExposure": 1,
+  "maxTotalExposure": 999999,
   "dailyLossLimit": 8,
   "blackoutTimes": [],
   "requireConfirmation": false,

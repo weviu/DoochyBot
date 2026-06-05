@@ -269,5 +269,96 @@
     "sl": 1.1768,
     "tp": 1.1374,
     "entryPrice": 1.1689
+  },
+  {
+    "symbol": "DOGEUSD",
+    "direction": "BUY",
+    "volume": 0.1,
+    "positionId": "7320540",
+    "openTime": "2026-06-05 00:41:57",
+    "status": "open",
+    "sl": 0.085406,
+    "tp": 0.088617,
+    "entryPrice": 0.08836
+  },
+  {
+    "symbol": "XRPUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7320797",
+    "openTime": "2026-06-05 00:46:24",
+    "status": "open",
+    "sl": 1.1768,
+    "tp": 1.1374,
+    "entryPrice": 1.169
+  },
+  {
+    "symbol": "LTCUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7320812",
+    "openTime": "2026-06-05 00:47:32",
+    "status": "open",
+    "sl": 47.5653,
+    "tp": 45.7418,
+    "entryPrice": 45.62
+  },
+  {
+    "symbol": "XRPUSD",
+    "direction": "BUY",
+    "volume": 0.1,
+    "positionId": "7320854",
+    "openTime": "2026-06-05 00:51:44",
+    "status": "open",
+    "type": "reversal",
+    "closedPositionId": "7320535",
+    "reversalReason": "Stronger opposite signal",
+    "sl": 1.1328,
+    "tp": 1.1721,
+    "entryPrice": 1.1695
+  },
+  {
+    "symbol": "BNBUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7320862",
+    "openTime": "2026-06-05 00:52:21",
+    "status": "open",
+    "sl": 607.25,
+    "tp": 587.78,
+    "entryPrice": 605.37
+  },
+  {
+    "symbol": "BTCUSD",
+    "direction": "BUY",
+    "volume": 0.01,
+    "positionId": "7320864",
+    "openTime": "2026-06-05 00:52:27",
+    "status": "open",
+    "sl": 63186,
+    "tp": 65208,
+    "entryPrice": 63591.58
+  },
+  {
+    "symbol": "BCHUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7320878",
+    "openTime": "2026-06-05 00:54:10",
+    "status": "open",
+    "sl": 255.7,
+    "tp": 243,
+    "entryPrice": 243.15
+  },
+  {
+    "symbol": "BCHUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7321024",
+    "openTime": "2026-06-05 01:01:07",
+    "status": "open",
+    "sl": 255.7,
+    "tp": 243,
+    "entryPrice": 242.19
   }
 ]

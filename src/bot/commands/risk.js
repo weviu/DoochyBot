@@ -9,14 +9,15 @@ module.exports = () => {
     try {
       const args = ctx.message.text.split(' ').slice(1);
 
-      if (args.length < 2) {
+      if (args.length < 1 || (args.length < 2 && args[0].toLowerCase() !== 'apply')) {
         await ctx.reply(
           `Usage:\n` +
           `/risk daily <percent>  - Set daily loss limit\n` +
           `/risk size <symbol> <volume> - Set lot size for symbol\n` +
           `/risk positions <number> - Set max open positions (1-50)\n` +
           `/risk tp <amount|off> - Set profit target in USD per deal\n` +
-          `/risk sl <amount|off> - Set loss limit in USD per deal`
+          `/risk sl <amount|off> - Set loss limit in USD per deal\n` +
+          `/risk apply - Apply current TP/SL targets to all open positions`
         );
         return;
       }
@@ -92,6 +93,40 @@ module.exports = () => {
         fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
         await ctx.reply(`📊 Lot size for ${symbol} set to ${volume}`);
         logger.info('Lot size updated', { symbol, volume });
+      } else if (args[0].toLowerCase() === 'apply') {
+        const currentSettings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+        if (!currentSettings.takeProfitUSD && !currentSettings.stopLossUSD) {
+          await ctx.reply('❌ No dollar targets configured. Use /risk tp and /risk sl first.');
+          return;
+        }
+
+        await ctx.reply('⏳ Applying dollar targets to open positions...');
+
+        const { applyDollarTargets } = require('../../proxy/syncPositions');
+        const summary = await applyDollarTargets();
+
+        if (summary.applied === 0 && summary.skipped > 0) {
+          await ctx.reply(`✅ All ${summary.skipped} open positions already have TP/SL set.`);
+          return;
+        }
+
+        if (summary.applied === 0) {
+          await ctx.reply('ℹ️ No positions to update (no open positions or no local data).');
+          return;
+        }
+
+        const lines = summary.results
+          .filter(r => r.success)
+          .map(r => {
+            const tp = r.newTP != null ? `TP: ${r.newTP}` : '';
+            const sl = r.newSL != null ? `SL: ${r.newSL}` : '';
+            return `✅ ${r.symbol} #${r.positionId} ${[tp, sl].filter(Boolean).join(' | ')}`;
+          });
+
+        await ctx.reply(
+          `Applied dollar targets to ${summary.applied} position(s):\n${lines.join('\n')}`
+        );
+        logger.info('Risk apply complete', summary);
       }
     } catch (err) {
       logger.error('Risk command error', { error: err.message });

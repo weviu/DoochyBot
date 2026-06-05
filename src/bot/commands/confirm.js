@@ -33,7 +33,7 @@ module.exports = () => {
       logger.info('Confirmation setting updated', { requireConfirmation: enable });
     } catch (err) {
       logger.error('Confirm command error', { error: err.message });
-      await ctx.reply(`❌ Error: ${err.message}`);
+      await ctx.reply(`Error: ${err.message}`);
     }
   };
 };

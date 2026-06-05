@@ -4,6 +4,7 @@ const path = require('path');
 const util = require('util');
 const { amendPositionSLTP } = require('../amendPosition');
 const { loadSettings } = require('../../bot/riskGate');
+const { SYMBOL_LOT_SIZE, SYMBOL_PRICE_DECIMALS } = require('../../utils/symbols');
 
 const TRADE_LOG_FILE = path.join(__dirname, '../../state/tradeLog.json');
 
@@ -31,36 +32,6 @@ const COMMON_SYMBOLS = {
   'GRTUSD':   311, 'ICPUSD':    312, 'FETUSD':    336,
 };
 
-const SYMBOL_LOT_SIZE = {
-  // Forex
-  'EURUSD':  10000000, 'GBPUSD':  10000000, 'USDJPY': 10000000,
-  'AUDUSD':  10000000, 'USDCHF':  10000000, 'USDCAD': 10000000,
-  'NZDUSD':  10000000,
-  // Metals & Commodities
-  'XAUUSD':  10000, 'GOLD':    10000, 'XAGUSD':  10000,
-  'XPDUSD':  10000, 'XPTUSD':  10000, 'XCUUSD':  10000,
-  'USOIL':   10000, 'OIL':     10000,
-  // Indices
-  'US500.cash': 10000, 'US100.cash': 10000, 'US30.cash': 10000,
-  // Crypto — exact lot sizes from cTrader ProtoOASymbolByIdReq
-  'BTCUSD':  100,       'ETHUSD':  1000,
-  'SOLUSD':  10000,     'BNBUSD':  10000,
-  'LTCUSD':  10000,     'BCHUSD':  10000,
-  'XMRUSD':  10000,     'AAVUSD':  10000,
-  'ETCUSD':  100000,    'LNKUSD':  100000,
-  'AVAUSD':  100000,    'NEOUSD':  100000,
-  'DASHUSD': 100000,
-  'XRPUSD':  1000000,   'DOTUSD':  1000000,
-  'NERUSD':  1000000,   'UNIUSD':  1000000,
-  'ICPUSD':  1000000,
-  'ADAUSD':  10000000,  'DOGEUSD': 10000000,
-  'XLMUSD':  10000000,  'BARUSD':  10000000,
-  'XTZUSD':  10000000,  'SANUSD':  10000000,
-  'ALGUSD':  10000000,  'MANUSD':  10000000,
-  'IMXUSD':  10000000,  'FETUSD':  10000000,
-  'GALUSD':  100000000, 'VECUSD':  100000000,
-  'GRTUSD':  100000000,
-};
 
 function loadTradeLog() {
   try {
@@ -211,7 +182,8 @@ module.exports = (connection) => {
             clearTimeout(timeout);
             connection.removeListener('ProtoOAExecutionEvent', onExecutionEvent);
             connection.removeListener('ProtoOAOrderErrorEvent', onOrderErrorEvent);
-            reject(new Error(`Order error: ${event.errorCode || 'Unknown error code'}`));
+            const desc = event.description ? ` — ${event.description}` : '';
+            reject(new Error(`Order error: ${event.errorCode || 'Unknown error code'}${desc}`));
           }
         };
 
@@ -296,18 +268,19 @@ module.exports = (connection) => {
       const settings = loadSettings();
       if (entryPrice && (settings.stopLossUSD || settings.takeProfitUSD)) {
         const contractSize = volumeInCTraderUnits * 0.01;
+        const priceDecimals = SYMBOL_PRICE_DECIMALS[symbol] ?? 5;
         if (contractSize > 0) {
           if (settings.stopLossUSD) {
             const delta = settings.stopLossUSD / contractSize;
             effectiveSL = parseFloat((directionUpper === 'BUY'
               ? entryPrice - delta
-              : entryPrice + delta).toFixed(8));
+              : entryPrice + delta).toFixed(priceDecimals));
           }
           if (settings.takeProfitUSD) {
             const delta = settings.takeProfitUSD / contractSize;
             effectiveTP = parseFloat((directionUpper === 'BUY'
               ? entryPrice + delta
-              : entryPrice - delta).toFixed(8));
+              : entryPrice - delta).toFixed(priceDecimals));
           }
           logger.info('Dollar-based SL/TP applied', {
             positionId,
