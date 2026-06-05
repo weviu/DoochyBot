@@ -22,10 +22,11 @@ module.exports = (proxyUrl) => {
 
       let posText = '📍 Open Positions\n\n';
       positions.forEach((pos, idx) => {
-        const pnl = pos.pnl >= 0 ? '📈' : '📉';
+        const price = pos.openPrice != null ? pos.openPrice : 'N/A';
+        const symbol = pos.symbol || `symbolId:${pos.symbolId}`;
         posText +=
-          `${idx + 1}. ${pos.direction} ${pos.volume} ${pos.symbol}\n` +
-          `   @ ${pos.openPrice.toFixed(5)} | ${pnl} PnL: $${pos.pnl.toFixed(2)}\n` +
+          `${idx + 1}. ${pos.direction} ${pos.volume} ${symbol}\n` +
+          `   Entry: ${price}\n` +
           `   SL: ${pos.sl || 'None'} | TP: ${pos.tp || 'None'}\n\n`;
       });
 
