@@ -40,11 +40,13 @@ class ProxyServer {
     const closeRoute = require('./routes/close');
     const closeAllRoute = require('./routes/closeall');
     const webhookRoute = require('./routes/webhook');
+    const historyRoute = require('./routes/history');
 
     // Register routes
     this.app.get('/health', healthRoute(this.connection));
     this.app.get('/balance', balanceRoute(this.connection));
     this.app.get('/positions', positionsRoute(this.connection));
+    this.app.get('/history', historyRoute(this.connection));
     this.app.post('/trade', tradeRoute(this.connection));
     this.app.post('/close/:positionId', closeRoute(this.connection));
     this.app.post('/closeall', closeAllRoute(this.connection));

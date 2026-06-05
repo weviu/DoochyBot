@@ -26,11 +26,17 @@ async function sendConfirmation(signal) {
 
     const chatId = parseInt(settings.chatId);
 
+    const mode = settings.tpsl_mode ?? 'auto';
+    const modeTag = mode === 'dollar'
+      ? '\n⚡ Dollar mode — SL/TP will be recalculated after fill'
+      : '';
+
     const confirmText =
       `📊 TradingView Signal\n` +
       `${signal.direction} ${signal.volume} ${signal.symbol} @ Market\n` +
       `SL: ${signal.sl}\n` +
-      `TP: ${signal.tp || 'None'}`;
+      `TP: ${signal.tp || 'None'}` +
+      modeTag;
 
     const key = `${signal.symbol}:${signal.direction}`;
 

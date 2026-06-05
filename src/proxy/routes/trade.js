@@ -5,6 +5,7 @@ const util = require('util');
 const { amendPositionSLTP } = require('../amendPosition');
 const { loadSettings } = require('../../bot/riskGate');
 const { SYMBOL_LOT_SIZE, SYMBOL_PRICE_DECIMALS, COMMON_SYMBOLS } = require('../../utils/symbols');
+const { calculateDollar } = require('../../bot/slTpCalculator');
 
 const TRADE_LOG_FILE = path.join(__dirname, '../../state/tradeLog.json');
 
@@ -235,38 +236,35 @@ module.exports = (connection) => {
         entryPrice
       });
 
-      // Dollar-based SL/TP targets override signal values when configured.
-      // contractSize = cTrader volume units × 0.01 (volume is stored in "cents" per protocol).
-      // priceDelta = dollarTarget / contractSize
       let effectiveSL = sl;
       let effectiveTP = tp;
 
       const settings = loadSettings();
-      if (entryPrice && (settings.stopLossUSD || settings.takeProfitUSD)) {
-        const contractSize = volumeInCTraderUnits * 0.01;
-        const priceDecimals = SYMBOL_PRICE_DECIMALS[symbol] ?? 5;
-        if (contractSize > 0) {
-          if (settings.stopLossUSD) {
-            const delta = settings.stopLossUSD / contractSize;
-            effectiveSL = parseFloat((directionUpper === 'BUY'
-              ? entryPrice - delta
-              : entryPrice + delta).toFixed(priceDecimals));
-          }
-          if (settings.takeProfitUSD) {
-            const delta = settings.takeProfitUSD / contractSize;
-            effectiveTP = parseFloat((directionUpper === 'BUY'
-              ? entryPrice + delta
-              : entryPrice - delta).toFixed(priceDecimals));
-          }
-          logger.info('Dollar-based SL/TP applied', {
-            positionId,
-            entryPrice,
-            contractSize,
-            stopLossUSD: settings.stopLossUSD,
-            takeProfitUSD: settings.takeProfitUSD,
-            effectiveSL,
-            effectiveTP
+      const tpslMode = settings.tpsl_mode ?? 'auto';
+
+      if (entryPrice) {
+        if (tpslMode === 'dollar') {
+          // Dollar mode: always override both SL and TP with fixed-$ amounts
+          const calc = calculateDollar(entryPrice, directionUpper, volume, symbol, settings);
+          effectiveSL = calc.sl;
+          effectiveTP = calc.tp;
+          logger.info('Dollar mode: SL/TP set from fixed amounts', {
+            positionId, entryPrice, effectiveSL, effectiveTP,
+            stopLossUSD: settings.stopLossUSD, takeProfitUSD: settings.takeProfitUSD
           });
+        } else {
+          // Pivot / auto mode: trust signal's SL/TP; only fill in what is missing
+          if (effectiveSL == null && settings.stopLossUSD) {
+            effectiveSL = calculateDollar(entryPrice, directionUpper, volume, symbol, settings).sl;
+            logger.info('Auto/pivot mode: SL not in signal, filled from dollar amount', { positionId, effectiveSL });
+          }
+          if (effectiveTP == null && settings.takeProfitUSD) {
+            effectiveTP = calculateDollar(entryPrice, directionUpper, volume, symbol, settings).tp;
+            logger.info('Auto/pivot mode: TP not in signal, filled from dollar amount', { positionId, effectiveTP });
+          }
+          if (effectiveSL != null || effectiveTP != null) {
+            logger.info('Pivot/auto mode: using signal SL/TP', { positionId, effectiveSL, effectiveTP });
+          }
         }
       }
 

@@ -73,6 +73,11 @@ class ConnectionManager extends EventEmitter {
         this.emit('ProtoOATradeStatusEvent', descriptor);
       });
 
+      this.connection.on('ProtoOASpotEvent', (event) => {
+        const descriptor = event.descriptor || {};
+        this.emit('ProtoOASpotEvent', descriptor);
+      });
+
       // Wait for socket to open (TCP connection established)
       await this.connection.open();
       logger.info('cTrader socket opened');

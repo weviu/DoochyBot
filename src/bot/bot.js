@@ -78,6 +78,8 @@ class TelegramBot {
     const tvCmd = require('./commands/tv');
     const helpCmd = require('./commands/help');
     const confirmCmd = require('./commands/confirm');
+    const exportCmd = require('./commands/export');
+    const tpslCmd = require('./commands/tpsl');
 
     // Register commands
     this.bot.command('status', statusCmd(this.proxyUrl));
@@ -92,6 +94,8 @@ class TelegramBot {
     this.bot.command('tv', tvCmd());
     this.bot.command('help', helpCmd());
     this.bot.command('confirm', confirmCmd());
+    this.bot.command('export', exportCmd(this.proxyUrl));
+    this.bot.command('tpsl', tpslCmd());
   }
 
   setupSignalHandler() {

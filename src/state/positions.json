@@ -1,18 +1,58 @@
 [
   {
-    "positionId": "7320854",
-    "symbol": "XRPUSD",
-    "direction": "BUY",
-    "volume": 0.1,
-    "sl": 1.1328,
-    "tp": 1.1721
-  },
-  {
-    "positionId": "7321024",
-    "symbol": "BCHUSD",
+    "positionId": "7325577",
+    "symbol": "ETCUSD",
     "direction": "SELL",
     "volume": 0.1,
-    "sl": 255.7,
-    "tp": 243
+    "sl": 7.0609,
+    "tp": 6.8369
+  },
+  {
+    "positionId": "7329444",
+    "symbol": "ETCUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "sl": 7.0609,
+    "tp": 6.8369
+  },
+  {
+    "positionId": "7331199",
+    "symbol": "SOLUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "sl": 66.5894,
+    "tp": 64.0626
+  },
+  {
+    "positionId": "7331442",
+    "symbol": "DOTUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "sl": 1.056969,
+    "tp": 0.993154
+  },
+  {
+    "positionId": "7333717",
+    "symbol": "DOTUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "sl": 0.994146,
+    "tp": 0.946751
+  },
+  {
+    "positionId": "7334816",
+    "symbol": "DOTUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "sl": 0.994146,
+    "tp": 0.946751
+  },
+  {
+    "positionId": "7334927",
+    "symbol": "ADAUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "sl": 0.164143,
+    "tp": 0.14889
   }
 ]

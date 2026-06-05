@@ -1,8 +1,8 @@
 const logger = require('../../utils/logger');
 const fs = require('fs');
 const path = require('path');
-const { SYMBOL_LOT_SIZE, SYMBOL_PRICE_DECIMALS, COMMON_SYMBOLS } = require('../../utils/symbols');
-const { getRawPrice } = require('../priceCache');
+const { SYMBOL_LOT_SIZE, COMMON_SYMBOLS } = require('../../utils/symbols');
+const { getRawPrice, decodeSpotPrice } = require('../priceCache');
 
 const POSITIONS_FILE = path.join(__dirname, '../../state/positions.json');
 
@@ -39,14 +39,11 @@ module.exports = (connection) => {
         const symbolId = COMMON_SYMBOLS[symbol];
         if (symbolId && contractSize > 0 && pos.price != null) {
           const priceData = getRawPrice(symbolId);
-          if (priceData) {
-            const digits = SYMBOL_PRICE_DECIMALS[symbol] ?? 5;
-            const scale = Math.pow(10, digits);
+          if (priceData && pos.price) {
             const isBuy = pos.tradeData?.tradeSide === 'BUY' || pos.tradeData?.tradeSide === 1;
-            // Close BUY at bid, close SELL at ask
             const rawClose = isBuy ? priceData.bid : priceData.ask;
-            if (rawClose != null) {
-              const closePrice = rawClose / scale;
+            const closePrice = decodeSpotPrice(rawClose, pos.price);
+            if (closePrice != null) {
               const direction = isBuy ? 1 : -1;
               pnl = parseFloat((direction * (closePrice - pos.price) * contractSize).toFixed(2));
             }
