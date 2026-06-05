@@ -1243,5 +1243,16 @@
     "sl": 2.5477,
     "tp": 2.4313,
     "entryPrice": 2.4359
+  },
+  {
+    "symbol": "BTCUSD",
+    "direction": "BUY",
+    "volume": 0.1,
+    "positionId": "7388568",
+    "openTime": "2026-06-05 23:25:05",
+    "status": "open",
+    "sl": 95000,
+    "tp": 100000,
+    "entryPrice": 60917.2
   }
 ]
