@@ -28,11 +28,22 @@ module.exports = () => {
         const slUSD  = settings.stopLossUSD   != null ? `$${Number(settings.stopLossUSD).toFixed(2)}`   : 'off';
         const tpUSD  = settings.takeProfitUSD != null ? `$${Number(settings.takeProfitUSD).toFixed(2)}` : 'off';
 
+        const symTP = settings.symbolTakeProfitUSD || {};
+        const symSL = settings.symbolStopLossUSD || {};
+        const symLines = Array.from(new Set([...Object.keys(symTP), ...Object.keys(symSL)]))
+          .sort()
+          .map(sym => {
+            const t = symTP[sym] != null ? `TP $${Number(symTP[sym]).toFixed(2)}` : '';
+            const s = symSL[sym] != null ? `SL $${Number(symSL[sym]).toFixed(2)}` : '';
+            return `  ${sym}: ${[t, s].filter(Boolean).join(' | ')}`;
+          });
+
         await ctx.reply(
           `⚙️ SL/TP Settings\n` +
           `Mode: ${mode}\n` +
           `Pivot mode: SL buffer ${slPct}% | TP buffer ${tpPct}%\n` +
-          `Dollar mode: SL ${slUSD} | TP ${tpUSD}`
+          `Dollar mode: SL ${slUSD} | TP ${tpUSD}` +
+          (symLines.length ? `\nPer-symbol overrides:\n${symLines.join('\n')}` : '')
         );
         return;
       }
@@ -81,31 +92,54 @@ module.exports = () => {
         return;
       }
 
-      // /tpsl usd sl <amount>
-      // /tpsl usd tp <amount>
+      // /tpsl usd sl <amount>           — global SL
+      // /tpsl usd tp <amount>           — global TP
+      // /tpsl usd sl <SYMBOL> <amount>  — per-symbol SL
+      // /tpsl usd tp <SYMBOL> <amount>  — per-symbol TP
       if (sub === 'usd') {
-        const field  = args[1]?.toLowerCase();
-        const amount = parseFloat(args[2]);
-
+        const field = args[1]?.toLowerCase();
         if (!['sl', 'tp'].includes(field)) {
-          await ctx.reply('❌ Usage: /tpsl usd sl <amount>  or  /tpsl usd tp <amount>');
+          await ctx.reply('❌ Usage: /tpsl usd sl <amount>  or  /tpsl usd tp <SYMBOL> <amount>');
           return;
         }
+
+        // Per-symbol form: args[2] is non-numeric → treat as symbol, amount is args[3]
+        const isPerSymbol = args[2] && isNaN(parseFloat(args[2]));
+        const symbol = isPerSymbol ? args[2].toUpperCase() : null;
+        const amount = parseFloat(isPerSymbol ? args[3] : args[2]);
+
         if (isNaN(amount) || amount <= 0) {
-          await ctx.reply(`❌ Amount must be a positive number\nExample: /tpsl usd ${field} 10`);
+          const ex = symbol ? `/tpsl usd ${field} ${symbol} 25` : `/tpsl usd ${field} 10`;
+          await ctx.reply(`❌ Amount must be a positive number\nExample: ${ex}`);
           return;
         }
 
         if (field === 'sl') {
-          settings.stopLossUSD = amount;
-          saveSettings(settings);
-          await ctx.reply(`✅ Dollar SL set to $${amount.toFixed(2)}`);
-          logger.info('stopLossUSD updated', { amount });
+          if (symbol) {
+            settings.symbolStopLossUSD = settings.symbolStopLossUSD || {};
+            settings.symbolStopLossUSD[symbol] = amount;
+            saveSettings(settings);
+            await ctx.reply(`✅ SL for ${symbol} set to $${amount.toFixed(2)}`);
+            logger.info('symbolStopLossUSD updated', { symbol, amount });
+          } else {
+            settings.stopLossUSD = amount;
+            saveSettings(settings);
+            await ctx.reply(`✅ Dollar SL set to $${amount.toFixed(2)} (all symbols)`);
+            logger.info('stopLossUSD updated', { amount });
+          }
         } else {
-          settings.takeProfitUSD = amount;
-          saveSettings(settings);
-          await ctx.reply(`✅ Dollar TP set to $${amount.toFixed(2)}`);
-          logger.info('takeProfitUSD updated', { amount });
+          if (symbol) {
+            settings.symbolTakeProfitUSD = settings.symbolTakeProfitUSD || {};
+            settings.symbolTakeProfitUSD[symbol] = amount;
+            saveSettings(settings);
+            await ctx.reply(`✅ TP for ${symbol} set to $${amount.toFixed(2)}`);
+            logger.info('symbolTakeProfitUSD updated', { symbol, amount });
+          } else {
+            settings.takeProfitUSD = amount;
+            saveSettings(settings);
+            await ctx.reply(`✅ Dollar TP set to $${amount.toFixed(2)} (all symbols)`);
+            logger.info('takeProfitUSD updated', { amount });
+          }
         }
         return;
       }

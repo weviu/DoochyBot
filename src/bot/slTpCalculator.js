@@ -26,16 +26,19 @@ function calculateDollar(entryPrice, direction, volume, symbol, settings) {
   const isBuy = direction === 'BUY';
   let sl = null, tp = null;
 
-  if (settings.stopLossUSD) {
-    const delta = settings.stopLossUSD / contractSize;
+  const slAmount = settings.symbolStopLossUSD?.[symbol] ?? settings.stopLossUSD;
+  const tpAmount = settings.symbolTakeProfitUSD?.[symbol] ?? settings.takeProfitUSD;
+
+  if (slAmount) {
+    const delta = slAmount / contractSize;
     sl = parseFloat((isBuy ? entryPrice - delta : entryPrice + delta).toFixed(decimals));
   }
-  if (settings.takeProfitUSD) {
-    const delta = settings.takeProfitUSD / contractSize;
+  if (tpAmount) {
+    const delta = tpAmount / contractSize;
     tp = parseFloat((isBuy ? entryPrice + delta : entryPrice - delta).toFixed(decimals));
   }
 
-  return { sl, tp, method: 'dollar', slDollars: settings.stopLossUSD ?? null, tpDollars: settings.takeProfitUSD ?? null };
+  return { sl, tp, method: 'dollar', slDollars: slAmount ?? null, tpDollars: tpAmount ?? null };
 }
 
 /**

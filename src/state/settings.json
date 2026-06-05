@@ -44,7 +44,7 @@
     "SOLUSD": 0.1,
     "BNBUSD": 0.1,
     "ETCUSD": 0.1,
-    "UNIUSD": 0.1,
+    "UNIUSD": 0.05,
     "XMRUSD": 0.1,
     "LNKUSD": 0.1,
     "AVAUSD": 0.1,
@@ -72,6 +72,10 @@
   "requireConfirmation": false,
   "takeProfitUSD": 15,
   "stopLossUSD": 30,
+  "symbolTakeProfitUSD": {
+    "XAUUSD": 32
+  },
+  "symbolStopLossUSD": {},
   "tpsl_mode": "auto",
   "sl_buffer_percent": 0.25,
   "tp_buffer_percent": 0.15,

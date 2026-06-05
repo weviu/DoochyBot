@@ -28,21 +28,22 @@ function _loadSettings() {
  */
 async function _applyDollarTargets(livePositions, localPositions) {
   const settings = _loadSettings();
-  if (!settings.takeProfitUSD && !settings.stopLossUSD) return { applied: 0, skipped: 0, results: [] };
-
   const localMap = new Map(localPositions.map(p => [String(p.positionId), p]));
 
   let applied = 0, skipped = 0;
   const results = [];
 
   for (const pos of livePositions) {
-    const needsTP = settings.takeProfitUSD && !(pos.takeProfit > 0) && !holdTimer.hasPending(String(pos.positionId));
-    const needsSL = settings.stopLossUSD && !(pos.stopLoss > 0);
-
-    if (!needsTP && !needsSL) { skipped++; continue; }
-
     const local = localMap.get(String(pos.positionId));
     if (!local) { skipped++; continue; }
+
+    const tpAmount = settings.symbolTakeProfitUSD?.[local.symbol] ?? settings.takeProfitUSD;
+    const slAmount = settings.symbolStopLossUSD?.[local.symbol] ?? settings.stopLossUSD;
+
+    const needsTP = tpAmount && !(pos.takeProfit > 0) && !holdTimer.hasPending(String(pos.positionId));
+    const needsSL = slAmount && !(pos.stopLoss > 0);
+
+    if (!needsTP && !needsSL) { skipped++; continue; }
 
     const lotSize = SYMBOL_LOT_SIZE[local.symbol];
     if (!lotSize) {
@@ -65,11 +66,11 @@ async function _applyDollarTargets(livePositions, localPositions) {
     const priceDecimals = SYMBOL_PRICE_DECIMALS[local.symbol] ?? 5;
 
     if (needsTP) {
-      const delta = settings.takeProfitUSD / contractSize;
+      const delta = tpAmount / contractSize;
       newTP = parseFloat((direction === 'BUY' ? entryPrice + delta : entryPrice - delta).toFixed(priceDecimals));
     }
     if (needsSL) {
-      const delta = settings.stopLossUSD / contractSize;
+      const delta = slAmount / contractSize;
       newSL = parseFloat((direction === 'BUY' ? entryPrice - delta : entryPrice + delta).toFixed(priceDecimals));
     }
 

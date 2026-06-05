@@ -1067,5 +1067,181 @@
     "sl": 2.4337,
     "tp": 2.2888,
     "entryPrice": 2.4249
+  },
+  {
+    "symbol": "XRPUSD",
+    "direction": "SELL",
+    "volume": 1,
+    "positionId": "7364300",
+    "openTime": "2026-06-05 16:29:52",
+    "status": "open",
+    "sl": 1.1385,
+    "tp": 1.1042,
+    "entryPrice": 1.1058
+  },
+  {
+    "symbol": "DOTUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7368680",
+    "openTime": "2026-06-05 16:42:29",
+    "status": "open",
+    "sl": 0.994146,
+    "tp": 0.946751,
+    "entryPrice": 0.948
+  },
+  {
+    "symbol": "XRPUSD",
+    "direction": "SELL",
+    "volume": 1,
+    "positionId": "7369697",
+    "openTime": "2026-06-05 16:45:14",
+    "status": "open",
+    "sl": 1.1053,
+    "tp": 1.066,
+    "entryPrice": 1.0989
+  },
+  {
+    "symbol": "DOGEUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7370282",
+    "openTime": "2026-06-05 16:56:10",
+    "status": "open",
+    "sl": 0.085834,
+    "tp": 0.082784,
+    "entryPrice": 0.08279
+  },
+  {
+    "symbol": "ETHUSD",
+    "direction": "SELL",
+    "volume": 0.5,
+    "positionId": "7370420",
+    "openTime": "2026-06-05 16:57:56",
+    "status": "open",
+    "sl": 1670,
+    "tp": 1618,
+    "entryPrice": 1608.92
+  },
+  {
+    "symbol": "ADAUSD",
+    "direction": "BUY",
+    "volume": 0.1,
+    "positionId": "7370473",
+    "openTime": "2026-06-05 16:59:17",
+    "status": "open",
+    "sl": 0.148295,
+    "tp": 0.163488,
+    "entryPrice": 0.1633
+  },
+  {
+    "symbol": "XAUUSD",
+    "direction": "SELL",
+    "volume": 0.05,
+    "positionId": "7375538",
+    "openTime": "2026-06-05 17:16:29",
+    "status": "open",
+    "sl": 4414.45,
+    "tp": 4367.71,
+    "entryPrice": 4339.01
+  },
+  {
+    "symbol": "DOGEUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7376139",
+    "openTime": "2026-06-05 17:20:21",
+    "status": "open",
+    "sl": 0.082867,
+    "tp": 0.079649,
+    "entryPrice": 0.08221
+  },
+  {
+    "symbol": "ETCUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7376144",
+    "openTime": "2026-06-05 17:20:24",
+    "status": "open",
+    "sl": 6.8437,
+    "tp": 6.463,
+    "entryPrice": 6.801
+  },
+  {
+    "symbol": "XAUUSD",
+    "direction": "SELL",
+    "volume": 0.05,
+    "positionId": "7376564",
+    "openTime": "2026-06-05 17:25:09",
+    "status": "open",
+    "sl": 4414.45,
+    "tp": 4367.71,
+    "entryPrice": 4339.79
+  },
+  {
+    "symbol": "XAUUSD",
+    "direction": "SELL",
+    "volume": 0.05,
+    "positionId": "7378270",
+    "openTime": "2026-06-05 17:47:39",
+    "status": "open",
+    "sl": 4414.45,
+    "tp": 4367.71,
+    "entryPrice": 4340.57
+  },
+  {
+    "symbol": "DOGEUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7378385",
+    "openTime": "2026-06-05 17:51:31",
+    "status": "open",
+    "sl": 0.082867,
+    "tp": 0.079649,
+    "entryPrice": 0.08232
+  },
+  {
+    "symbol": "ETCUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7378459",
+    "openTime": "2026-06-05 17:53:17",
+    "status": "open",
+    "sl": 6.8437,
+    "tp": 6.463,
+    "entryPrice": 6.809
+  },
+  {
+    "symbol": "XRPUSD",
+    "direction": "SELL",
+    "volume": 1,
+    "positionId": "7378487",
+    "openTime": "2026-06-05 17:54:21",
+    "status": "open",
+    "sl": 1.1385,
+    "tp": 1.1042,
+    "entryPrice": 1.10476
+  },
+  {
+    "symbol": "ETCUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7382037",
+    "openTime": "2026-06-05 18:12:33",
+    "status": "open",
+    "sl": 6.8437,
+    "tp": 6.463,
+    "entryPrice": 6.805
+  },
+  {
+    "symbol": "UNIUSD",
+    "direction": "SELL",
+    "volume": 0.05,
+    "positionId": "7385618",
+    "openTime": "2026-06-05 18:23:46",
+    "status": "open",
+    "sl": 2.5477,
+    "tp": 2.4313,
+    "entryPrice": 2.4359
   }
 ]

@@ -25,8 +25,10 @@ module.exports = () => {
         `/tpsl mode <pivot|dollar|auto> - Set mode\n` +
         `/tpsl sl <percent> - Pivot SL buffer % (0.05–5.0)\n` +
         `/tpsl tp <percent> - Pivot TP buffer % (0.05–5.0)\n` +
-        `/tpsl usd sl <amount> - Dollar SL amount\n` +
-        `/tpsl usd tp <amount> - Dollar TP amount\n\n` +
+        `/tpsl usd sl <amount> - Dollar SL amount (all symbols)\n` +
+        `/tpsl usd tp <amount> - Dollar TP amount (all symbols)\n` +
+        `/tpsl usd sl <SYMBOL> <amount> - Per-symbol SL override\n` +
+        `/tpsl usd tp <SYMBOL> <amount> - Per-symbol TP override\n\n` +
         `/minhold - Show minimum hold duration\n` +
         `/minhold <seconds> - Set minimum hold (0 to disable)\n\n` +
         `/export - Export trade history as .txt (last 7 days)\n` +
