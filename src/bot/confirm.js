@@ -148,12 +148,14 @@ async function sendAlert(signal, result) {
     const chatId = parseInt(settings.chatId);
 
     if (result.success) {
+      const displaySL = result.data.sl ?? signal.sl;
+      const displayTP = result.data.tp ?? signal.tp;
       await bot.api.sendMessage(chatId,
         `★ Auto executed Signal\n` +
         `${signal.direction} ${signal.symbol}\n` +
         `Entry: ${result.data.openPrice || 'Market'}\n` +
-        `TP: ${signal.tp || 'None'}\n` +
-        `SL: ${signal.sl}\n` +
+        `TP: ${displayTP || 'None'}\n` +
+        `SL: ${displaySL || 'None'}\n` +
         `Order #${result.data.positionId}`
       );
     } else {
@@ -184,7 +186,7 @@ async function sendReversalAlert(signal, closedPositions, result) {
       await bot.api.sendMessage(chatId,
         `${closedLines}\n` +
         `⚡️ Auto-executing ${signal.direction} ${signal.symbol} @ ${result.data.openPrice || 'Market'}\n` +
-        `SL: ${signal.sl} | TP: ${signal.tp || 'None'}`
+        `SL: ${result.data.sl ?? signal.sl ?? 'None'} | TP: ${result.data.tp ?? signal.tp ?? 'None'}`
       );
     } else {
       await bot.api.sendMessage(chatId,

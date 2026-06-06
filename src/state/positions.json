@@ -1,1 +1,42 @@
-[]
+[
+  {
+    "positionId": "7389221",
+    "symbol": "ADAUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "sl": null,
+    "tp": null
+  },
+  {
+    "positionId": "7389222",
+    "symbol": "BCHUSD",
+    "direction": "SELL",
+    "volume": 0.01,
+    "sl": null,
+    "tp": null
+  },
+  {
+    "positionId": "7389223",
+    "symbol": "BNBUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "sl": null,
+    "tp": null
+  },
+  {
+    "positionId": "7389229",
+    "symbol": "BCHUSD",
+    "direction": "SELL",
+    "volume": 0.01,
+    "sl": null,
+    "tp": null
+  },
+  {
+    "positionId": "7389231",
+    "symbol": "AVAUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "sl": null,
+    "tp": null
+  }
+]

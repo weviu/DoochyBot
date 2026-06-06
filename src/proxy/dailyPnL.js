@@ -6,7 +6,7 @@ const STATE_FILE = path.join(__dirname, '../state/dailyState.json');
 const SETTINGS_FILE = path.join(__dirname, '../state/settings.json');
 
 // In-memory state — always reflects STATE_FILE
-let _state = { date: null, realizedPnL: 0, tradingLocked: false };
+let _state = { date: null, realizedPnL: 0, tradingLocked: false, dailyStopLosses: 0 };
 let _connection = null;
 
 function _today() {
@@ -25,7 +25,7 @@ function _saveState() {
 function _ensureToday() {
   const today = _today();
   if (_state.date !== today) {
-    _state = { date: today, realizedPnL: 0, tradingLocked: false };
+    _state = { date: today, realizedPnL: 0, tradingLocked: false, dailyStopLosses: 0 };
     _saveState();
   }
 }
@@ -75,6 +75,41 @@ async function _fetchBalance() {
   }
 }
 
+function _sendStopLossLimitAlert(count, max) {
+  try {
+    const { getBot } = require('../bot/instance');
+    const bot = getBot();
+    if (!bot) return;
+    const settings = _loadSettings();
+    if (!settings.chatId) return;
+    bot.api.sendMessage(parseInt(settings.chatId),
+      `🚨 Max daily stop losses hit!\n` +
+      `${count} losing trade${count > 1 ? 's' : ''} today (limit: ${max})\n` +
+      `Trading locked — use /pnl reset to unlock.`
+    ).catch(err => logger.warn('Failed to send stop loss limit alert', { error: err.message }));
+  } catch (err) {
+    logger.warn('Stop loss limit alert error', { error: err.message });
+  }
+}
+
+function _sendDollarLockAlert(maxLossUSD) {
+  try {
+    const { getBot } = require('../bot/instance');
+    const bot = getBot();
+    if (!bot) return;
+    const settings = _loadSettings();
+    if (!settings.chatId) return;
+    bot.api.sendMessage(parseInt(settings.chatId),
+      `🚨 Max daily loss hit!\n` +
+      `Realized P&L today: $${_state.realizedPnL.toFixed(2)}\n` +
+      `Limit: -$${Math.abs(maxLossUSD)}\n` +
+      `Trading locked — use /pnl reset to unlock.`
+    ).catch(err => logger.warn('Failed to send dollar lock alert', { error: err.message }));
+  } catch (err) {
+    logger.warn('Dollar lock alert error', { error: err.message });
+  }
+}
+
 function _sendLockAlert(limitPct, threshold) {
   try {
     const { getBot } = require('../bot/instance');
@@ -107,8 +142,8 @@ async function init(connection) {
 
   const today = _today();
   _state = saved.date === today
-    ? { ...saved }
-    : { date: today, realizedPnL: 0, tradingLocked: false };
+    ? { dailyStopLosses: 0, ...saved }
+    : { date: today, realizedPnL: 0, tradingLocked: false, dailyStopLosses: 0 };
 
   // Always re-fetch from cTrader for accuracy (handles restarts mid-day)
   await _fetchFromCTrader();
@@ -129,6 +164,12 @@ async function onPositionClose(deal) {
     total: _state.realizedPnL
   });
 
+  // Track stop losses (trades that closed negative)
+  if (pnl < 0) {
+    _state.dailyStopLosses = (_state.dailyStopLosses || 0) + 1;
+    logger.info('Daily stop loss count incremented', { dailyStopLosses: _state.dailyStopLosses });
+  }
+
   // Check limit — only lock once
   if (!_state.tradingLocked) {
     const settings = _loadSettings();
@@ -143,6 +184,26 @@ async function onPositionClose(deal) {
         });
         _sendLockAlert(limitPct, threshold);
       }
+    }
+
+    // Max daily loss in dollars
+    const maxLossUSD = settings.maxDailyLossUSD;
+    if (maxLossUSD != null && _state.realizedPnL < -Math.abs(maxLossUSD)) {
+      _state.tradingLocked = true;
+      logger.warn('Max daily dollar loss reached — trading locked', {
+        realizedPnL: _state.realizedPnL, maxLossUSD
+      });
+      _sendDollarLockAlert(maxLossUSD);
+    }
+
+    // Max daily stop losses check
+    const maxSL = settings.maxDailyStopLosses;
+    if (maxSL != null && _state.dailyStopLosses >= maxSL) {
+      _state.tradingLocked = true;
+      logger.warn('Max daily stop losses reached — trading locked', {
+        dailyStopLosses: _state.dailyStopLosses, maxSL
+      });
+      _sendStopLossLimitAlert(_state.dailyStopLosses, maxSL);
     }
   }
 
@@ -166,4 +227,9 @@ function unlock() {
   logger.info('Trading unlocked (manual reset)', { realizedPnL: _state.realizedPnL });
 }
 
-module.exports = { init, onPositionClose, getRealizedPnL, isLocked, unlock };
+function getDailyStopLosses() {
+  _ensureToday();
+  return _state.dailyStopLosses || 0;
+}
+
+module.exports = { init, onPositionClose, getRealizedPnL, isLocked, unlock, getDailyStopLosses };

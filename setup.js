@@ -4,6 +4,7 @@
 const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
+const { CTraderConnection } = require('@reiryoku/ctrader-layer');
 
 const c = {
   reset:  '\x1b[0m',
@@ -30,6 +31,18 @@ function ask(question, defaultVal = '') {
       resolve(answer.trim() || defaultVal);
     });
   });
+}
+
+async function fetchAccounts(clientId, clientSecret, accessToken) {
+  const conn = new CTraderConnection({ host: 'live.ctraderapi.com', port: 5035 });
+  await conn.open();
+  try {
+    await conn.sendCommand('ProtoOAApplicationAuthReq', { clientId, clientSecret });
+    const res = await conn.sendCommand('ProtoOAGetAccountListByAccessTokenReq', { accessToken });
+    return res.ctidTraderAccount || [];
+  } finally {
+    conn.close();
+  }
 }
 
 async function main() {
@@ -60,15 +73,46 @@ async function main() {
 
   // ── Step 3: Account & API Host ─────────────────────────────────────────────
   header('Step 3 — cTrader Account');
-  info('Your ctidTraderAccountId is shown in cTrader under Account > Details,');
-  info('or you can look it up via the OpenAPI Playground after authorising.');
-  print();
-  warn('Prop firm accounts (FTMO, MyForexFunds…) must use live.ctraderapi.com');
-  warn('Standard demo accounts use demo.ctraderapi.com');
+  info('Looking up accounts linked to your access token...');
   print();
 
-  const accountId = await ask('Account ID (ctidTraderAccountId)');
-  const host      = await ask('cTrader API host', 'live.ctraderapi.com');
+  let accountId = '';
+  let host      = 'live.ctraderapi.com';
+
+  try {
+    const accounts = await fetchAccounts(clientId, clientSecret, accessToken);
+    if (accounts.length === 0) {
+      warn('No accounts found for this token. Enter account details manually.');
+    } else {
+      print(`   Found ${accounts.length} account${accounts.length > 1 ? 's' : ''}:\n`);
+      accounts.forEach((a, i) => {
+        const type = a.isLive ? `${c.green}LIVE${c.reset}` : `${c.dim}demo${c.reset}`;
+        print(`   ${c.bold}${i + 1}.${c.reset} Login: ${c.bold}${a.traderLogin || '?'}${c.reset}  ID: ${a.ctidTraderAccountId}  [${type}]  ${a.brokerName || ''}`);
+      });
+      print();
+      warn('FTMO/prop firm evaluation accounts show as LIVE.');
+      warn('Pick the LIVE account for prop firm trading.');
+      print();
+
+      const choice = await ask(`Select account number (1-${accounts.length})`, '1');
+      const idx = Math.max(0, Math.min(parseInt(choice) - 1, accounts.length - 1));
+      const picked = accounts[idx];
+      accountId = String(picked.ctidTraderAccountId);
+      host      = picked.isLive ? 'live.ctraderapi.com' : 'demo.ctraderapi.com';
+      ok(`Selected: ${picked.traderLogin || accountId} (${picked.isLive ? 'live' : 'demo'})`);
+    }
+  } catch (err) {
+    warn(`Could not fetch accounts: ${err.message}`);
+    warn('Enter account details manually.');
+  }
+
+  if (!accountId) {
+    warn('Prop firm accounts (FTMO, MyForexFunds…) must use live.ctraderapi.com');
+    warn('Standard demo accounts use demo.ctraderapi.com');
+    print();
+    accountId = await ask('Account ID (ctidTraderAccountId)');
+    host      = await ask('cTrader API host', 'live.ctraderapi.com');
+  }
 
   // ── Step 4: Server Address ─────────────────────────────────────────────────
   header('Step 4 — Server Address');
@@ -136,7 +180,7 @@ async function main() {
 
   const stateDir = path.join(root, 'src/state');
   const resets = {
-    'dailyState.json': JSON.stringify({ date: today, realizedPnL: 0, tradingLocked: false }, null, 2),
+    'dailyState.json': JSON.stringify({ date: today, realizedPnL: 0, tradingLocked: false, dailyStopLosses: 0 }, null, 2),
     'positions.json':  '[]',
     'tradeLog.json':   '[]',
   };

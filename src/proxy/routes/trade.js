@@ -348,6 +348,8 @@ module.exports = (connection) => {
       }
 
       const responseData = { positionId, openPrice: entryPrice };
+      if (effectiveSL != null) responseData.sl = effectiveSL;
+      if (effectiveTP != null) responseData.tp = effectiveTP;
       if (sl != null || tp != null || tpDeferred) {
         responseData.slSet = slSet;
         responseData.tpSet = tpSet;

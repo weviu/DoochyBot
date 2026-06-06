@@ -24,11 +24,13 @@ module.exports = () => {
     try {
       const args = ctx.message.text.split(' ').slice(1);
 
-      const noArgCmds = ['apply', 'mode', 'percent'];
+      const noArgCmds = ['apply', 'mode', 'percent', 'maxsl', 'max'];
       if (args.length < 1 || (args.length < 2 && !noArgCmds.includes(args[0]?.toLowerCase()))) {
         await ctx.reply(
           `Usage:\n` +
           `/risk daily <percent> - Set daily loss limit %\n` +
+          `/risk max <amount|off> - Set max daily loss in dollars\n` +
+          `/risk maxsl <n|off> - Max losing trades per day before lock\n` +
           `/risk positions <number> - Set max open positions (1-50)\n` +
           `/risk size <symbol> <volume> - Set fixed lot size for symbol\n` +
           `/risk mode <fixed|percent> - Switch sizing mode\n` +
@@ -41,7 +43,57 @@ module.exports = () => {
 
       const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
 
-      if (args[0].toLowerCase() === 'daily') {
+      if (args[0].toLowerCase() === 'max') {
+        const val = args[1]?.toLowerCase();
+        if (!val) {
+          const current = settings.maxDailyLossUSD;
+          await ctx.reply(current != null
+            ? `Max daily loss: $${Math.abs(current)}\nUse /risk max <amount> to change or /risk max off to disable.`
+            : `Max daily loss: disabled\nUse /risk max <amount> to enable (e.g. /risk max 200).`
+          );
+          return;
+        }
+        if (val === 'off' || val === '0') {
+          settings.maxDailyLossUSD = null;
+          fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+          await ctx.reply('Max daily dollar loss disabled.');
+        } else {
+          const amount = parseFloat(val);
+          if (isNaN(amount) || amount <= 0) {
+            await ctx.reply('❌ Usage: /risk max <amount> or /risk max off');
+            return;
+          }
+          settings.maxDailyLossUSD = amount;
+          fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+          await ctx.reply(`✅ Max daily loss set to $${amount}. Trading will lock when realized P&L hits -$${amount}.`);
+          logger.info('maxDailyLossUSD updated', { amount });
+        }
+      } else if (args[0].toLowerCase() === 'maxsl') {
+        const val = args[1]?.toLowerCase();
+        if (!val) {
+          const current = settings.maxDailyStopLosses;
+          await ctx.reply(current != null
+            ? `Max daily stop losses: ${current}\nUse /risk maxsl <n> to change or /risk maxsl off to disable.`
+            : `Max daily stop losses: disabled\nUse /risk maxsl <n> to enable.`
+          );
+          return;
+        }
+        if (val === 'off' || val === '0') {
+          settings.maxDailyStopLosses = null;
+          fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+          await ctx.reply('Max daily stop losses disabled.');
+        } else {
+          const n = parseInt(val, 10);
+          if (isNaN(n) || n < 1) {
+            await ctx.reply('❌ Usage: /risk maxsl <number> or /risk maxsl off');
+            return;
+          }
+          settings.maxDailyStopLosses = n;
+          fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+          await ctx.reply(`✅ Max daily stop losses set to ${n}. Trading will lock after ${n} losing trade${n > 1 ? 's' : ''} in a day.`);
+          logger.info('maxDailyStopLosses updated', { n });
+        }
+      } else if (args[0].toLowerCase() === 'daily') {
         const percent = parseFloat(args[1]);
         if (isNaN(percent) || percent <= 0) {
           await ctx.reply('❌ Invalid percentage');

@@ -1265,5 +1265,50 @@
     "sl": 0.947697,
     "tp": 0.883991,
     "entryPrice": 0.942
+  },
+  {
+    "symbol": "ADAUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7389221",
+    "openTime": "2026-06-06 20:00:54",
+    "status": "open",
+    "entryPrice": 0.1567
+  },
+  {
+    "symbol": "BCHUSD",
+    "direction": "SELL",
+    "volume": 0.01,
+    "positionId": "7389222",
+    "openTime": "2026-06-06 20:01:04",
+    "status": "open",
+    "entryPrice": 213.89
+  },
+  {
+    "symbol": "BNBUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7389223",
+    "openTime": "2026-06-06 20:01:07",
+    "status": "open",
+    "entryPrice": 573.99
+  },
+  {
+    "symbol": "BCHUSD",
+    "direction": "SELL",
+    "volume": 0.01,
+    "positionId": "7389229",
+    "openTime": "2026-06-06 20:02:53",
+    "status": "open",
+    "entryPrice": 213.51
+  },
+  {
+    "symbol": "AVAUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7389231",
+    "openTime": "2026-06-06 20:04:34",
+    "status": "open",
+    "entryPrice": 6.58
   }
 ]

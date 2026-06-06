@@ -113,7 +113,7 @@ async function checkRisks(signal, lastSignalTime = {}) {
     return { passed: false, reason };
   }
 
-  // Check 7: Daily loss limit (auto-locked by dailyPnL module when limit breached)
+  // Check 7: Daily loss limit / max stop losses (auto-locked by dailyPnL module when breached)
   if (dailyPnL.isLocked()) {
     const reason = `Daily loss limit reached — trading locked. Use /pnl reset to unlock.`;
     logger.warn('Risk check failed: trading locked by daily loss limit', { signal });
