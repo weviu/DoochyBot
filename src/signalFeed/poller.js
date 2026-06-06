@@ -13,14 +13,24 @@ const {
 let pollInterval    = null;
 let lastSeenTs      = null;   // Date — baseline set on first poll
 let firstPoll       = true;
+let isPolling       = false;  // prevent concurrent poll executions
 let unreachableFlag = false;  // suppress repeated "unreachable" log spam
 
 // ── Symbol conversion ─────────────────────────────────────────────────────────
-// "BTC/USDT" → "BTCUSD"   "XAU/USDT:USDT" → "XAUUSD"   "ADA/USDT" → "ADAUSD"
+// Feed uses full names; cTrader uses broker-specific abbreviations for some.
+// "BTC/USDT" → "BTCUSD"   "AAVE/USDT" → "AAVUSD"   "AVAX/USDT" → "AVAUSD"
+
+const FEED_ALIASES = {
+  'AAVE': 'AAVUSD',   // feed: AAVE  → cTrader: AAVUSD
+  'ALGO': 'ALGUSD',   // feed: ALGO  → cTrader: ALGUSD
+  'AVAX': 'AVAUSD',   // feed: AVAX  → cTrader: AVAUSD
+  'LINK': 'LNKUSD',   // feed: LINK  → cTrader: LNKUSD
+  'NEAR': 'NERUSD',   // feed: NEAR  → cTrader: NERUSD
+};
 
 function convertSymbol(raw) {
   const base = raw.split('/')[0].toUpperCase().replace(/[^A-Z0-9]/g, '');
-  return base + 'USD';
+  return FEED_ALIASES[base] || (base + 'USD');
 }
 
 function parseTs(ts) {
@@ -59,9 +69,9 @@ async function processAlert(alert) {
     );
 
     if (conflicting.length > 0) {
-      const tradeHistory    = loadTradeLog();
-      const firstConflict   = conflicting[0];
-      const logEntry        = tradeHistory.find(e => String(e.positionId) === String(firstConflict.positionId));
+      const tradeHistory     = loadTradeLog();
+      const firstConflict    = conflicting[0];
+      const logEntry         = tradeHistory.find(e => String(e.positionId) === String(firstConflict.positionId));
       const enrichedPosition = { ...firstConflict, openTime: logEntry?.openTime ?? null };
 
       const reversalCheck = checkReversal(enrichedPosition, signal, tradeHistory);
@@ -102,6 +112,10 @@ async function processAlert(alert) {
 // ── Poll cycle ────────────────────────────────────────────────────────────────
 
 async function poll(url) {
+  // Skip this tick if the previous poll is still processing
+  if (isPolling) return;
+  isPolling = true;
+
   try {
     const res = await fetch(url, { timeout: 8000 });
 
@@ -134,6 +148,9 @@ async function poll(url) {
 
     if (newAlerts.length === 0) return;
 
+    // Advance the cursor BEFORE processing so concurrent ticks don't re-run the same batch
+    lastSeenTs = parseTs(newAlerts[newAlerts.length - 1].timestamp);
+
     logger.info(`Poll: ${newAlerts.length} new signal${newAlerts.length > 1 ? 's' : ''} found`);
 
     for (const alert of newAlerts) {
@@ -144,13 +161,13 @@ async function poll(url) {
       }
     }
 
-    lastSeenTs = parseTs(newAlerts[newAlerts.length - 1].timestamp);
-
   } catch (err) {
     if (!unreachableFlag) {
       logger.warn(`Signal feed unreachable: ${err.message}`);
       unreachableFlag = true;
     }
+  } finally {
+    isPolling = false;
   }
 }
 
