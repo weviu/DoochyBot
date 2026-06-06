@@ -1,6 +1,7 @@
 const logger = require('../../utils/logger');
 const fs = require('fs');
 const path = require('path');
+const { COMMON_SYMBOLS } = require('../../utils/symbols');
 
 const SETTINGS_FILE = path.join(__dirname, '../../state/settings.json');
 
@@ -22,11 +23,29 @@ module.exports = () => {
       }
 
       if (args[0].toLowerCase() === 'add') {
+        // /symbols add all  → add every known symbol at 0.01 lot
+        if (args[1]?.toLowerCase() === 'all') {
+          const defaultLot = parseFloat(args[2]) || 0.01;
+          const known = Object.keys(COMMON_SYMBOLS).filter(s => s !== 'GOLD' && s !== 'OIL'); // skip aliases
+          let added = 0;
+          for (const sym of known) {
+            if (!settings.allowedSymbols.includes(sym)) {
+              settings.allowedSymbols.push(sym);
+              added++;
+            }
+            if (!settings.symbolLotSizes[sym]) settings.symbolLotSizes[sym] = defaultLot;
+          }
+          fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+          await ctx.reply(`✅ Added ${added} new symbols at ${defaultLot} lots each\n(${known.length} total symbols now configured)`);
+          logger.info('All symbols added', { count: added, defaultLot });
+          return;
+        }
+
         const symbol = args[1]?.toUpperCase();
         const volume = parseFloat(args[2]);
 
         if (!symbol || isNaN(volume) || volume <= 0) {
-          await ctx.reply('Usage: /symbols add <symbol> <volume>');
+          await ctx.reply('Usage: /symbols add <SYMBOL> <volume>\n       /symbols add all [volume]');
           return;
         }
 

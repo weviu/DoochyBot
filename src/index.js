@@ -135,12 +135,22 @@ async function main() {
 
         // 7. Start Telegram bot
         bot = new TelegramBot(config.telegram.token, config.telegram.allowedUsers);
-        await bot.start();
+        // grammY's bot.start() runs an infinite polling loop and never resolves.
+        // setup() and the startup log run synchronously before the poll suspends,
+        // so we fire without await and let the rest of startup continue.
+        bot.start().catch(err => logger.error('Telegram bot polling error', { error: err.message }));
 
         logger.info('✅ Bot fully operational');
         logger.info(`📊 Proxy running on port ${config.proxy.port}`);
         logger.info(`🤖 Telegram bot active`);
         logger.info(`💰 Account: ${config.ctrader.accountId}`);
+
+        // 8. Start signal feed poller (if enabled)
+        if (process.env.SIGNAL_FEED_ENABLED === 'true' && process.env.SIGNAL_FEED_URL) {
+          const poller = require('./signalFeed/poller');
+          poller.start(process.env.SIGNAL_FEED_URL);
+          logger.info('Signal feed poller started');
+        }
       } catch (err) {
         logger.error('Failed to start proxy or bot', { error: err.message });
         process.exit(1);

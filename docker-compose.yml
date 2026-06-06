@@ -21,6 +21,8 @@ services:
       PROXY_PORT: ${PROXY_PORT:-9009}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       ALLOWED_USERS: ${ALLOWED_USERS:-}
+      SIGNAL_FEED_ENABLED: ${SIGNAL_FEED_ENABLED:-false}
+      SIGNAL_FEED_URL: ${SIGNAL_FEED_URL:-}
     
     # Volumes
     volumes:

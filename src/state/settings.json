@@ -83,5 +83,5 @@
   "tp_buffer_percent": 0.15,
   "minHoldSeconds": 0,
   "activeProfile": "custom",
-  "weekendTrading": false
+  "weekendTrading": true
 }

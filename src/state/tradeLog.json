@@ -1254,5 +1254,16 @@
     "sl": 95000,
     "tp": 100000,
     "entryPrice": 60917.2
+  },
+  {
+    "symbol": "DOTUSD",
+    "direction": "SELL",
+    "volume": 0.2,
+    "positionId": "7388626",
+    "openTime": "2026-06-05 23:56:36",
+    "status": "open",
+    "sl": 0.947697,
+    "tp": 0.883991,
+    "entryPrice": 0.942
   }
 ]

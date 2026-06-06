@@ -6,7 +6,8 @@
   "type": "commonjs",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node src/index.js"
+    "dev": "node src/index.js",
+    "setup": "node setup.js"
   },
   "dependencies": {
     "@reiryoku/ctrader-layer": "^2.2.0",
