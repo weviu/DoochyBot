@@ -1,0 +1,8 @@
+.env
+.env.docker
+
+# node stuff
+node_modules
+
+# some bs
+data/settings.json
