@@ -237,6 +237,7 @@ function buildEnvContent(data, forDocker = false) {
     `ALLOWED_USERS=${data.allowedUsers}`,
     `SIGNAL_FEED_ENABLED=${data.signalFeedEnabled}`,
     `SIGNAL_FEED_URL=${data.signalFeedUrl}`,
+    `TZ=Europe/Istanbul`,
   ].join('\n') + '\n';
   return header + body;
 }
