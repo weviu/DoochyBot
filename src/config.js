@@ -45,9 +45,7 @@ const SYMBOL_GROUPS = {
     'US30.cash', 'US500.cash',
   ],
   commodities: [
-    'COCOA.c', 'COFFEE.c', 'CORN.c', 'COTTON.c', 'HEATOIL.c', 'NATGAS.cash',
-    'SOYBEAN.c', 'SUGAR.c', 'UKOIL.cash', 'USOIL.cash', 'WHEAT.c',
-    'XCUUSD', 'XAGAUD', 'XAGEUR', 'XAGUSD', 'XAUAUD', 'XAUEUR', 'XAUUSD', 'XPDUSD', 'XPTUSD',
+    'USOIL.cash', 'XCUUSD', 'XAGAUD', 'XAGEUR', 'XAGUSD', 'XAUAUD', 'XAUEUR', 'XAUUSD', 'XPDUSD', 'XPTUSD',
   ],
 };
 
