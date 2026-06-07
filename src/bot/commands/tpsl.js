@@ -1,6 +1,7 @@
 const logger = require('../../utils/logger');
 const fs = require('fs');
 const path = require('path');
+const { calculateDollar } = require('../slTpCalculator');
 
 const SETTINGS_FILE = path.join(__dirname, '../../state/settings.json');
 
@@ -147,6 +148,45 @@ module.exports = () => {
         return;
       }
 
+      // /tpsl calc <SYMBOL> <buy|sell> <price>
+      if (sub === 'calc') {
+        const symbol    = args[1]?.toUpperCase();
+        const direction = args[2]?.toUpperCase();
+        const price     = parseFloat(args[3]);
+
+        if (!symbol || !['BUY', 'SELL'].includes(direction) || isNaN(price) || price <= 0) {
+          await ctx.reply('Usage: /tpsl calc <SYMBOL> <buy|sell> <price>\nExample: /tpsl calc BTCUSD sell 61000');
+          return;
+        }
+
+        const mode = settings.tpsl_mode ?? 'auto';
+        const volume = settings.symbolLotSizes[symbol];
+        if (!volume) {
+          await ctx.reply(`❌ ${symbol} not in your allowed symbols list`);
+          return;
+        }
+
+        const result = calculateDollar(price, direction, volume, symbol, settings);
+
+        if (!result.sl && !result.tp) {
+          await ctx.reply(`❌ Could not calculate — check that ${symbol} has a lot size and dollar amounts are configured`);
+          return;
+        }
+
+        const slUSD  = settings.symbolStopLossUSD?.[symbol]   ?? settings.stopLossUSD;
+        const tpUSD  = settings.symbolTakeProfitUSD?.[symbol] ?? settings.takeProfitUSD;
+
+        await ctx.reply(
+          `SL/TP preview — mode: ${mode}\n\n` +
+          `${direction} ${symbol} @ ${price}\n` +
+          `Volume: ${volume} lots\n\n` +
+          `SL: ${result.sl ?? 'none'} ($${slUSD ?? 0} risk)\n` +
+          `TP: ${result.tp ?? 'none'} ($${tpUSD ?? 0} target)\n\n` +
+          `(Feed signals use dollar fallback — pivot fires only for TradingView webhooks with pivot data)`
+        );
+        return;
+      }
+
       // Unknown subcommand
       await ctx.reply(
         `⚙️ /tpsl — SL/TP mode control\n\n` +
@@ -155,7 +195,8 @@ module.exports = () => {
         `/tpsl sl <percent> — Pivot SL buffer % (0.05–5.0)\n` +
         `/tpsl tp <percent> — Pivot TP buffer % (0.05–5.0)\n` +
         `/tpsl usd sl <amount> — Dollar SL amount\n` +
-        `/tpsl usd tp <amount> — Dollar TP amount\n\n` +
+        `/tpsl usd tp <amount> — Dollar TP amount\n` +
+        `/tpsl calc <SYMBOL> <buy|sell> <price> — Preview SL/TP\n\n` +
         `Modes:\n` +
         `  auto   — Use signal SL/TP if present, dollar otherwise\n` +
         `  pivot  — Always trust signal SL/TP (never override)\n` +

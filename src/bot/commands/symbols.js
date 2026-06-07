@@ -12,7 +12,17 @@ module.exports = () => {
       const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
 
       if (!args[0]) {
-        // Show current symbols
+        await ctx.reply(
+          `Usage:\n` +
+          `/symbols list — show allowed symbols & lot sizes\n` +
+          `/symbols add <SYMBOL> <volume> — add a symbol\n` +
+          `/symbols add all [volume] — add all known symbols\n` +
+          `/symbols remove <SYMBOL> — remove a symbol`
+        );
+        return;
+      }
+
+      if (args[0].toLowerCase() === 'list') {
         let symbolText = '📌 Allowed Symbols\n\n';
         settings.allowedSymbols.forEach(sym => {
           const size = settings.symbolLotSizes[sym] || 'N/A';

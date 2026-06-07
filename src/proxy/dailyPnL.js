@@ -223,6 +223,7 @@ function isLocked() {
 function unlock() {
   _ensureToday();
   _state.tradingLocked = false;
+  _state.dailyStopLosses = 0;
   _saveState();
   logger.info('Trading unlocked (manual reset)', { realizedPnL: _state.realizedPnL });
 }

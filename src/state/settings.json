@@ -46,9 +46,7 @@
     "US500.cash",
     "US100.cash",
     "US30.cash",
-    "DOGEUSD",
-    "LTCUSD",
-    "BCHUSD"
+    "DOGEUSD"
   ],
   "symbolLotSizes": {
     "ETHUSD": 0.5,
@@ -95,9 +93,7 @@
     "US500.cash": 0.01,
     "US100.cash": 0.01,
     "US30.cash": 0.01,
-    "DOGEUSD": 0.01,
-    "LTCUSD": 0.01,
-    "BCHUSD": 0.01
+    "DOGEUSD": 0.01
   },
   "maxPositions": 12,
   "maxTotalExposure": 999999,

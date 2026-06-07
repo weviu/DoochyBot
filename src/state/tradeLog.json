@@ -1310,5 +1310,139 @@
     "openTime": "2026-06-06 20:04:34",
     "status": "open",
     "entryPrice": 6.58
+  },
+  {
+    "symbol": "LTCUSD",
+    "direction": "SELL",
+    "volume": 0.01,
+    "positionId": "7389293",
+    "openTime": "2026-06-06 21:10:29",
+    "status": "open",
+    "sl": 41.6606,
+    "tp": 39.853,
+    "entryPrice": 41.26
+  },
+  {
+    "symbol": "LTCUSD",
+    "direction": "SELL",
+    "volume": 0.01,
+    "positionId": "7389294",
+    "openTime": "2026-06-06 21:10:42",
+    "status": "open",
+    "entryPrice": 41.25
+  },
+  {
+    "symbol": "BNBUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7389309",
+    "openTime": "2026-06-06 21:21:53",
+    "status": "open",
+    "sl": 580.34,
+    "tp": 550.61,
+    "entryPrice": 576.34
+  },
+  {
+    "symbol": "BNBUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7389310",
+    "openTime": "2026-06-06 21:21:59",
+    "status": "open",
+    "entryPrice": 576.35
+  },
+  {
+    "symbol": "BCHUSD",
+    "direction": "SELL",
+    "volume": 0.01,
+    "positionId": "7389315",
+    "openTime": "2026-06-06 21:23:49",
+    "status": "open",
+    "entryPrice": 216.16
+  },
+  {
+    "symbol": "SOLUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7389340",
+    "openTime": "2026-06-06 21:34:58",
+    "status": "open",
+    "entryPrice": 62.3
+  },
+  {
+    "symbol": "LTCUSD",
+    "direction": "SELL",
+    "volume": 0.01,
+    "positionId": "7389376",
+    "openTime": "2026-06-06 22:00:07",
+    "status": "open",
+    "sl": 43.8126,
+    "tp": 41.619,
+    "entryPrice": 41.5
+  },
+  {
+    "symbol": "LTCUSD",
+    "direction": "SELL",
+    "volume": 0.01,
+    "positionId": "7389377",
+    "openTime": "2026-06-06 22:00:09",
+    "status": "open",
+    "entryPrice": 41.49
+  },
+  {
+    "symbol": "LTCUSD",
+    "direction": "SELL",
+    "volume": 0.01,
+    "positionId": "7389413",
+    "openTime": "2026-06-06 22:32:59",
+    "status": "open",
+    "entryPrice": 40.79
+  },
+  {
+    "symbol": "NERUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7389577",
+    "openTime": "2026-06-07 01:06:09",
+    "status": "open",
+    "entryPrice": 1.882
+  },
+  {
+    "symbol": "XRPUSD",
+    "direction": "SELL",
+    "volume": 1,
+    "positionId": "7389590",
+    "openTime": "2026-06-07 01:08:29",
+    "status": "open",
+    "entryPrice": 1.1009
+  },
+  {
+    "symbol": "LNKUSD",
+    "direction": "BUY",
+    "volume": 0.1,
+    "positionId": "7390711",
+    "openTime": "2026-06-07 10:16:02",
+    "status": "open",
+    "entryPrice": 7.741
+  },
+  {
+    "symbol": "DOTUSD",
+    "direction": "BUY",
+    "volume": 0.2,
+    "positionId": "7390718",
+    "openTime": "2026-06-07 10:17:18",
+    "status": "open",
+    "sl": 0.96425,
+    "tp": 1.0208,
+    "entryPrice": 0.968
+  },
+  {
+    "symbol": "DOTUSD",
+    "direction": "BUY",
+    "volume": 0.2,
+    "positionId": "7390719",
+    "openTime": "2026-06-07 10:17:22",
+    "status": "open",
+    "entryPrice": 0.968
   }
 ]
