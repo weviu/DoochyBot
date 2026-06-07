@@ -1,4 +1,3 @@
-const fetch = require('node-fetch');
 const { config } = require('../config');
 const { parseSignal } = require('./parser');
 

@@ -1,149 +1,298 @@
-The setConnection pattern was the right call — it avoids the circular dependency that plagues most cTrader bots. Phase 2 gives you a working signal-to-execution pipeline.
+## PHASE 4: Telegram Bot + Commands
 
 ---
 
-## PHASE 3: SL/TP Amendment + Daily Loss Lock + Position Tracking
-
----
-
-Add SL/TP amendment after order fill, daily loss tracking with auto-lock, and the reversal check to DoochyBot at /home/san/DoochyBot/.
+Add the Telegram interface to DoochyBot at /home/san/DoochyBot/. The bot uses grammY. All state is already in memory via src/state.js — commands read and write that state directly.
 
 WHAT TO BUILD
 
-1. src/ctrader/amend.js
+1. src/bot/bot.js
 
-Export a function amendPositionSLTP(positionId, symbol, entryPrice, direction, signal) that sets stop loss and take profit on a filled position.
+Create and export the grammY bot instance.
 
-The function determines SL and TP based on state.settings.sltpMode:
+Setup:
+- Import { Bot } from "grammY"
+- Create bot with TELEGRAM_BOT_TOKEN from config
+- Restrict to ALLOWED_USERS: if the env var is set, parse the comma-separated list of user IDs. In the bot's middleware, check ctx.from.id against the list. If not allowed, reply "Unauthorized" and return immediately. If ALLOWED_USERS is empty, allow everyone.
+- Register all command handlers (listed below)
+- Start the bot with bot.start()
+- Log "Telegram bot started. Allowed users: X"
 
-Mode "auto":
-- If signal.sl is not null and signal.tp is not null: use them directly. Log "Using signal SL/TP: sl=0.1610, tp=0.1700"
-- If either is null: fall back to dollar mode for that value
+Export the bot instance so other modules can send messages (for alerts).
 
-Mode "dollar":
-- SL = calculate from state.settings.stopLossUSD or state.settings.symbolStopLossUSD[symbol]
-- TP = calculate from state.settings.takeProfitUSD or state.settings.symbolTakeProfitUSD[symbol]
-- Dollar-to-price conversion: priceDistance = dollarAmount / (volume × contractSize × 0.01)
-- For BUY: sl = entryPrice - slDistance, tp = entryPrice + tpDistance
-- For SELL: sl = entryPrice + slDistance, tp = entryPrice - tpDistance
-- Log "Dollar SL/TP: sl=0.1610 ($30.00), tp=0.1700 ($45.00)"
+2. Command handlers
 
-Mode "pivot":
-- Trust signal.sl and signal.tp completely. If they're null, skip SL/TP for that value.
-- Log "Pivot SL/TP: sl=0.1610, tp=0.1700"
+Each command is a separate file in src/bot/commands/. Every command handler receives (ctx, state) — ctx is the grammY context, state is the in-memory state object.
 
-Symbol-specific overrides:
-- Check state.settings.symbolStopLossUSD — if the symbol has a specific SL dollar amount, it overrides the global stopLossUSD
-- Same for symbolTakeProfitUSD
-- These are checked in dollar mode and when auto mode falls back to dollar
+/start
+File: src/bot/commands/start.js
+- Reply: "DoochyBot ready. Send /help for commands."
 
-Min hold timer:
-- SL is set immediately after fill (always)
-- TP is delayed by state.settings.minHoldSeconds (default 60 seconds)
-- After the minHoldSeconds delay, send the TP amendment
-- If the position was already closed during the waiting period: cancel the delayed TP, log "TP skipped — position closed during min hold"
-- Log: "SL set immediately. TP will be set in 60s (min hold)"
+/help
+File: src/bot/commands/help.js
+- List all commands with one-line descriptions:
 
-ProtoOAAmendPositionSLTPReq:
-- ctidTraderAccountId from .env
-- positionId: the position ID from the fill
-- stopLoss: the calculated SL price (only include if not null)
-- takeProfit: the calculated TP price (only include if not null)
-- Wait for the amendment confirmation. The library may return immediately or via event.
-- If amendment succeeds: update the position in state.positions with sl and tp values. Log "SL/TP set: sl=0.1610, tp=0.1700"
-- If amendment fails: log "SL/TP amendment failed: error message". Do NOT close the position — it stays open without SL/TP. The user must manually manage it.
+/status — Account and position summary
+/balance — Account balance and margin
+/positions — List open positions
+/pause — Stop executing new signals
+/resume — Resume executing signals
+/closeall — Close all open positions
+/risk daily <percent> — Set daily loss limit (%)
+/risk size <symbol> <lots> — Set lot size
+/risk mode <fixed|percent> — Set sizing mode
+/risk percent <percent> — Set risk per trade (%)
+/risk sltp <auto|dollar|pivot> — Set SL/TP mode
+/risk minhold <seconds> — Set min hold time
+/symbols — List allowed symbols
+/symbols add <symbol> <lots> — Add symbol
+/symbols remove <symbol> — Remove symbol
+/confirm <on|off> — Toggle auto-execute
+/export — Export trade history
 
-Edge cases:
-- If SL would be on the wrong side of entry (SL above entry for BUY, below for SELL): log error, skip SL
-- If TP would be on the wrong side: log error, skip TP
-- If entryPrice is 0 or null: log error, skip amendment entirely
+/status
+File: src/bot/commands/status.js
+- Show: connection status, daily P&L, number of open positions, trading paused/locked state
+- Format:
+```
+DoochyBot Status
+Daily P&L: +$45.32 (limit: -$200.00)
+Open positions: 3/5
+Trading: ACTIVE
+Mode: fixed lots | SL/TP: auto
+```
 
-2. Update src/ctrader/orders.js
+/balance
+File: src/bot/commands/balance.js
+- Show from state.accountInfo: equity, balance, margin, freeMargin
+- Format:
+```
+Balance: $10,000.00
+Equity: $9,982.00
+Margin: $18.00
+Free Margin: $9,964.00
+```
 
-After the order fills and we have positionId and openPrice, call amendPositionSLTP:
+/positions
+File: src/bot/commands/positions.js
+- List all positions from state.positions
+- For each: direction, volume, symbol, entryPrice, current P&L (if we have current price, otherwise show entry only), SL, TP
+- Format: "BUY 0.1 ADAUSD @ 0.1644 | SL: 0.1610 | TP: 0.1700"
+- If no positions: "No open positions"
+- Current price: if we don't have live prices, just show entry and skip P&L
 
-- Import amendPositionSLTP from ./amend.js
-- Call it with the filled position details and the original signal
-- Do NOT await the TP delay — let the amend module handle the 60s timer internally
-- The executeSignal function returns success once the SL is set (not waiting for TP)
+/pause
+File: src/bot/commands/pause.js
+- Set state.paused = true
+- Reply: "Trading paused. Use /resume to re-enable."
 
-3. src/risk/dailyLoss.js
+/resume
+File: src/bot/commands/resume.js
+- Set state.paused = false
+- Reply: "Trading resumed."
 
-Export two functions:
+/closeall
+File: src/bot/commands/closeall.js
+- If no positions: "No positions to close"
+- If positions exist: "Closing X positions..."
+- For each position in state.positions: send ProtoOAPositionCloseReq with positionId and volume
+- Wait for each fill (or fire and forget — log results)
+- Reply: "Closed X positions. Failed: Y"
+- On failure for a position: log which position failed and why
+- Clear state.positions after all closes are confirmed
 
-checkDailyLoss():
-- Calculate: dailyLossLimit = state.accountInfo.balance × (state.settings.dailyLossLimitPercent / 100)
-- Convert to absolute: maxLoss = Math.min(dailyLossLimit, state.settings.maxDailyLossUSD) — whichever is smaller
-- If state.dailyRealizedPnL < -maxLoss: set state.tradingLocked = true, log "DAILY LOSS LIMIT BREACHED. P&L: -$X.XX. Limit: -$Y.YY. Trading locked.", return true
-- Otherwise: return false
+/risk
+File: src/bot/commands/risk.js
+Handle subcommands:
 
-This is called after each position close (see below). It can also be called by a periodic check.
+/risk daily <percent>
+- Update state.settings.dailyLossLimitPercent = parseFloat(percent)
+- Call storage.saveSettings({ dailyLossLimitPercent: percent })
+- Reply: "Daily loss limit: X%"
 
-updateDailyPnL(closedPnl):
-- Add closedPnl to state.dailyRealizedPnL
-- Log "Daily P&L updated: +$X.XX (total: +$Y.YY)"
-- Then call checkDailyLoss()
-- If checkDailyLoss returns true: log "Trading locked for the day. Use /pnl reset to unlock (if limit was raised)."
+/risk size <symbol> <lots>
+- Update state.settings.lotSizes[symbol] = parseFloat(lots)
+- Call storage.saveSettings with updated lotSizes
+- Reply: "Lot size: SYMBOL = X lots"
 
-4. Position close tracking
+/risk mode fixed
+- state.settings.riskMode = "fixed"
+- storage.saveSettings({ riskMode: "fixed" })
+- Reply: "Sizing mode: fixed lots"
 
-The cTrader connection already forwards ProtoOAExecutionEvent. We need to listen for position closes.
+/risk mode percent
+- state.settings.riskMode = "percent"
+- storage.saveSettings({ riskMode: "percent" })
+- Reply: "Sizing mode: percent of equity (SL required)"
 
-In src/startup.js or a new file src/ctrader/events.js:
+/risk percent <percent>
+- state.settings.riskPercent = parseFloat(percent)
+- storage.saveSettings({ riskPercent: percent })
+- Reply: "Risk per trade: X%"
 
-Add a listener on the connection for ProtoOAExecutionEvent where executionType is "ORDER_FILLED" and the order is a closing order (closingOrder: true, or the deal has closePositionDetail).
+/risk sltp auto
+/risk sltp dollar
+/risk sltp pivot
+- Update state.settings.sltpMode
+- storage.saveSettings
+- Reply with current mode and a brief explanation of what it does
 
-When a position is closed:
-- Find the position in state.positions by positionId
-- Calculate P&L: if closePositionDetail exists, use grossProfit. Otherwise: (exitPrice - entryPrice) × volume × contractSize for BUY, reversed for SELL
-- Remove the position from state.positions
-- Call updateDailyPnL(pnl)
-- Log "Position closed: BUY ADAUSD #7390876 | P&L: +$15.95"
-- Call appendTrade to record the closed trade with exit price and P&L
+/risk minhold <seconds>
+- state.settings.minHoldSeconds = parseInt(seconds)
+- storage.saveSettings({ minHoldSeconds: seconds })
+- Reply: "Min hold time: Xs (TP delayed by this amount)"
 
-If the position is not in state.positions (closed externally or restarted): still call updateDailyPnL but log "External close detected: position #7390876"
+/symbols
+File: src/bot/commands/symbols.js
 
-5. src/risk/reversal.js
+/symbols (no args)
+- List all allowed symbols with lot sizes
+- Format: "BTCUSD: 0.05 | XAUUSD: 0.05 | ADAUSD: 0.1"
 
-Export a function checkReversal(signal) that checks if the new signal is opposite to an existing position on the same symbol.
+/symbols add <symbol> <lots>
+- Add to state.settings.allowedSymbols (if not already there)
+- Set state.settings.lotSizes[symbol] = parseFloat(lots)
+- storage.saveSettings
+- Reply: "Added SYMBOL (X lots)"
+
+/symbols remove <symbol>
+- Remove from allowedSymbols and lotSizes
+- storage.saveSettings
+- Reply: "Removed SYMBOL"
+
+/confirm
+File: src/bot/commands/confirm.js
+
+/confirm on
+- state.settings.confirmMode = true
+- storage.saveSettings({ confirmMode: true })
+- Reply: "Confirmation mode ON — signals require approval before execution"
+
+/confirm off
+- state.settings.confirmMode = false
+- storage.saveSettings({ confirmMode: false })
+- Reply: "Confirmation mode OFF — signals execute automatically"
+
+/export
+File: src/bot/commands/export.js
+
+/export (no args) — export last 7 days
+/export 2026-06-01 — from June 1st to now
+/export 2026-06-01 2026-06-05 — date range
+/export 2026-06-01_12:30 2026-06-05_23:59 — with time
 
 Logic:
-- Look for an open position in state.positions where position.symbol === signal.symbol AND position.direction !== signal.direction
-- If no opposite position: return { isReversal: false }
-- If opposite position found: return { isReversal: true, existingPosition }
+- Read data/tradeLog.jsonl
+- Parse each line as JSON
+- Filter by date range
+- Format as readable text:
+```
+TRADE HISTORY
+=============
+Period: 2026-06-01 to 2026-06-07
+Trades: 48 (48 closed)
+Realized P&L: +$244.46
 
-This is called by processSignal in gate.js BEFORE the max positions check. If it's a reversal, the max positions check is skipped (we're flipping, not adding).
+#1 BUY 0.1 ADAUSD [CLOSED] (#7390876)
+   Opened: 2026-06-05 11:17
+   Closed: 2026-06-05 12:11 (54m)
+   Entry → Exit: 0.1644 → 0.1614
+   P&L: -$31.05
+...
+```
+- If the message is too long for Telegram (over 4096 chars): split into multiple messages
+- If no trades in range: "No trades found for this period"
+- If tradeLog.jsonl doesn't exist: "No trade history yet"
 
-The reversal execution (closing old + opening new) is handled in Phase 4. For now, just detect it and log "Reversal signal detected: SELL ADAUSD would close existing BUY #7390876". Pass the signal to executeSignal as normal — the reversal handling (close then open) comes next.
+3. Alerts to Telegram
 
-6. Update src/risk/gate.js
+When certain events happen, send a message to the user's Telegram chat.
 
-In processSignal, before Check 3 (max positions):
-- Call checkReversal(signal)
-- If isReversal: skip Check 3 (max positions). The reversal will close one and open one — net zero change.
-- If not reversal: continue to Check 3 as before
-- After all checks pass: call executeSignal(signal)
+For this, we need to know the chat ID. Add a command /setchatid:
+File: src/bot/commands/setchatid.js
+- Save ctx.chat.id to state.settings.chatId
+- storage.saveSettings({ chatId: ctx.chat.id })
+- Reply: "Chat ID saved. Alerts will be sent here."
 
-7. Update src/index.js
+Alert events (send to state.settings.chatId if set):
+- Daily loss limit breached: "Daily loss limit reached. Trading locked."
+- Position closed: "ADAUSD SELL closed | P&L: +$15.95 | Daily P&L: +$45.32"
+- Order filled: "BUY 0.1 ADAUSD filled @ 0.1644 | Position #7390876"
+- These use bot.api.sendMessage(chatId, message). Import the bot instance from bot.js.
 
-After runStartup:
-- Set up the position close listener (from step 4 above) on the connection
-- Call startPoller()
-- Log "DoochyBot ready"
+Where to trigger alerts:
+- In events.js when a position close is detected: send the closed alert
+- In orders.js when a fill is confirmed: send the filled alert
+- In dailyLoss.js when trading is locked: send the limit breached alert
+
+4. Register all commands in bot.js
+
+Import each command handler and register it:
+- bot.command("start", (ctx) => startCmd(ctx, state))
+- bot.command("help", (ctx) => helpCmd(ctx, state))
+- ... all others
+- Use bot.command() for each. grammY handles the parsing.
+
+For commands with subcommands (/risk daily, /risk size, /symbols add, etc.): parse ctx.message.text within the handler. Split by spaces, dispatch to the right sub-handler.
+
+For /export with optional args: parse the rest of the message after the command.
+
+5. Wire into index.js
+
+After runStartup and poller start:
+- Import and call the bot setup from src/bot/bot.js
+- Pass the state object to the bot setup
+- The bot setup registers all commands and starts the bot
+- Log "Telegram bot started"
 
 TESTING
 
-1. Place a trade that fills. Within 30 seconds, the SL should appear on the position in cTrader.
-2. After 60 seconds, the TP should appear.
-3. Close a position manually in cTrader. The bot should detect it, calculate P&L, update daily P&L, and log it.
-4. When daily P&L goes below the limit, trading should lock. Subsequent signals should be rejected with "Trading locked".
-5. Send a signal opposite to an open position. The log should show "Reversal signal detected".
+1. Send /help to the bot — should list all commands
+2. Send /status — should show daily P&L, positions, trading state
+3. Send /symbols — should show allowed symbols with lot sizes
+4. Send /symbols add ADAUSD 0.1 — should add ADAUSD
+5. Send /risk daily 2 — should update limit
+6. Send /pause — should lock trading. Verify by checking /status
+7. Send /resume — should unlock
+8. When a trade executes, should receive a fill alert
+9. When a position closes, should receive a close alert with P&L
+10. Send /export — should return formatted trade history
 
 IMPORTANT
 
-- The minHoldSeconds timer for TP must not block the bot. Use setTimeout — do NOT await it in the main execution flow.
-- If the bot restarts during the 60s TP delay, the TP is not set. This is acceptable — the position sync on restart will show the position without TP, and the user can set it manually or close it.
-- Dollar-to-price conversion uses the contractSize from state.symbolMap. If not found, fall back to 100000.
-- All monetary values are in the account currency (USD for prop firms).
-- Position close events might arrive as ProtoOAExecutionEvent with executionType "ORDER_FILLED" where the order has closingOrder: true. Check this flag. Also check if deal.closePositionDetail exists as an alternative detection method.
-- Use the existing state, storage, and connection modules. Do not duplicate functionality.
+- All commands must validate inputs. If a user sends /risk daily abc, reply "Invalid percentage. Use a number like 2 or 1.5"
+- Commands that modify settings must call storage.saveSettings() to persist
+- The bot token and allowed users come from .env via config.js
+- Never expose credentials or internal state in command responses
+- Keep command responses concise — one to three lines max for most commands
+- The /export command is the only one that may send long messages
+- Use the existing state object — commands read and modify it directly
+- Do not create duplicate state or settings storageClean work. The bot now has all four phases: cTrader connection, signal pipeline, SL/TP amendment, and Telegram interface.
+
+---
+
+## What You Have
+
+A single Node.js process that:
+- Connects to cTrader, fetches symbols and account info
+- Polls signals.route07.com for new alerts every 10 seconds
+- Runs 5 risk checks with reversal detection
+- Executes market orders with 30s fill timeout
+- Sets SL immediately, TP after min hold timer
+- Tracks daily P&L and locks trading at limit breach
+- Provides Telegram commands for full control
+- Persists settings and trade history to disk
+
+---
+
+## What's Left (From Your Spec)
+
+| Feature | Status |
+|:---|:---|
+| Reversal execution (close old + open new) | Detected but not executed yet |
+| /pnl command | Not built |
+| /pnl reset | Not built |
+| /history and /stats | /export exists, no aggregated stats |
+| Setup wizard | Not built |
+| Docker support | Not built |
+| Volume filter on signals site | For later |

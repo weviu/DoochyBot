@@ -57,6 +57,10 @@ function setupEventListeners(connection) {
       });
 
       state.positions.delete(positionId);
+      const pnlSign = pnl >= 0 ? '+' : '';
+      require('../bot/bot').sendAlert(
+        `${existingPos.symbol} ${existingPos.direction} closed | P&L: ${pnlSign}$${Math.abs(pnl).toFixed(2)} | Daily P&L: ${pnlSign}$${Math.abs(state.dailyRealizedPnL + pnl).toFixed(2)}`
+      );
     } else {
       log(`External close detected: position #${positionId}`);
     }

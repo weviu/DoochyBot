@@ -4,6 +4,7 @@ const { runStartup } = require('./startup');
 const { startPoller } = require('./signals/poller');
 const { setConnection } = require('./ctrader/orders');
 const { setupEventListeners } = require('./ctrader/events');
+const { startBot } = require('./bot/bot');
 
 function ts() {
   return new Date().toISOString().replace('T', ' ').slice(0, 19);
@@ -22,6 +23,7 @@ async function main() {
   setupEventListeners(connection);
   startPoller();
   log('Signal poller started');
+  startBot();
   log('DoochyBot ready');
 
   process.on('SIGINT', () => shutdown(connection));

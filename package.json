@@ -10,7 +10,6 @@
   "dependencies": {
     "@reiryoku/ctrader-layer": "^2.0.0",
     "dotenv": "^16.0.0",
-    "grammy": "^1.21.0",
-    "node-fetch": "^3.3.0"
+    "grammy": "^1.21.0"
   }
 }

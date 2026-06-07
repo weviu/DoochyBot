@@ -20,6 +20,7 @@ function checkDailyLoss() {
   if (state.dailyRealizedPnL < -maxLoss) {
     state.tradingLocked = true;
     log(`DAILY LOSS LIMIT BREACHED. P&L: ${fmt(state.dailyRealizedPnL)}. Limit: -$${maxLoss.toFixed(2)}. Trading locked.`);
+    require('../bot/bot').sendAlert(`Daily loss limit reached. Trading locked.`);
     return true;
   }
   return false;

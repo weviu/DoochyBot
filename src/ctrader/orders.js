@@ -9,6 +9,10 @@ function setConnection(conn) {
   _connection = conn;
 }
 
+function getConnection() {
+  return _connection;
+}
+
 function ts() {
   return new Date().toISOString().replace('T', ' ').slice(0, 19);
 }
@@ -93,6 +97,7 @@ async function executeSignal(signal) {
   const openPrice = fillEvent.deal?.executionPrice;
 
   log(`Order filled: ${signal.direction} ${volume} ${signal.symbol} @ ${openPrice} | Position #${positionId}`);
+  require('../bot/bot').sendAlert(`${signal.direction} ${volume} ${signal.symbol} filled @ ${openPrice} | Position #${positionId}`);
 
   state.positions.set(positionId, {
     symbol: signal.symbol,
@@ -124,4 +129,4 @@ async function executeSignal(signal) {
   });
 }
 
-module.exports = { executeSignal, setConnection };
+module.exports = { executeSignal, setConnection, getConnection };
