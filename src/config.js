@@ -32,10 +32,47 @@ function resolveSymbol(raw) {
   return SYMBOL_ALIASES[base] || (base + 'USD');
 }
 
+const SYMBOL_GROUPS = {
+  crypto: [
+    'AAVUSD', 'ADAUSD', 'ALGUSD', 'AVAUSD', 'BARUSD', 'BCHUSD', 'BNBUSD', 'BTCUSD',
+    'DASHUSD', 'DOGEUSD', 'DOTUSD', 'ETCUSD', 'ETHUSD', 'FETUSD', 'GALUSD', 'GRTUSD',
+    'ICPUSD', 'IMXUSD', 'LNKUSD', 'LTCUSD', 'MANUSD', 'NEOUSD', 'NERUSD', 'SANUSD',
+    'SOLUSD', 'UNIUSD', 'VECUSD', 'XLMUSD', 'XMRUSD', 'XRPUSD', 'XTZUSD',
+  ],
+  indices: [
+    'AUS200.cash', 'DXY.cash', 'EU50.cash', 'FRA40.cash', 'GER40.cash', 'HK50.cash',
+    'JP225.cash', 'N25.cash', 'SPN35.cash', 'UK100.cash', 'US100.cash', 'US2000.cash',
+    'US30.cash', 'US500.cash',
+  ],
+  commodities: [
+    'COCOA.c', 'COFFEE.c', 'CORN.c', 'COTTON.c', 'HEATOIL.c', 'NATGAS.cash',
+    'SOYBEAN.c', 'SUGAR.c', 'UKOIL.cash', 'USOIL.cash', 'WHEAT.c',
+    'XCUUSD', 'XAGAUD', 'XAGEUR', 'XAGUSD', 'XAUAUD', 'XAUEUR', 'XAUUSD', 'XPDUSD', 'XPTUSD',
+  ],
+};
+
+const DEFAULT_LOT_SIZES = (() => {
+  const sizes = {};
+  const all = [...SYMBOL_GROUPS.crypto, ...SYMBOL_GROUPS.indices, ...SYMBOL_GROUPS.commodities];
+  for (const sym of all) sizes[sym] = 0.1;
+  sizes['BTCUSD'] = 0.01;
+  sizes['XAUUSD'] = 0.05;
+  sizes['XAUAUD'] = 0.05;
+  sizes['XAUEUR'] = 0.05;
+  sizes['XAGUSD'] = 0.5;
+  sizes['XAGAUD'] = 0.5;
+  sizes['XAGEUR'] = 0.5;
+  return sizes;
+})();
+
 const DEFAULT_SETTINGS = {
   paused: false,
-  allowedSymbols: ["BTCUSD", "XAUUSD", "XAGUSD"],
-  lotSizes: { "BTCUSD": 0.05, "XAUUSD": 0.05, "XAGUSD": 0.5 },
+  allowedSymbols: [
+    ...SYMBOL_GROUPS.crypto,
+    ...SYMBOL_GROUPS.indices,
+    ...SYMBOL_GROUPS.commodities,
+  ],
+  lotSizes: { ...DEFAULT_LOT_SIZES },
   maxPositions: 5,
   dailyLossLimitPercent: 2,
   maxDailyLossUSD: 200,
@@ -48,4 +85,4 @@ const DEFAULT_SETTINGS = {
   confirmMode: false,
 };
 
-module.exports = { config, SYMBOL_ALIASES, resolveSymbol, DEFAULT_SETTINGS };
+module.exports = { config, SYMBOL_ALIASES, resolveSymbol, SYMBOL_GROUPS, DEFAULT_LOT_SIZES, DEFAULT_SETTINGS };

@@ -13,7 +13,9 @@ const HELP_TEXT = `
 /risk minhold <seconds> - Set min hold time
 /symbols - List allowed symbols
 /symbols add all - Add every symbol from cTrader
-/symbols add <symbol> <lots> - Add symbol
+/symbols add <group> - Add group (crypto/indices/commodities)
+/symbols add <symbol> <lots> - Add symbol with lot size
+/symbols remove <group> - Remove whole group
 /symbols remove <symbol> - Remove symbol
 /confirm <on|off> - Toggle auto-execute
 /setchatid - Save chat for alerts

@@ -91,8 +91,10 @@ Writes `.env` and `.env.docker` on completion.
 | `/risk minhold <seconds>` | Delay before TP is set after fill |
 | `/symbols` | List allowed symbols with lot sizes |
 | `/symbols add all` | Add every symbol available in cTrader (0.01 lot default) |
-| `/symbols add <symbol> <lots>` | Add a symbol to the allowlist |
-| `/symbols remove <symbol>` | Remove a symbol |
+| `/symbols add <group>` | Add a group: `crypto`, `indices`, or `commodities` |
+| `/symbols add <symbol> <lots>` | Add a single symbol with a specific lot size |
+| `/symbols remove <group>` | Remove a whole group: `crypto`, `indices`, or `commodities` |
+| `/symbols remove <symbol>` | Remove a single symbol |
 | `/confirm <on\|off>` | Toggle manual confirmation mode |
 | `/setchatid` | Save this chat for bot alerts |
 | `/export` | Export trade history (last 7 days) |
@@ -161,7 +163,7 @@ Both are gitignored and persisted via Docker volume.
 
 | Setting | Default |
 |---|---|
-| Allowed symbols | BTCUSD, XAUUSD, XAGUSD |
+| Allowed symbols | 65 symbols across crypto (31), indices (14), and commodities (20) |
 | Max open positions | 5 |
 | Daily loss limit | 2% or $200 (whichever is smaller) |
 | Sizing mode | Fixed lots |
