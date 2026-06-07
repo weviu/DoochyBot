@@ -1,0 +1,10 @@
+node_modules
+data
+.env
+.env.docker
+*.log
+.git
+.gitignore
+README.md
+SETUP.md
+setup.js

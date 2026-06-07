@@ -117,7 +117,7 @@ async function amendPositionSLTP(connection, positionId, symbol, entryPrice, dir
   if (minHold > 0 && tp !== null) {
     setTimeout(async () => {
       if (!state.positions.has(positionId)) {
-        log(`TP skipped - position closed during min hold (position #${positionId})`);
+        log(`TP skipped - position #${positionId} already closed (reversal or manual close)`);
         return;
       }
       try {

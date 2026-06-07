@@ -107,6 +107,7 @@ async function executeSignal(signal) {
     sl: null,
     tp: null,
     openTime: Date.now(),
+    confidence: signal.confidence || null,
   });
 
   // Not awaited - SL is set immediately, TP after minHoldSeconds timer
