@@ -78,6 +78,8 @@ const DEFAULT_SETTINGS = {
   riskPercent: 1,
   stopLossUSD: 30,
   takeProfitUSD: 45,
+  stopLossPercent: 2,
+  takeProfitPercent: 3,
   sltpMode: "auto",
   minHoldSeconds: 60,
   confirmMode: false,

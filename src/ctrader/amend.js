@@ -10,18 +10,12 @@ function log(msg) {
 }
 
 function getContractSize(symbol) {
-  return state.symbolMap.get(symbol)?.contractSize || 100000;
-}
-
-function dollarToPrice(dollarAmount, volume, symbol) {
-  const contractSize = getContractSize(symbol);
-  return dollarAmount / (volume * contractSize * 0.01);
+  const cs = state.symbolMap.get(symbol)?.contractSize;
+  return (cs && cs > 0) ? cs : null;
 }
 
 function calcSLTP(positionId, symbol, entryPrice, direction, volume, signal) {
   const mode = state.settings.sltpMode || 'auto';
-  const slUSD = state.settings.symbolStopLossUSD?.[symbol] ?? state.settings.stopLossUSD;
-  const tpUSD = state.settings.symbolTakeProfitUSD?.[symbol] ?? state.settings.takeProfitUSD;
 
   let sl = null;
   let tp = null;
@@ -40,22 +34,40 @@ function calcSLTP(positionId, symbol, entryPrice, direction, volume, signal) {
       log(`Using signal SL/TP: sl=${sl}, tp=${tp}`);
       return { sl, tp };
     }
-    // Fall through to dollar for any missing values
   }
 
-  // Dollar mode (or auto fallback)
-  const slDist = dollarToPrice(slUSD, volume, symbol);
-  const tpDist = dollarToPrice(tpUSD, volume, symbol);
+  const contractSize = getContractSize(symbol);
 
-  if (direction === 'BUY') {
-    if (sl === null) sl = entryPrice - slDist;
-    if (tp === null) tp = entryPrice + tpDist;
+  if (contractSize) {
+    // Dollar mode - only reliable when broker provides contract size
+    const slUSD = state.settings.symbolStopLossUSD?.[symbol] ?? state.settings.stopLossUSD;
+    const tpUSD = state.settings.symbolTakeProfitUSD?.[symbol] ?? state.settings.takeProfitUSD;
+    const slDist = slUSD / (volume * contractSize);
+    const tpDist = tpUSD / (volume * contractSize);
+    if (direction === 'BUY') {
+      if (sl === null) sl = entryPrice - slDist;
+      if (tp === null) tp = entryPrice + tpDist;
+    } else {
+      if (sl === null) sl = entryPrice + slDist;
+      if (tp === null) tp = entryPrice - tpDist;
+    }
+    log(`Dollar SL/TP for #${positionId}: sl=${sl.toFixed(5)} ($${slUSD}), tp=${tp.toFixed(5)} ($${tpUSD})`);
   } else {
-    if (sl === null) sl = entryPrice + slDist;
-    if (tp === null) tp = entryPrice - tpDist;
+    // No contract size from broker - use percentage of entry price
+    const slPct = state.settings.stopLossPercent ?? 2;
+    const tpPct = state.settings.takeProfitPercent ?? 3;
+    const slDist = entryPrice * (slPct / 100);
+    const tpDist = entryPrice * (tpPct / 100);
+    if (direction === 'BUY') {
+      if (sl === null) sl = entryPrice - slDist;
+      if (tp === null) tp = entryPrice + tpDist;
+    } else {
+      if (sl === null) sl = entryPrice + slDist;
+      if (tp === null) tp = entryPrice - tpDist;
+    }
+    log(`Percent SL/TP for #${positionId}: sl=${sl.toFixed(5)} (${slPct}%), tp=${tp.toFixed(5)} (${tpPct}%)`);
   }
 
-  log(`Dollar SL/TP: sl=${sl.toFixed(5)} ($${slUSD.toFixed(2)}), tp=${tp.toFixed(5)} ($${tpUSD.toFixed(2)})`);
   return { sl, tp };
 }
 

@@ -49,6 +49,7 @@ async function executeSignal(signal) {
   const symbolInfo = state.symbolMap.get(signal.symbol);
   if (!symbolInfo) {
     log(`Order rejected: Symbol ID not found for ${signal.symbol}`);
+    require('../bot/bot').sendAlert(`Order failed - ${signal.direction} ${signal.symbol}: symbol not in broker symbol map`);
     return;
   }
 
@@ -104,6 +105,7 @@ async function executeSignal(signal) {
     clearTimeout(fillTimeout);
     _connection.removeEventListener(listenerUuid);
     log(`Order send failed for ${signal.symbol}: ${err.message}`);
+    require('../bot/bot').sendAlert(`Order failed - ${signal.direction} ${signal.symbol}: ${err.message}`);
     return;
   }
 
