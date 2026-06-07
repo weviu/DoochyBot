@@ -1,4 +1,5 @@
 const logger = require('../utils/logger');
+const { loadSettings } = require('./riskGate');
 
 function confluenceScore(direction, rsi, pivotLevel) {
   let score = 0;
@@ -38,10 +39,13 @@ function checkReversal(existingPosition, newSignal, tradeHistory) {
 
     if (openMs && !isNaN(openMs)) {
       const ageMs = Date.now() - openMs;
-      if (ageMs < 300000) {
+      const settings = loadSettings();
+      const cooldownMs = (settings.minHoldSeconds ?? 300) * 1000;
+      if (ageMs < cooldownMs) {
+        const secs = Math.ceil((cooldownMs - ageMs) / 1000);
         return {
           allowed: false,
-          reason: 'Position opened less than 5 minutes ago. Wait before reversing.'
+          reason: `Position opened less than ${settings.minHoldSeconds ?? 300}s ago. Wait ${secs}s before reversing.`
         };
       }
     }

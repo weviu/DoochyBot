@@ -114,13 +114,13 @@ async function main() {
     host      = await ask('cTrader API host', 'live.ctraderapi.com');
   }
 
-  // ── Step 4: Server Address ─────────────────────────────────────────────────
-  header('Step 4 — Server Address');
-  info('Enter your VPS IP or domain. Used to build the webhook URL shown below.');
-  info('On a local machine use your public IP or set up a tunnel (ngrok, Cloudflare).');
+  // ── Step 4: Server Address (only needed for TradingView webhook) ──────────
+  header('Step 4 — Server Address (optional)');
+  info('Only needed if using TradingView webhook alerts.');
+  info('If using the signal feed only, press Enter to skip.');
   print();
 
-  const serverHost = await ask('Server IP or domain (e.g. 123.45.67.89)');
+  const serverHost = await ask('Server IP or domain (leave blank to skip)', '');
   const proxyPort  = await ask('Proxy port', '9009');
 
   // ── Step 5: Telegram ───────────────────────────────────────────────────────

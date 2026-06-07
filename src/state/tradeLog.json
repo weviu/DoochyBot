@@ -1444,5 +1444,168 @@
     "openTime": "2026-06-07 10:17:22",
     "status": "open",
     "entryPrice": 0.968
+  },
+  {
+    "symbol": "DOTUSD",
+    "direction": "BUY",
+    "volume": 0.2,
+    "positionId": "7390724",
+    "openTime": "2026-06-07 10:20:50",
+    "status": "open",
+    "entryPrice": 0.969
+  },
+  {
+    "symbol": "LNKUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7390729",
+    "openTime": "2026-06-07 10:22:51",
+    "status": "open",
+    "type": "reversal",
+    "closedPositionId": "7390711",
+    "reversalReason": "Stronger opposite signal",
+    "entryPrice": 7.757
+  },
+  {
+    "symbol": "LNKUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7390730",
+    "openTime": "2026-06-07 10:22:54",
+    "status": "open",
+    "entryPrice": 7.757
+  },
+  {
+    "symbol": "BTCUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7390735",
+    "openTime": "2026-06-07 10:24:02",
+    "status": "open",
+    "sl": 62825,
+    "tp": 61869,
+    "entryPrice": 62509.9
+  },
+  {
+    "symbol": "BTCUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7390736",
+    "openTime": "2026-06-07 10:24:10",
+    "status": "open",
+    "entryPrice": 62505.23
+  },
+  {
+    "symbol": "DOTUSD",
+    "direction": "SELL",
+    "volume": 0.2,
+    "positionId": "7390737",
+    "openTime": "2026-06-07 10:24:11",
+    "status": "open",
+    "type": "reversal",
+    "closedPositionId": "7390718",
+    "reversalReason": "Stronger opposite signal",
+    "sl": 1.024889,
+    "tp": 0.968117,
+    "entryPrice": 0.968
+  },
+  {
+    "symbol": "DOTUSD",
+    "direction": "SELL",
+    "volume": 0.2,
+    "positionId": "7390738",
+    "openTime": "2026-06-07 10:24:13",
+    "status": "open",
+    "entryPrice": 0.968
+  },
+  {
+    "symbol": "BTCUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7390746",
+    "openTime": "2026-06-07 10:26:00",
+    "status": "open",
+    "entryPrice": 62511.81
+  },
+  {
+    "symbol": "LNKUSD",
+    "direction": "BUY",
+    "volume": 0.1,
+    "positionId": "7390749",
+    "openTime": "2026-06-07 10:28:07",
+    "status": "open",
+    "type": "reversal",
+    "closedPositionId": "7390729",
+    "reversalReason": "Stronger opposite signal",
+    "entryPrice": 7.75
+  },
+  {
+    "symbol": "ALGUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7390751",
+    "openTime": "2026-06-07 10:31:00",
+    "status": "open",
+    "entryPrice": 0.0952
+  },
+  {
+    "symbol": "BTCUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7390752",
+    "openTime": "2026-06-07 10:31:10",
+    "status": "open",
+    "sl": 62825,
+    "tp": 61869,
+    "entryPrice": 62522.83
+  },
+  {
+    "symbol": "BTCUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7390753",
+    "openTime": "2026-06-07 10:31:10",
+    "status": "open",
+    "entryPrice": 62523.8
+  },
+  {
+    "symbol": "SOLUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7390766",
+    "openTime": "2026-06-07 10:35:32",
+    "status": "open",
+    "sl": 67.2945,
+    "tp": 64.7603,
+    "entryPrice": 64.88
+  },
+  {
+    "symbol": "SOLUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7390767",
+    "openTime": "2026-06-07 10:35:40",
+    "status": "open",
+    "entryPrice": 64.85
+  },
+  {
+    "symbol": "NERUSD",
+    "direction": "SELL",
+    "volume": 0.1,
+    "positionId": "7390771",
+    "openTime": "2026-06-07 10:37:00",
+    "status": "open",
+    "entryPrice": 1.899
+  },
+  {
+    "symbol": "UNIUSD",
+    "direction": "BUY",
+    "volume": 0.05,
+    "positionId": "7390842",
+    "openTime": "2026-06-07 11:04:57",
+    "status": "open",
+    "sl": 2.5237,
+    "tp": 2.5901,
+    "entryPrice": 2.5401
   }
 ]
