@@ -90,6 +90,7 @@ Writes `.env` and `.env.docker` on completion.
 | `/risk sltp <auto\|dollar\|pivot>` | Set SL/TP calculation mode |
 | `/risk minhold <seconds>` | Delay before TP is set after fill |
 | `/symbols` | List allowed symbols with lot sizes |
+| `/symbols add all` | Add every symbol available in cTrader (0.01 lot default) |
 | `/symbols add <symbol> <lots>` | Add a symbol to the allowlist |
 | `/symbols remove <symbol>` | Remove a symbol |
 | `/confirm <on\|off>` | Toggle manual confirmation mode |

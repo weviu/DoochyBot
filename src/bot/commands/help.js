@@ -12,6 +12,7 @@ const HELP_TEXT = `
 /risk sltp <auto|dollar|pivot> - Set SL/TP mode
 /risk minhold <seconds> - Set min hold time
 /symbols - List allowed symbols
+/symbols add all - Add every symbol from cTrader
 /symbols add <symbol> <lots> - Add symbol
 /symbols remove <symbol> - Remove symbol
 /confirm <on|off> - Toggle auto-execute

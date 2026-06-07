@@ -19,6 +19,31 @@ async function symbolsCmd(ctx) {
     return;
   }
 
+  if (sub === 'add' && (parts[1] || '').toUpperCase() === 'ALL') {
+    if (state.symbolMap.size === 0) {
+      await ctx.reply('Symbol map is empty - bot may still be starting up.');
+      return;
+    }
+    const DEFAULT_LOTS = 0.01;
+    const allowed = new Set(state.settings.allowedSymbols || []);
+    const lotSizes = { ...state.settings.lotSizes };
+    let added = 0;
+    for (const name of state.symbolMap.keys()) {
+      if (!allowed.has(name)) {
+        allowed.add(name);
+        added++;
+      }
+      if (lotSizes[name] == null) {
+        lotSizes[name] = DEFAULT_LOTS;
+      }
+    }
+    state.settings.allowedSymbols = [...allowed];
+    state.settings.lotSizes = lotSizes;
+    saveSettings({ allowedSymbols: state.settings.allowedSymbols, lotSizes: state.settings.lotSizes });
+    await ctx.reply(`Added ${added} new symbols (${allowed.size} total). Default lot size: ${DEFAULT_LOTS}. Use /risk size <SYMBOL> <lots> to adjust.`);
+    return;
+  }
+
   if (sub === 'add') {
     const symbol = (parts[1] || '').toUpperCase();
     const lots = parseFloat(parts[2]);
@@ -51,7 +76,7 @@ async function symbolsCmd(ctx) {
     return;
   }
 
-  await ctx.reply('Usage: /symbols | /symbols add <SYMBOL> <lots> | /symbols remove <SYMBOL>');
+  await ctx.reply('Usage: /symbols | /symbols add all | /symbols add <SYMBOL> <lots> | /symbols remove <SYMBOL>');
 }
 
 module.exports = { symbolsCmd };
