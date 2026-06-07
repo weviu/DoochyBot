@@ -56,40 +56,63 @@ async function executeSignal(signal) {
   const ctraderVolume = Math.round(volume * 100000);
   const clientOrderId = `doochy_${Date.now()}`;
 
+  let fillResolve, fillReject, listenerUuid, fillTimeout;
+
   const fillPromise = new Promise((resolve, reject) => {
-    let listenerUuid;
-    const timeout = setTimeout(() => {
+    fillResolve = resolve;
+    fillReject = reject;
+  });
+
+  fillTimeout = setTimeout(() => {
+    _connection.removeEventListener(listenerUuid);
+    fillReject(new Error('Order fill timeout - order may still execute, check positions'));
+  }, 30000);
+
+  listenerUuid = _connection.on('ProtoOAExecutionEvent', (msg) => {
+    const dealMatch = msg.deal?.clientOrderId === clientOrderId;
+    const orderMatch = msg.order?.clientOrderId === clientOrderId;
+
+    if (msg.executionType === 'ORDER_FILLED' && dealMatch) {
+      clearTimeout(fillTimeout);
       _connection.removeEventListener(listenerUuid);
-      reject(new Error(`Order fill timeout - order may still execute, check positions`));
-    }, 30000);
+      fillResolve(msg);
+      return;
+    }
 
-    listenerUuid = _connection.on('ProtoOAExecutionEvent', (msg) => {
-      if (
-        msg.executionType === 'ORDER_FILLED' &&
-        msg.deal?.clientOrderId === clientOrderId
-      ) {
-        clearTimeout(timeout);
-        _connection.removeEventListener(listenerUuid);
-        resolve(msg);
-      }
+    if (
+      (msg.executionType === 'ORDER_REJECTED' || msg.executionType === 'ORDER_CANCELLED') &&
+      (dealMatch || orderMatch)
+    ) {
+      clearTimeout(fillTimeout);
+      _connection.removeEventListener(listenerUuid);
+      const reason = msg.errorCode || msg.order?.errorCode || msg.order?.comment || 'no reason given';
+      fillReject(new Error(`Order rejected: ${reason}`));
+    }
+  });
+
+  try {
+    await _connection.sendCommand('ProtoOANewOrderReq', {
+      ctidTraderAccountId: config.ctrader.accountId,
+      symbolId: symbolInfo.symbolId,
+      orderType: 'MARKET',
+      tradeSide: signal.direction,
+      volume: ctraderVolume,
+      timeInForce: 'IMMEDIATE_OR_CANCEL',
+      clientOrderId,
     });
-  });
-
-  _connection.sendCommand('ProtoOANewOrderReq', {
-    ctidTraderAccountId: config.ctrader.accountId,
-    symbolId: symbolInfo.symbolId,
-    orderType: 'MARKET',
-    tradeSide: signal.direction,
-    volume: ctraderVolume,
-    timeInForce: 'IMMEDIATE_OR_CANCEL',
-    clientOrderId,
-  });
+  } catch (err) {
+    clearTimeout(fillTimeout);
+    _connection.removeEventListener(listenerUuid);
+    log(`Order send failed for ${signal.symbol}: ${err.message}`);
+    return;
+  }
 
   let fillEvent;
   try {
     fillEvent = await fillPromise;
   } catch (err) {
-    log(`Warning: ${err.message}`);
+    log(`Order failed for ${signal.symbol}: ${err.message}`);
+    require('../bot/bot').sendAlert(`Order failed - ${signal.direction} ${signal.symbol}: ${err.message}`);
     return;
   }
 
