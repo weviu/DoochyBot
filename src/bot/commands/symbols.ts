@@ -1,4 +1,4 @@
-import { state, persistSettings } from "../../state";
+import { state, persistSettings, DEFAULT_SETTINGS } from "../../state";
 
 const SYMBOL_ALIASES: Record<string, string> = {
   AAVE: "AAVUSD",
@@ -22,6 +22,14 @@ export async function symbolsCmd(ctx: any) {
   }
 
   const action = parts[1]?.toLowerCase();
+
+  // /symbols reset - restore the default symbol list
+  if (action === "reset") {
+    state.settings.allowedSymbols = [...DEFAULT_SETTINGS.allowedSymbols];
+    persistSettings();
+    await ctx.reply(`Symbol list reset to defaults: ${state.settings.allowedSymbols.join(", ")}`);
+    return;
+  }
 
   // /symbols add all - add all symbols from the feed with confidence >= 3
   if (action === "add" && parts[2]?.toLowerCase() === "all") {
@@ -92,5 +100,5 @@ export async function symbolsCmd(ctx: any) {
     return;
   }
 
-  await ctx.reply("Usage: /symbols | /symbols add <SYM> | /symbols add all | /symbols remove <SYM> | /symbols <SYM> <lots>");
+  await ctx.reply("Usage: /symbols | /symbols add <SYM> | /symbols add all | /symbols remove <SYM> | /symbols reset | /symbols <SYM> <lots>");
 }

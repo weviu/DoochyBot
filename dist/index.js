@@ -15,6 +15,7 @@ const symbols_1 = require("./bot/commands/symbols");
 const risk_1 = require("./bot/commands/risk");
 const minhold_1 = require("./bot/commands/minhold");
 const closeall_1 = require("./bot/commands/closeall");
+const export_1 = require("./bot/commands/export");
 const account_1 = require("./ctrader/account");
 const symbols_2 = require("./ctrader/symbols");
 const orders_1 = require("./ctrader/orders");
@@ -91,6 +92,7 @@ async function startBot() {
             "/symbols add <sym> - Add symbol\n" +
             "/symbols add all - Add all high-confidence symbols\n" +
             "/symbols remove <sym> - Remove symbol\n" +
+            "/symbols reset - Restore default symbol list\n" +
             "/symbols <sym> <lots> - Set lot size for symbol\n" +
             "\n" +
             "/risk lotsize <lots> - Set default lot size\n" +
@@ -101,6 +103,7 @@ async function startBot() {
             "/risk maxloss <usd> - Set max daily loss ($)\n" +
             "/minhold <secs> - Min seconds to hold before TP is set\n" +
             "/closeall - Close all open positions\n" +
+            "/export [from] [to] - Export trade history (CSV)\n" +
             "\n" +
             "One position per symbol. Opposite signals only flip if confidence is higher.");
     });
@@ -110,6 +113,7 @@ async function startBot() {
     bot.command("risk", risk_1.riskCmd);
     bot.command("minhold", minhold_1.minholdCmd);
     bot.command("closeall", closeall_1.closeallCmd);
+    bot.command("export", export_1.exportCmd);
     bot.start({
         drop_pending_updates: true,
         onStart: () => console.log("[TELEGRAM] Bot started"),
@@ -122,6 +126,7 @@ async function main() {
     (0, orders_1.setConnection)(ctrader);
     (0, amend_1.setAmendConnection)(ctrader);
     (0, midnightClose_1.setMidnightConnection)(ctrader);
+    (0, export_1.setExportConnection)(ctrader);
     (0, midnightClose_1.startMidnightCheck)();
     (0, dailyLoss_1.startDailyReset)();
     console.log("[SAFETY] Midnight closer and daily reset active");

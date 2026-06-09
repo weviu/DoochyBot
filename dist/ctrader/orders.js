@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setConnection = setConnection;
+exports.getSymbolSpec = getSymbolSpec;
 exports.reconcilePositions = reconcilePositions;
 exports.executeSignal = executeSignal;
 const crypto_1 = require("crypto");
@@ -63,8 +64,9 @@ function lotsToVolume(lots, spec) {
 }
 // Reverse lookup of a symbolId to its name using the cached symbolMap.
 function symbolNameById(symbolId) {
+    const target = String(symbolId);
     for (const [name, id] of state_1.state.symbolMap.entries()) {
-        if (id === symbolId)
+        if (String(id) === target)
             return name;
     }
     return `#${symbolId}`;

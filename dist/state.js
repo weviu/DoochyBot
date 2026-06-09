@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.state = void 0;
+exports.state = exports.DEFAULT_SETTINGS = void 0;
 exports.initSettings = initSettings;
 exports.persistSettings = persistSettings;
 const storage_1 = require("./storage");
-const DEFAULT_SETTINGS = {
+exports.DEFAULT_SETTINGS = {
     allowedSymbols: ["BTCUSD", "XAUUSD", "XAGUSD"],
     maxPositions: 3,
     dailyLossLimitPercent: 2,
@@ -19,7 +19,7 @@ exports.state = {
     paused: false,
     tradingLocked: false,
     dailyRealizedPnL: 0,
-    settings: { ...DEFAULT_SETTINGS },
+    settings: { ...exports.DEFAULT_SETTINGS },
     positions: new Map(),
     lastSignalTime: new Map(),
     accountInfo: { balance: 0, equity: 0, currency: "USD" },

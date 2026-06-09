@@ -35,7 +35,7 @@ export interface BotState {
   symbolMap: Map<string, number>;
 }
 
-const DEFAULT_SETTINGS: BotSettings = {
+export const DEFAULT_SETTINGS: BotSettings = {
   allowedSymbols: ["BTCUSD", "XAUUSD", "XAGUSD"],
   maxPositions: 3,
   dailyLossLimitPercent: 2,

@@ -10,6 +10,7 @@ import { symbolsCmd } from "./bot/commands/symbols";
 import { riskCmd } from "./bot/commands/risk";
 import { minholdCmd } from "./bot/commands/minhold";
 import { closeallCmd } from "./bot/commands/closeall";
+import { exportCmd, setExportConnection } from "./bot/commands/export";
 import { fetchAccountInfo } from "./ctrader/account";
 import { fetchSymbols } from "./ctrader/symbols";
 import { setConnection, reconcilePositions } from "./ctrader/orders";
@@ -100,6 +101,7 @@ bot.command("help", async (ctx) => {
     "/symbols add <sym> - Add symbol\n" +
     "/symbols add all - Add all high-confidence symbols\n" +
     "/symbols remove <sym> - Remove symbol\n" +
+    "/symbols reset - Restore default symbol list\n" +
     "/symbols <sym> <lots> - Set lot size for symbol\n" +
     "\n" +
     "/risk lotsize <lots> - Set default lot size\n" +
@@ -110,6 +112,7 @@ bot.command("help", async (ctx) => {
     "/risk maxloss <usd> - Set max daily loss ($)\n" +
     "/minhold <secs> - Min seconds to hold before TP is set\n" +
     "/closeall - Close all open positions\n" +
+    "/export [from] [to] - Export trade history (CSV)\n" +
     "\n" +
     "One position per symbol. Opposite signals only flip if confidence is higher."
   );
@@ -121,6 +124,7 @@ bot.command("help", async (ctx) => {
   bot.command("risk", riskCmd);
   bot.command("minhold", minholdCmd);
   bot.command("closeall", closeallCmd);
+  bot.command("export", exportCmd);
   bot.start({
     drop_pending_updates: true,
     onStart: () => console.log("[TELEGRAM] Bot started"),
@@ -134,6 +138,7 @@ const ctrader = await connectCtrader();
 setConnection(ctrader);
 setAmendConnection(ctrader);
 setMidnightConnection(ctrader);
+setExportConnection(ctrader);
 startMidnightCheck();
 startDailyReset();
 console.log("[SAFETY] Midnight closer and daily reset active");

@@ -21,6 +21,13 @@ async function symbolsCmd(ctx) {
         return;
     }
     const action = parts[1]?.toLowerCase();
+    // /symbols reset - restore the default symbol list
+    if (action === "reset") {
+        state_1.state.settings.allowedSymbols = [...state_1.DEFAULT_SETTINGS.allowedSymbols];
+        (0, state_1.persistSettings)();
+        await ctx.reply(`Symbol list reset to defaults: ${state_1.state.settings.allowedSymbols.join(", ")}`);
+        return;
+    }
     // /symbols add all - add all symbols from the feed with confidence >= 3
     if (action === "add" && parts[2]?.toLowerCase() === "all") {
         try {
@@ -87,6 +94,6 @@ async function symbolsCmd(ctx) {
         await ctx.reply(`${symbol} lot size set to ${lots}.`);
         return;
     }
-    await ctx.reply("Usage: /symbols | /symbols add <SYM> | /symbols add all | /symbols remove <SYM> | /symbols <SYM> <lots>");
+    await ctx.reply("Usage: /symbols | /symbols add <SYM> | /symbols add all | /symbols remove <SYM> | /symbols reset | /symbols <SYM> <lots>");
 }
 //# sourceMappingURL=symbols.js.map

@@ -34,7 +34,7 @@ interface SymbolSpec {
 // Per-symbol contract specs (broker data, not user settings) cached by symbolId.
 const symbolSpecs = new Map<number, SymbolSpec>();
 
-async function getSymbolSpec(symbolId: number): Promise<SymbolSpec | null> {
+export async function getSymbolSpec(symbolId: number): Promise<SymbolSpec | null> {
   const cached = symbolSpecs.get(symbolId);
   if (cached) return cached;
 
@@ -68,8 +68,9 @@ function lotsToVolume(lots: number, spec: SymbolSpec): number | null {
 
 // Reverse lookup of a symbolId to its name using the cached symbolMap.
 function symbolNameById(symbolId: number): string {
+  const target = String(symbolId);
   for (const [name, id] of state.symbolMap.entries()) {
-    if (id === symbolId) return name;
+    if (String(id) === target) return name;
   }
   return `#${symbolId}`;
 }
