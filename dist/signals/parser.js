@@ -6,6 +6,10 @@ const SYMBOL_ALIASES = {
     ALGO: "ALGUSD",
     AVAX: "AVAUSD",
     LINK: "LNKUSD",
+    // Indices — map the feed's base name to the broker's exact symbol name.
+    US30: "US 30",
+    US500: "US 500",
+    US100: "US TECH 100",
 };
 function resolveSymbol(raw) {
     const base = raw.split("/")[0].toUpperCase();

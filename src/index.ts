@@ -9,10 +9,14 @@ import { resumeCmd } from "./bot/commands/resume";
 import { symbolsCmd } from "./bot/commands/symbols";
 import { riskCmd } from "./bot/commands/risk";
 import { minholdCmd } from "./bot/commands/minhold";
+import { closeallCmd } from "./bot/commands/closeall";
 import { fetchAccountInfo } from "./ctrader/account";
 import { fetchSymbols } from "./ctrader/symbols";
-import { setConnection } from "./ctrader/orders";
+import { setConnection, reconcilePositions } from "./ctrader/orders";
 import { setAmendConnection } from "./ctrader/amend";
+import { setMidnightConnection, startMidnightCheck } from "./risk/midnightClose";
+import { startDailyReset } from "./risk/dailyLoss";
+import { setNotifier } from "./bot/notify";
 
 dotenv.config();
 
@@ -70,6 +74,7 @@ console.log("[CTRADER] Account auth response:", JSON.stringify(accountAuthRes).s
 
 async function startBot() {
   const bot = new Bot(config.telegram.token);
+  setNotifier(bot, config.telegram.allowedUsers);
 
   bot.use(async (ctx, next) => {
     const userId = ctx.from?.id;
@@ -103,7 +108,10 @@ bot.command("help", async (ctx) => {
     "/risk maxpos <n> - Set max open positions\n" +
     "/risk daily <pct> - Set daily loss limit (%)\n" +
     "/risk maxloss <usd> - Set max daily loss ($)\n" +
-    "/minhold <secs> - Min seconds to hold before TP is set"
+    "/minhold <secs> - Min seconds to hold before TP is set\n" +
+    "/closeall - Close all open positions\n" +
+    "\n" +
+    "One position per symbol. Opposite signals only flip if confidence is higher."
   );
 });
 
@@ -112,6 +120,7 @@ bot.command("help", async (ctx) => {
   bot.command("symbols", symbolsCmd);
   bot.command("risk", riskCmd);
   bot.command("minhold", minholdCmd);
+  bot.command("closeall", closeallCmd);
   bot.start({
     drop_pending_updates: true,
     onStart: () => console.log("[TELEGRAM] Bot started"),
@@ -124,8 +133,13 @@ async function main() {
 const ctrader = await connectCtrader();
 setConnection(ctrader);
 setAmendConnection(ctrader);
+setMidnightConnection(ctrader);
+startMidnightCheck();
+startDailyReset();
+console.log("[SAFETY] Midnight closer and daily reset active");
 await fetchAccountInfo(ctrader);
 await fetchSymbols(ctrader);
+await reconcilePositions();
 await startBot();
     startPoller((signal) => {
     processSignal(signal);

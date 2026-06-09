@@ -66,6 +66,60 @@ function lotsToVolume(lots: number, spec: SymbolSpec): number | null {
   return vol;
 }
 
+// Reverse lookup of a symbolId to its name using the cached symbolMap.
+function symbolNameById(symbolId: number): string {
+  for (const [name, id] of state.symbolMap.entries()) {
+    if (id === symbolId) return name;
+  }
+  return `#${symbolId}`;
+}
+
+// On startup, pull the broker's actual open positions into state.positions.
+// state.positions is in-memory only, so without this a restart would forget
+// open positions — leaving the midnight closer and max-positions gate blind to
+// anything opened before the restart.
+export async function reconcilePositions(): Promise<void> {
+  if (!connection) return;
+
+  // Reconcile is a nice-to-have (repopulates positions opened before a restart).
+  // Some accounts/servers reject it (CANT_ROUTE_REQUEST), so never let a failure
+  // here crash boot — log and continue.
+  try {
+    const res = await connection.sendCommand("ProtoOAReconcileReq", {
+      ctidTraderAccountId: parseInt(process.env.ACCOUNT_ID || "0"),
+    });
+    const positions = res.position || [];
+
+    let count = 0;
+    for (const p of positions) {
+      if (p.positionStatus && p.positionStatus !== "POSITION_STATUS_OPEN" && p.positionStatus !== 1) continue;
+      const td = p.tradeData || {};
+      const symbolId = Number(td.symbolId);
+      const volumeCents = Number(td.volume) || 0;
+
+      let lots = 0;
+      const spec = await getSymbolSpec(symbolId);
+      if (spec?.lotSize) lots = volumeCents / spec.lotSize;
+
+      state.positions.set(p.positionId, {
+        symbol: symbolNameById(symbolId),
+        direction: td.tradeSide === "SELL" ? "SELL" : "BUY",
+        volume: lots,
+        volumeCents,
+        entryPrice: Number(p.price) || 0,
+        openTime: Number(td.openTimestamp) || Date.now(),
+        sl: p.stopLoss ?? null,
+        tp: p.takeProfit ?? null,
+      });
+      count++;
+    }
+
+    console.log(`[RECONCILE] Loaded ${count} open position(s) from broker. Tracking ${state.positions.size}.`);
+  } catch (err: any) {
+    console.warn(`[RECONCILE] Skipped — ${err.errorCode || err.message || "request failed"}. Bot will track only positions it opens this session.`);
+  }
+}
+
 export async function executeSignal(signal: ParsedSignal): Promise<void> {
   if (!connection) {
     console.log("[ORDER] No cTrader connection");
@@ -149,8 +203,10 @@ export async function executeSignal(signal: ParsedSignal): Promise<void> {
             symbol: signal.symbol,
             direction: signal.direction,
             volume: lots,
+            volumeCents: orderVolume,
             entryPrice,
             openTime: Date.now(),
+            confidence: signal.confidence,
           });
 
           console.log(`[ORDER] Filled: ${signal.direction} ${lots} lots ${signal.symbol} @ ${entryPrice} | Position #${positionId}`);

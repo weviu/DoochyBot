@@ -3,9 +3,11 @@ import { loadSettings, saveSettings } from "./storage";
 export interface Position {
   symbol: string;
   direction: "BUY" | "SELL";
-  volume: number;
+  volume: number;       // lots (for display)
+  volumeCents: number;  // broker volume unit, needed to close the position
   entryPrice: number;
   openTime: number;
+  confidence?: number;  // signal confidence at entry; used for reversal gating
   sl?: number | null;
   tp?: number | null;
 }

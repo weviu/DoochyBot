@@ -14,10 +14,14 @@ const resume_1 = require("./bot/commands/resume");
 const symbols_1 = require("./bot/commands/symbols");
 const risk_1 = require("./bot/commands/risk");
 const minhold_1 = require("./bot/commands/minhold");
+const closeall_1 = require("./bot/commands/closeall");
 const account_1 = require("./ctrader/account");
 const symbols_2 = require("./ctrader/symbols");
 const orders_1 = require("./ctrader/orders");
 const amend_1 = require("./ctrader/amend");
+const midnightClose_1 = require("./risk/midnightClose");
+const dailyLoss_1 = require("./risk/dailyLoss");
+const notify_1 = require("./bot/notify");
 dotenv_1.default.config();
 const config = {
     ctrader: {
@@ -65,6 +69,7 @@ async function connectCtrader() {
 }
 async function startBot() {
     const bot = new grammy_1.Bot(config.telegram.token);
+    (0, notify_1.setNotifier)(bot, config.telegram.allowedUsers);
     bot.use(async (ctx, next) => {
         const userId = ctx.from?.id;
         if (userId && config.telegram.allowedUsers.length > 0) {
@@ -94,13 +99,17 @@ async function startBot() {
             "/risk maxpos <n> - Set max open positions\n" +
             "/risk daily <pct> - Set daily loss limit (%)\n" +
             "/risk maxloss <usd> - Set max daily loss ($)\n" +
-            "/minhold <secs> - Min seconds to hold before TP is set");
+            "/minhold <secs> - Min seconds to hold before TP is set\n" +
+            "/closeall - Close all open positions\n" +
+            "\n" +
+            "One position per symbol. Opposite signals only flip if confidence is higher.");
     });
     bot.command("pause", pause_1.pauseCmd);
     bot.command("resume", resume_1.resumeCmd);
     bot.command("symbols", symbols_1.symbolsCmd);
     bot.command("risk", risk_1.riskCmd);
     bot.command("minhold", minhold_1.minholdCmd);
+    bot.command("closeall", closeall_1.closeallCmd);
     bot.start({
         drop_pending_updates: true,
         onStart: () => console.log("[TELEGRAM] Bot started"),
@@ -112,8 +121,13 @@ async function main() {
     const ctrader = await connectCtrader();
     (0, orders_1.setConnection)(ctrader);
     (0, amend_1.setAmendConnection)(ctrader);
+    (0, midnightClose_1.setMidnightConnection)(ctrader);
+    (0, midnightClose_1.startMidnightCheck)();
+    (0, dailyLoss_1.startDailyReset)();
+    console.log("[SAFETY] Midnight closer and daily reset active");
     await (0, account_1.fetchAccountInfo)(ctrader);
     await (0, symbols_2.fetchSymbols)(ctrader);
+    await (0, orders_1.reconcilePositions)();
     await startBot();
     (0, poller_1.startPoller)((signal) => {
         (0, gate_1.processSignal)(signal);

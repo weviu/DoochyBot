@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setConnection = setConnection;
+exports.reconcilePositions = reconcilePositions;
 exports.executeSignal = executeSignal;
 const crypto_1 = require("crypto");
 const state_1 = require("../state");
@@ -59,6 +60,58 @@ function lotsToVolume(lots, spec) {
     if (spec.maxVolume && vol > spec.maxVolume)
         vol = spec.maxVolume;
     return vol;
+}
+// Reverse lookup of a symbolId to its name using the cached symbolMap.
+function symbolNameById(symbolId) {
+    for (const [name, id] of state_1.state.symbolMap.entries()) {
+        if (id === symbolId)
+            return name;
+    }
+    return `#${symbolId}`;
+}
+// On startup, pull the broker's actual open positions into state.positions.
+// state.positions is in-memory only, so without this a restart would forget
+// open positions — leaving the midnight closer and max-positions gate blind to
+// anything opened before the restart.
+async function reconcilePositions() {
+    if (!connection)
+        return;
+    // Reconcile is a nice-to-have (repopulates positions opened before a restart).
+    // Some accounts/servers reject it (CANT_ROUTE_REQUEST), so never let a failure
+    // here crash boot — log and continue.
+    try {
+        const res = await connection.sendCommand("ProtoOAReconcileReq", {
+            ctidTraderAccountId: parseInt(process.env.ACCOUNT_ID || "0"),
+        });
+        const positions = res.position || [];
+        let count = 0;
+        for (const p of positions) {
+            if (p.positionStatus && p.positionStatus !== "POSITION_STATUS_OPEN" && p.positionStatus !== 1)
+                continue;
+            const td = p.tradeData || {};
+            const symbolId = Number(td.symbolId);
+            const volumeCents = Number(td.volume) || 0;
+            let lots = 0;
+            const spec = await getSymbolSpec(symbolId);
+            if (spec?.lotSize)
+                lots = volumeCents / spec.lotSize;
+            state_1.state.positions.set(p.positionId, {
+                symbol: symbolNameById(symbolId),
+                direction: td.tradeSide === "SELL" ? "SELL" : "BUY",
+                volume: lots,
+                volumeCents,
+                entryPrice: Number(p.price) || 0,
+                openTime: Number(td.openTimestamp) || Date.now(),
+                sl: p.stopLoss ?? null,
+                tp: p.takeProfit ?? null,
+            });
+            count++;
+        }
+        console.log(`[RECONCILE] Loaded ${count} open position(s) from broker. Tracking ${state_1.state.positions.size}.`);
+    }
+    catch (err) {
+        console.warn(`[RECONCILE] Skipped — ${err.errorCode || err.message || "request failed"}. Bot will track only positions it opens this session.`);
+    }
 }
 async function executeSignal(signal) {
     if (!connection) {
@@ -134,8 +187,10 @@ async function executeSignal(signal) {
                         symbol: signal.symbol,
                         direction: signal.direction,
                         volume: lots,
+                        volumeCents: orderVolume,
                         entryPrice,
                         openTime: Date.now(),
+                        confidence: signal.confidence,
                     });
                     console.log(`[ORDER] Filled: ${signal.direction} ${lots} lots ${signal.symbol} @ ${entryPrice} | Position #${positionId}`);
                     (0, amend_1.amendPositionSLTP)(positionId, signal.symbol, entryPrice, signal.direction, {
