@@ -9,6 +9,20 @@ let connection = null;
 function setConnection(conn) {
     console.log('[ORDERS] setConnection called, sendCommand type:', typeof conn.sendCommand);
     connection = conn;
+    // Track position closes (SL/TP hit, manual close, stop-out) so they're
+    // removed from state.positions — otherwise the open-position count only ever
+    // grows and the max-positions gate eventually rejects everything.
+    conn.on("ProtoOAExecutionEvent", (event) => {
+        const data = event.descriptor ?? event;
+        const pos = data.position;
+        if (!pos?.positionId)
+            return;
+        if (pos.positionStatus === "POSITION_STATUS_CLOSED" || pos.positionStatus === 2) {
+            if (state_1.state.positions.delete(pos.positionId)) {
+                console.log(`[POSITIONS] Closed #${pos.positionId}. Open now: ${state_1.state.positions.size}`);
+            }
+        }
+    });
 }
 // Per-symbol contract specs (broker data, not user settings) cached by symbolId.
 const symbolSpecs = new Map();

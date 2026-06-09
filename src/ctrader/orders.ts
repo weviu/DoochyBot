@@ -8,6 +8,20 @@ let connection: any = null;
 export function setConnection(conn: any): void {
   console.log('[ORDERS] setConnection called, sendCommand type:', typeof conn.sendCommand);
   connection = conn;
+
+  // Track position closes (SL/TP hit, manual close, stop-out) so they're
+  // removed from state.positions — otherwise the open-position count only ever
+  // grows and the max-positions gate eventually rejects everything.
+  conn.on("ProtoOAExecutionEvent", (event: any) => {
+    const data = event.descriptor ?? event;
+    const pos = data.position;
+    if (!pos?.positionId) return;
+    if (pos.positionStatus === "POSITION_STATUS_CLOSED" || pos.positionStatus === 2) {
+      if (state.positions.delete(pos.positionId)) {
+        console.log(`[POSITIONS] Closed #${pos.positionId}. Open now: ${state.positions.size}`);
+      }
+    }
+  });
 }
 
 interface SymbolSpec {

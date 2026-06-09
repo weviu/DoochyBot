@@ -107,6 +107,29 @@ async function amendPositionSLTP(positionId, symbol, entryPrice, direction, sign
         sl = round(sl, digits);
     if (tp)
         tp = round(tp, digits);
+    const delayMs = (state_1.state.settings.minHoldSeconds ?? 60) * 1000;
+    // With no min-hold delay, set SL and TP in a SINGLE amend. cTrader's amend
+    // replaces the full SL/TP state anyway, so one call is cleaner and avoids a
+    // redundant SL-only amend that the broker doesn't always confirm in time.
+    if (delayMs === 0) {
+        const fields = {};
+        if (sl)
+            fields.stopLoss = sl;
+        if (tp)
+            fields.takeProfit = tp;
+        if (Object.keys(fields).length) {
+            await sendAmend(positionId, fields, `SL ${sl ?? "—"} / TP ${tp ?? "—"}`);
+            const pos = state_1.state.positions.get(positionId);
+            if (pos) {
+                if (sl)
+                    pos.sl = sl;
+                if (tp)
+                    pos.tp = tp;
+            }
+        }
+        return;
+    }
+    // Otherwise: set SL immediately, then TP after the min-hold delay.
     if (sl) {
         await sendAmend(positionId, { stopLoss: sl }, `SL ${sl}`);
         const pos = state_1.state.positions.get(positionId);
@@ -114,7 +137,6 @@ async function amendPositionSLTP(positionId, symbol, entryPrice, direction, sign
             pos.sl = sl;
     }
     if (tp) {
-        const delayMs = (state_1.state.settings.minHoldSeconds ?? 60) * 1000;
         console.log(`[AMEND] TP will be set in ${delayMs / 1000}s (min hold) | Position #${positionId}`);
         setTimeout(async () => {
             if (!state_1.state.positions.has(positionId)) {
