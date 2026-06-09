@@ -20,7 +20,7 @@ export async function symbolsCmd(ctx: any) {
     const lines = state.settings.allowedSymbols.map((s) => {
       const custom = state.settings.symbolLotSize[s];
       const lots = custom ?? state.settings.lotSize;
-      return `${s} — ${lots} lots${custom === undefined ? " (default)" : ""}`;
+      return `${s}: ${lots} lots${custom === undefined ? " (default)" : ""}`;
     });
     await ctx.reply("Allowed symbols:\n" + lines.join("\n"));
     return;
