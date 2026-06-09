@@ -60,28 +60,28 @@ export async function riskCmd(ctx: any) {
   }
 
   if (setting === "sl" && parts[2]) {
-    const usd = parseFloat(parts[2]);
-    if (isNaN(usd) || usd < 1) {
-      await ctx.reply("Stop loss must be at least $1.");
+    const pct = parseFloat(parts[2]);
+    if (isNaN(pct) || pct < 0.05 || pct > 50) {
+      await ctx.reply("Stop loss % must be between 0.05 and 50.");
       return;
     }
-    state.settings.stopLossUSD = usd;
+    state.settings.stopLossPercent = pct;
     persistSettings();
-    await ctx.reply(`Stop loss set to $${usd}.`);
+    await ctx.reply(`Stop loss set to ${pct}% of entry.`);
     return;
   }
 
   if (setting === "tp" && parts[2]) {
-    const usd = parseFloat(parts[2]);
-    if (isNaN(usd) || usd < 1) {
-      await ctx.reply("Take profit must be at least $1.");
+    const pct = parseFloat(parts[2]);
+    if (isNaN(pct) || pct < 0.05 || pct > 50) {
+      await ctx.reply("Take profit % must be between 0.05 and 50.");
       return;
     }
-    state.settings.takeProfitUSD = usd;
+    state.settings.takeProfitPercent = pct;
     persistSettings();
-    await ctx.reply(`Take profit set to $${usd}.`);
+    await ctx.reply(`Take profit set to ${pct}% of entry.`);
     return;
   }
 
-  await ctx.reply("Unknown setting. Usage: /risk maxpos <n> | /risk daily <pct> | /risk maxloss <usd> | /risk lotsize <lots> | /risk sl <usd> | /risk tp <usd>");
+  await ctx.reply("Unknown setting. Usage: /risk maxpos <n> | /risk daily <pct> | /risk maxloss <usd> | /risk lotsize <lots> | /risk sl <pct> | /risk tp <pct>");
 }

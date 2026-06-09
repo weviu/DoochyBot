@@ -15,11 +15,8 @@ export interface BotSettings {
   maxPositions: number;
   dailyLossLimitPercent: number;
   maxDailyLossUSD: number;
-  sltpMode: "auto" | "dollar" | "pivot";
-  stopLossUSD: number;
-  takeProfitUSD: number;
-  symbolStopLossUSD: Record<string, number>;
-  symbolTakeProfitUSD: Record<string, number>;
+  stopLossPercent: number;
+  takeProfitPercent: number;
   minHoldSeconds: number;
   lotSize: number;
   symbolLotSize: Record<string, number>;
@@ -41,11 +38,8 @@ const DEFAULT_SETTINGS: BotSettings = {
   maxPositions: 3,
   dailyLossLimitPercent: 2,
   maxDailyLossUSD: 200,
-  sltpMode: "auto",
-  stopLossUSD: 30,
-  takeProfitUSD: 45,
-  symbolStopLossUSD: {},
-  symbolTakeProfitUSD: {},
+  stopLossPercent: 0.5,
+  takeProfitPercent: 0.75,
   minHoldSeconds: 60,
   lotSize: 0.01,
   symbolLotSize: {},
@@ -75,11 +69,8 @@ export function initSettings(): void {
     if (saved.maxPositions) state.settings.maxPositions = saved.maxPositions;
     if (saved.dailyLossLimitPercent !== undefined) state.settings.dailyLossLimitPercent = saved.dailyLossLimitPercent;
     if (saved.maxDailyLossUSD !== undefined) state.settings.maxDailyLossUSD = saved.maxDailyLossUSD;
-    if (saved.sltpMode) state.settings.sltpMode = saved.sltpMode;
-    if (saved.stopLossUSD !== undefined) state.settings.stopLossUSD = saved.stopLossUSD;
-    if (saved.takeProfitUSD !== undefined) state.settings.takeProfitUSD = saved.takeProfitUSD;
-    if (saved.symbolStopLossUSD) state.settings.symbolStopLossUSD = saved.symbolStopLossUSD;
-    if (saved.symbolTakeProfitUSD) state.settings.symbolTakeProfitUSD = saved.symbolTakeProfitUSD;
+    if (saved.stopLossPercent !== undefined) state.settings.stopLossPercent = saved.stopLossPercent;
+    if (saved.takeProfitPercent !== undefined) state.settings.takeProfitPercent = saved.takeProfitPercent;
     if (saved.minHoldSeconds !== undefined) state.settings.minHoldSeconds = saved.minHoldSeconds;
     if (saved.lotSize !== undefined) state.settings.lotSize = saved.lotSize;
     if (saved.symbolLotSize) state.settings.symbolLotSize = saved.symbolLotSize;
@@ -93,11 +84,8 @@ export function persistSettings(): void {
     maxPositions: state.settings.maxPositions,
     dailyLossLimitPercent: state.settings.dailyLossLimitPercent,
     maxDailyLossUSD: state.settings.maxDailyLossUSD,
-    sltpMode: state.settings.sltpMode,
-    stopLossUSD: state.settings.stopLossUSD,
-    takeProfitUSD: state.settings.takeProfitUSD,
-    symbolStopLossUSD: state.settings.symbolStopLossUSD,
-    symbolTakeProfitUSD: state.settings.symbolTakeProfitUSD,
+    stopLossPercent: state.settings.stopLossPercent,
+    takeProfitPercent: state.settings.takeProfitPercent,
     minHoldSeconds: state.settings.minHoldSeconds,
     lotSize: state.settings.lotSize,
     symbolLotSize: state.settings.symbolLotSize,

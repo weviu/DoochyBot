@@ -13,6 +13,7 @@ const pause_1 = require("./bot/commands/pause");
 const resume_1 = require("./bot/commands/resume");
 const symbols_1 = require("./bot/commands/symbols");
 const risk_1 = require("./bot/commands/risk");
+const minhold_1 = require("./bot/commands/minhold");
 const account_1 = require("./ctrader/account");
 const symbols_2 = require("./ctrader/symbols");
 const orders_1 = require("./ctrader/orders");
@@ -54,6 +55,12 @@ async function connectCtrader() {
     connection.on("close", () => {
         console.log("[CTRADER] Connection closed");
     });
+    // cTrader Open API drops the push channel (execution events stop arriving)
+    // if no message is sent for ~10s. Keep it alive with a heartbeat.
+    setInterval(() => {
+        connection.sendHeartbeat();
+    }, 10_000);
+    console.log("[CTRADER] Heartbeat started (10s)");
     return connection;
 }
 async function startBot() {
@@ -82,16 +89,18 @@ async function startBot() {
             "/symbols <sym> <lots> - Set lot size for symbol\n" +
             "\n" +
             "/risk lotsize <lots> - Set default lot size\n" +
-            "/risk sl <usd> - Set stop loss amount ($)\n" +
-            "/risk tp <usd> - Set take profit amount ($)\n" +
+            "/risk sl <pct> - Set stop loss (% of entry)\n" +
+            "/risk tp <pct> - Set take profit (% of entry)\n" +
             "/risk maxpos <n> - Set max open positions\n" +
             "/risk daily <pct> - Set daily loss limit (%)\n" +
-            "/risk maxloss <usd> - Set max daily loss ($)");
+            "/risk maxloss <usd> - Set max daily loss ($)\n" +
+            "/minhold <secs> - Min seconds to hold before TP is set");
     });
     bot.command("pause", pause_1.pauseCmd);
     bot.command("resume", resume_1.resumeCmd);
     bot.command("symbols", symbols_1.symbolsCmd);
     bot.command("risk", risk_1.riskCmd);
+    bot.command("minhold", minhold_1.minholdCmd);
     bot.start({
         drop_pending_updates: true,
         onStart: () => console.log("[TELEGRAM] Bot started"),

@@ -9,11 +9,8 @@ const DEFAULT_SETTINGS = {
     maxPositions: 3,
     dailyLossLimitPercent: 2,
     maxDailyLossUSD: 200,
-    sltpMode: "auto",
-    stopLossUSD: 30,
-    takeProfitUSD: 45,
-    symbolStopLossUSD: {},
-    symbolTakeProfitUSD: {},
+    stopLossPercent: 0.5,
+    takeProfitPercent: 0.75,
     minHoldSeconds: 60,
     lotSize: 0.01,
     symbolLotSize: {},
@@ -39,16 +36,10 @@ function initSettings() {
             exports.state.settings.dailyLossLimitPercent = saved.dailyLossLimitPercent;
         if (saved.maxDailyLossUSD !== undefined)
             exports.state.settings.maxDailyLossUSD = saved.maxDailyLossUSD;
-        if (saved.sltpMode)
-            exports.state.settings.sltpMode = saved.sltpMode;
-        if (saved.stopLossUSD !== undefined)
-            exports.state.settings.stopLossUSD = saved.stopLossUSD;
-        if (saved.takeProfitUSD !== undefined)
-            exports.state.settings.takeProfitUSD = saved.takeProfitUSD;
-        if (saved.symbolStopLossUSD)
-            exports.state.settings.symbolStopLossUSD = saved.symbolStopLossUSD;
-        if (saved.symbolTakeProfitUSD)
-            exports.state.settings.symbolTakeProfitUSD = saved.symbolTakeProfitUSD;
+        if (saved.stopLossPercent !== undefined)
+            exports.state.settings.stopLossPercent = saved.stopLossPercent;
+        if (saved.takeProfitPercent !== undefined)
+            exports.state.settings.takeProfitPercent = saved.takeProfitPercent;
         if (saved.minHoldSeconds !== undefined)
             exports.state.settings.minHoldSeconds = saved.minHoldSeconds;
         if (saved.lotSize !== undefined)
@@ -64,11 +55,8 @@ function persistSettings() {
         maxPositions: exports.state.settings.maxPositions,
         dailyLossLimitPercent: exports.state.settings.dailyLossLimitPercent,
         maxDailyLossUSD: exports.state.settings.maxDailyLossUSD,
-        sltpMode: exports.state.settings.sltpMode,
-        stopLossUSD: exports.state.settings.stopLossUSD,
-        takeProfitUSD: exports.state.settings.takeProfitUSD,
-        symbolStopLossUSD: exports.state.settings.symbolStopLossUSD,
-        symbolTakeProfitUSD: exports.state.settings.symbolTakeProfitUSD,
+        stopLossPercent: exports.state.settings.stopLossPercent,
+        takeProfitPercent: exports.state.settings.takeProfitPercent,
         minHoldSeconds: exports.state.settings.minHoldSeconds,
         lotSize: exports.state.settings.lotSize,
         symbolLotSize: exports.state.settings.symbolLotSize,

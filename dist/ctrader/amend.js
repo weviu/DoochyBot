@@ -2,34 +2,87 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setAmendConnection = setAmendConnection;
 exports.amendPositionSLTP = amendPositionSLTP;
+const crypto_1 = require("crypto");
 const state_1 = require("../state");
 let connection = null;
 function setAmendConnection(conn) {
     connection = conn;
+}
+// Number of decimal places in a price (used to round SL/TP to a valid tick).
+function priceDigits(price) {
+    const s = String(price);
+    const i = s.indexOf(".");
+    return i === -1 ? 0 : s.length - i - 1;
+}
+function round(value, digits) {
+    const f = Math.pow(10, digits);
+    return Math.round(value * f) / f;
+}
+// ProtoOAAmendPositionSLTPReq has no dedicated Res — success arrives as a
+// ProtoOAExecutionEvent (ORDER_REPLACED) and failure as a ProtoOAOrderErrorEvent.
+// sendCommand resolves immediately without confirming, so we listen for the
+// real outcome here and log it.
+async function sendAmend(positionId, fields, desc) {
+    const pidStr = String(positionId);
+    // The error event carries positionId="0" but DOES echo the request's
+    // clientMsgId, so correlate rejections by msgId to avoid cross-talk between
+    // concurrent amends on different positions.
+    const msgId = (0, crypto_1.randomUUID)();
+    const outcome = new Promise((resolve) => {
+        const cleanup = () => {
+            clearTimeout(timer);
+            connection.removeEventListener(execId);
+            connection.removeEventListener(errId);
+        };
+        const timer = setTimeout(() => {
+            cleanup();
+            console.log(`[AMEND] ${desc}: no confirmation within 5s | Position #${positionId}`);
+            resolve();
+        }, 5_000);
+        let execId;
+        execId = connection.on("ProtoOAExecutionEvent", (event) => {
+            const data = event.descriptor ?? event;
+            if (String(data.position?.positionId) !== pidStr)
+                return;
+            if (data.executionType === "ORDER_REPLACED") {
+                cleanup();
+                console.log(`[AMEND] ${desc}: confirmed | Position #${positionId}`);
+                resolve();
+            }
+        });
+        let errId;
+        errId = connection.on("ProtoOAOrderErrorEvent", (event) => {
+            const data = event.descriptor ?? event;
+            if (data.clientMsgId !== msgId)
+                return;
+            cleanup();
+            console.log(`[AMEND] ${desc}: REJECTED ${data.errorCode} — ${data.description} | Position #${positionId}`);
+            resolve();
+        });
+    });
+    await connection.sendCommand("ProtoOAAmendPositionSLTPReq", {
+        ctidTraderAccountId: parseInt(process.env.ACCOUNT_ID || "0"),
+        positionId,
+        ...fields,
+    }, msgId);
+    await outcome;
 }
 async function amendPositionSLTP(positionId, symbol, entryPrice, direction, signal) {
     if (!connection) {
         console.log("[AMEND] No cTrader connection");
         return;
     }
-    const sltpMode = state_1.state.settings.sltpMode || "auto";
-    let sl = null;
-    let tp = null;
-    if (sltpMode === "auto" || sltpMode === "pivot") {
-        sl = signal.sl ?? null;
-        tp = signal.tp ?? null;
+    // Percentage-of-entry SL/TP. Works uniformly across BTC/ETH/XAU/FX without
+    // any contract-size math. Explicit signal values (if ever provided) win.
+    const slPct = state_1.state.settings.stopLossPercent;
+    const tpPct = state_1.state.settings.takeProfitPercent;
+    let sl = signal.sl ?? null;
+    let tp = signal.tp ?? null;
+    if (sl === null && slPct > 0) {
+        sl = direction === "BUY" ? entryPrice * (1 - slPct / 100) : entryPrice * (1 + slPct / 100);
     }
-    if (sltpMode === "dollar" || (!sl && !tp)) {
-        const slUSD = state_1.state.settings.symbolStopLossUSD?.[symbol] || state_1.state.settings.stopLossUSD || 30;
-        const tpUSD = state_1.state.settings.symbolTakeProfitUSD?.[symbol] || state_1.state.settings.takeProfitUSD || 45;
-        const contractSize = 100000;
-        const volume = 0.01;
-        const slDistance = slUSD / (volume * contractSize * 0.01);
-        const tpDistance = tpUSD / (volume * contractSize * 0.01);
-        if (!sl)
-            sl = direction === "BUY" ? entryPrice - slDistance : entryPrice + slDistance;
-        if (!tp)
-            tp = direction === "BUY" ? entryPrice + tpDistance : entryPrice - tpDistance;
+    if (tp === null && tpPct > 0) {
+        tp = direction === "BUY" ? entryPrice * (1 + tpPct / 100) : entryPrice * (1 - tpPct / 100);
     }
     if (sl && direction === "BUY" && sl >= entryPrice) {
         console.log(`[AMEND] Invalid SL for BUY: ${sl} >= entry ${entryPrice}. Skipping SL.`);
@@ -47,44 +100,36 @@ async function amendPositionSLTP(positionId, symbol, entryPrice, direction, sign
         console.log(`[AMEND] Invalid TP for SELL: ${tp} >= entry ${entryPrice}. Skipping TP.`);
         tp = null;
     }
+    // Round SL/TP to the entry price's precision. Computing distances introduces
+    // float junk (e.g. 4333.099999999999) which the broker silently rejects.
+    const digits = priceDigits(entryPrice);
+    if (sl)
+        sl = round(sl, digits);
+    if (tp)
+        tp = round(tp, digits);
     if (sl) {
-        try {
-            await connection.sendCommand("ProtoOAAmendPositionSLTPReq", {
-                ctidTraderAccountId: parseInt(process.env.ACCOUNT_ID || "0"),
-                positionId,
-                stopLoss: sl,
-            });
-            console.log(`[AMEND] SL set: ${sl} | Position #${positionId}`);
-            const pos = state_1.state.positions.get(positionId);
-            if (pos)
-                pos.sl = sl;
-        }
-        catch (err) {
-            console.log(`[AMEND] SL failed: ${err.message}`);
-        }
+        await sendAmend(positionId, { stopLoss: sl }, `SL ${sl}`);
+        const pos = state_1.state.positions.get(positionId);
+        if (pos)
+            pos.sl = sl;
     }
     if (tp) {
-        const delayMs = (state_1.state.settings.minHoldSeconds || 60) * 1000;
+        const delayMs = (state_1.state.settings.minHoldSeconds ?? 60) * 1000;
         console.log(`[AMEND] TP will be set in ${delayMs / 1000}s (min hold) | Position #${positionId}`);
         setTimeout(async () => {
             if (!state_1.state.positions.has(positionId)) {
                 console.log(`[AMEND] TP skipped - position #${positionId} already closed`);
                 return;
             }
-            try {
-                await connection.sendCommand("ProtoOAAmendPositionSLTPReq", {
-                    ctidTraderAccountId: parseInt(process.env.ACCOUNT_ID || "0"),
-                    positionId,
-                    takeProfit: tp,
-                });
-                console.log(`[AMEND] TP set: ${tp} | Position #${positionId}`);
-                const pos = state_1.state.positions.get(positionId);
-                if (pos)
-                    pos.tp = tp;
-            }
-            catch (err) {
-                console.log(`[AMEND] TP failed: ${err.message}`);
-            }
+            // cTrader's amend REPLACES the full SL/TP state. Must re-send the
+            // existing SL or it gets wiped when we set the TP.
+            const fields = { takeProfit: tp };
+            if (sl)
+                fields.stopLoss = sl;
+            await sendAmend(positionId, fields, `TP ${tp}${sl ? ` (SL preserved ${sl})` : ""}`);
+            const pos = state_1.state.positions.get(positionId);
+            if (pos)
+                pos.tp = tp;
         }, delayMs);
     }
     if (!sl && !tp) {

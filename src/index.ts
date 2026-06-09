@@ -8,6 +8,7 @@ import { pauseCmd } from "./bot/commands/pause";
 import { resumeCmd } from "./bot/commands/resume";
 import { symbolsCmd } from "./bot/commands/symbols";
 import { riskCmd } from "./bot/commands/risk";
+import { minholdCmd } from "./bot/commands/minhold";
 import { fetchAccountInfo } from "./ctrader/account";
 import { fetchSymbols } from "./ctrader/symbols";
 import { setConnection } from "./ctrader/orders";
@@ -57,6 +58,13 @@ console.log("[CTRADER] Account auth response:", JSON.stringify(accountAuthRes).s
     console.log("[CTRADER] Connection closed");
   });
 
+  // cTrader Open API drops the push channel (execution events stop arriving)
+  // if no message is sent for ~10s. Keep it alive with a heartbeat.
+  setInterval(() => {
+    connection.sendHeartbeat();
+  }, 10_000);
+  console.log("[CTRADER] Heartbeat started (10s)");
+
   return connection;
 }
 
@@ -90,11 +98,12 @@ bot.command("help", async (ctx) => {
     "/symbols <sym> <lots> - Set lot size for symbol\n" +
     "\n" +
     "/risk lotsize <lots> - Set default lot size\n" +
-    "/risk sl <usd> - Set stop loss amount ($)\n" +
-    "/risk tp <usd> - Set take profit amount ($)\n" +
+    "/risk sl <pct> - Set stop loss (% of entry)\n" +
+    "/risk tp <pct> - Set take profit (% of entry)\n" +
     "/risk maxpos <n> - Set max open positions\n" +
     "/risk daily <pct> - Set daily loss limit (%)\n" +
-    "/risk maxloss <usd> - Set max daily loss ($)"
+    "/risk maxloss <usd> - Set max daily loss ($)\n" +
+    "/minhold <secs> - Min seconds to hold before TP is set"
   );
 });
 
@@ -102,6 +111,7 @@ bot.command("help", async (ctx) => {
   bot.command("resume", resumeCmd);
   bot.command("symbols", symbolsCmd);
   bot.command("risk", riskCmd);
+  bot.command("minhold", minholdCmd);
   bot.start({
     drop_pending_updates: true,
     onStart: () => console.log("[TELEGRAM] Bot started"),
