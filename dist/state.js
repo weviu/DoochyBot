@@ -24,6 +24,7 @@ exports.state = {
     paused: false,
     tradingLocked: false,
     dailyRealizedPnL: 0,
+    dailyPnLSeeded: false,
     settings: { ...exports.DEFAULT_SETTINGS },
     positions: new Map(),
     lastSignalTime: new Map(),

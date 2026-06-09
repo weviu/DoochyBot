@@ -28,6 +28,13 @@ function breachedLimit() {
 // limit is breached. Called after each close and once at boot. When `announce`
 // is set, pushes a Telegram alert on the transition into a locked state.
 function evaluateDailyLimits(announce) {
+    // Never check limits against an unseeded counter — a failed seed leaves the
+    // counter at 0, which would false-trigger the loss limit as soon as any
+    // position closes at a loss within the session.
+    if (!state_1.state.dailyPnLSeeded) {
+        console.warn("[PNL] Skipping limit check — daily P&L not seeded from broker yet");
+        return;
+    }
     const reason = breachedLimit();
     if (!reason)
         return;
@@ -61,6 +68,7 @@ function startDailyReset() {
         if (now.getUTCHours() === 0 && now.getUTCMinutes() === 0 && !resetToday) {
             resetToday = true;
             state_1.state.dailyRealizedPnL = 0;
+            state_1.state.dailyPnLSeeded = false; // will re-seed on next broker interaction or restart
             state_1.state.tradingLocked = false;
             console.log("[PNL] New trading day — P&L and lock reset");
         }

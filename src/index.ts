@@ -164,13 +164,21 @@ await fetchSymbols(ctrader);
 await reconcilePositions();
 
 // Seed today's realized P&L from the broker so the daily loss/profit limits
-// survive a restart, then re-apply the lock if a limit was already breached.
-try {
-  state.dailyRealizedPnL = await fetchTodayRealizedPnL(ctrader);
-  console.log(`[PNL] Seeded today's realized P&L: ${state.dailyRealizedPnL.toFixed(2)}`);
-  evaluateDailyLimits(false);
-} catch (err: any) {
-  console.warn(`[PNL] Could not seed daily P&L: ${err.errorCode || err.message || "request failed"}`);
+// survive a restart. Retry once on failure. If both attempts fail, daily limits
+// are disabled for this session rather than running against a false 0 baseline.
+for (let attempt = 1; attempt <= 2; attempt++) {
+  try {
+    state.dailyRealizedPnL = await fetchTodayRealizedPnL(ctrader);
+    state.dailyPnLSeeded = true;
+    console.log(`[PNL] Seeded today's realized P&L: ${state.dailyRealizedPnL.toFixed(2)}`);
+    evaluateDailyLimits(false);
+    break;
+  } catch (err: any) {
+    console.warn(`[PNL] Seed attempt ${attempt} failed: ${err.errorCode || err.message || "request failed"}`);
+    if (attempt === 2) {
+      console.warn("[PNL] Daily loss/profit limits DISABLED this session — could not read today's P&L from broker.");
+    }
+  }
 }
 await startBot();
     startPoller((signal) => {

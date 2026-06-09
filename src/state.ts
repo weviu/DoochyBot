@@ -33,6 +33,7 @@ export interface BotState {
   paused: boolean;
   tradingLocked: boolean;
   dailyRealizedPnL: number;
+  dailyPnLSeeded: boolean; // false until broker seed succeeds; limits are skipped until then
   settings: BotSettings;
   positions: Map<number, Position>;
   lastSignalTime: Map<string, number>;
@@ -61,6 +62,7 @@ export const state: BotState = {
   paused: false,
   tradingLocked: false,
   dailyRealizedPnL: 0,
+  dailyPnLSeeded: false,
   settings: { ...DEFAULT_SETTINGS },
   positions: new Map(),
   lastSignalTime: new Map(),
