@@ -17,6 +17,7 @@ const minhold_1 = require("./bot/commands/minhold");
 const closeall_1 = require("./bot/commands/closeall");
 const export_1 = require("./bot/commands/export");
 const status_1 = require("./bot/commands/status");
+const cooldown_1 = require("./bot/commands/cooldown");
 const account_1 = require("./ctrader/account");
 const dailyLoss_1 = require("./risk/dailyLoss");
 const symbols_2 = require("./ctrader/symbols");
@@ -104,6 +105,12 @@ async function startBot() {
             "/risk daily <pct> - Set daily loss limit (%)\n" +
             "/risk maxloss <usd> - Set max daily loss ($)\n" +
             "/risk cap <usd> - Daily profit cap; stop new trades at this profit (0 = off)\n" +
+            "/risk trend <hours> - Only take signals aligned with this trend lookback (0 = off)\n" +
+            "/risk losses <n> - SL hits per symbol that trigger a cooldown (0 = off)\n" +
+            "/risk losswindow <min> - Window for counting SL hits\n" +
+            "/risk cooldown <min> - How long a symbol stays paused after the streak\n" +
+            "/cooldown - List cooled-down symbols\n" +
+            "/cooldown reset [sym] - Clear a symbol's cooldown (or all)\n" +
             "/minhold <secs> - Min seconds to hold before TP is set\n" +
             "/closeall - Close all open positions\n" +
             "/export [from] [to] - Export trade history (CSV)\n" +
@@ -122,6 +129,7 @@ async function startBot() {
     bot.command("export", export_1.exportCmd);
     bot.command("balance", status_1.balanceCmd);
     bot.command("status", status_1.statusCmd);
+    bot.command("cooldown", cooldown_1.cooldownCmd);
     bot.start({
         drop_pending_updates: true,
         onStart: () => console.log("[TELEGRAM] Bot started"),

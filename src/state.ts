@@ -23,6 +23,10 @@ export interface BotSettings {
   lotSize: number;
   symbolLotSize: Record<string, number>;
   dailyProfitCapUSD: number; // lock trading once daily realized profit hits this; 0 = disabled
+  trendLookbackHours: number; // higher-timeframe trend filter lookback; 0 = disabled
+  maxConsecutiveLosses: number; // SL hits on one symbol within the window that trigger a cooldown; 0 = disabled
+  lossWindowMinutes: number; // window over which SL hits are counted
+  cooldownMinutes: number; // how long a symbol stays paused after the streak triggers
 }
 
 export interface BotState {
@@ -47,6 +51,10 @@ export const DEFAULT_SETTINGS: BotSettings = {
   lotSize: 0.01,
   symbolLotSize: {},
   dailyProfitCapUSD: 0,
+  trendLookbackHours: 4,
+  maxConsecutiveLosses: 3,
+  lossWindowMinutes: 60,
+  cooldownMinutes: 120,
 };
 
 export const state: BotState = {
@@ -79,6 +87,10 @@ export function initSettings(): void {
     if (saved.lotSize !== undefined) state.settings.lotSize = saved.lotSize;
     if (saved.symbolLotSize) state.settings.symbolLotSize = saved.symbolLotSize;
     if (saved.dailyProfitCapUSD !== undefined) state.settings.dailyProfitCapUSD = saved.dailyProfitCapUSD;
+    if (saved.trendLookbackHours !== undefined) state.settings.trendLookbackHours = saved.trendLookbackHours;
+    if (saved.maxConsecutiveLosses !== undefined) state.settings.maxConsecutiveLosses = saved.maxConsecutiveLosses;
+    if (saved.lossWindowMinutes !== undefined) state.settings.lossWindowMinutes = saved.lossWindowMinutes;
+    if (saved.cooldownMinutes !== undefined) state.settings.cooldownMinutes = saved.cooldownMinutes;
     console.log("[STATE] Loaded saved settings. Allowed symbols:", state.settings.allowedSymbols.length);
   }
 }
@@ -95,6 +107,10 @@ export function persistSettings(): void {
     lotSize: state.settings.lotSize,
     symbolLotSize: state.settings.symbolLotSize,
     dailyProfitCapUSD: state.settings.dailyProfitCapUSD,
+    trendLookbackHours: state.settings.trendLookbackHours,
+    maxConsecutiveLosses: state.settings.maxConsecutiveLosses,
+    lossWindowMinutes: state.settings.lossWindowMinutes,
+    cooldownMinutes: state.settings.cooldownMinutes,
   });
 }
 

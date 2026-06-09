@@ -1,5 +1,6 @@
 import { state } from "../../state";
 import { fetchTrader, fetchTodayRealizedPnL } from "../../ctrader/account";
+import { activeCooldowns } from "../../risk/cooldown";
 
 let connection: any = null;
 
@@ -45,6 +46,7 @@ export async function statusCmd(ctx: any) {
   }
 
   const cap = state.settings.dailyProfitCapUSD;
+  const cooldowns = activeCooldowns();
   const lines = [
     `cTrader: ${connOk ? "✅ connected" : "❌ not connected"}`,
     `Account: ${process.env.ACCOUNT_ID || "?"}`,
@@ -53,6 +55,8 @@ export async function statusCmd(ctx: any) {
     `Open positions: ${state.positions.size}/${state.settings.maxPositions}`,
     `Daily realized P&L: ${dailyPnL >= 0 ? "+" : ""}${dailyPnL.toFixed(2)} ${info.currency}`,
     `Profit cap: ${cap > 0 ? `$${cap.toFixed(2)}` : "off"}`,
+    `Trend filter: ${state.settings.trendLookbackHours > 0 ? `${state.settings.trendLookbackHours}h` : "off"}`,
+    `Cooldowns: ${cooldowns.length === 0 ? "none" : cooldowns.map((c) => `${c.symbol} ${Math.ceil(c.remainingMs / 60_000)}m`).join(", ")}`,
     `Allowed symbols: ${state.settings.allowedSymbols.length}`,
   ];
   await ctx.reply(lines.join("\n"));

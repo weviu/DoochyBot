@@ -15,6 +15,10 @@ exports.DEFAULT_SETTINGS = {
     lotSize: 0.01,
     symbolLotSize: {},
     dailyProfitCapUSD: 0,
+    trendLookbackHours: 4,
+    maxConsecutiveLosses: 3,
+    lossWindowMinutes: 60,
+    cooldownMinutes: 120,
 };
 exports.state = {
     paused: false,
@@ -49,6 +53,14 @@ function initSettings() {
             exports.state.settings.symbolLotSize = saved.symbolLotSize;
         if (saved.dailyProfitCapUSD !== undefined)
             exports.state.settings.dailyProfitCapUSD = saved.dailyProfitCapUSD;
+        if (saved.trendLookbackHours !== undefined)
+            exports.state.settings.trendLookbackHours = saved.trendLookbackHours;
+        if (saved.maxConsecutiveLosses !== undefined)
+            exports.state.settings.maxConsecutiveLosses = saved.maxConsecutiveLosses;
+        if (saved.lossWindowMinutes !== undefined)
+            exports.state.settings.lossWindowMinutes = saved.lossWindowMinutes;
+        if (saved.cooldownMinutes !== undefined)
+            exports.state.settings.cooldownMinutes = saved.cooldownMinutes;
         console.log("[STATE] Loaded saved settings. Allowed symbols:", exports.state.settings.allowedSymbols.length);
     }
 }
@@ -64,6 +76,10 @@ function persistSettings() {
         lotSize: exports.state.settings.lotSize,
         symbolLotSize: exports.state.settings.symbolLotSize,
         dailyProfitCapUSD: exports.state.settings.dailyProfitCapUSD,
+        trendLookbackHours: exports.state.settings.trendLookbackHours,
+        maxConsecutiveLosses: exports.state.settings.maxConsecutiveLosses,
+        lossWindowMinutes: exports.state.settings.lossWindowMinutes,
+        cooldownMinutes: exports.state.settings.cooldownMinutes,
     });
 }
 //# sourceMappingURL=state.js.map

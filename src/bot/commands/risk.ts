@@ -63,6 +63,62 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
+  if (setting === "trend" && parts[2]) {
+    const hours = parseFloat(parts[2]);
+    if (isNaN(hours) || hours < 0 || hours > 168) {
+      await ctx.reply("Trend lookback hours must be 0 (disabled) to 168.");
+      return;
+    }
+    state.settings.trendLookbackHours = hours;
+    persistSettings();
+    await ctx.reply(
+      hours === 0
+        ? "Trend filter disabled."
+        : `Trend filter on: only take signals aligned with the ${hours}h price trend.`
+    );
+    return;
+  }
+
+  if (setting === "losses" && parts[2]) {
+    const n = parseInt(parts[2]);
+    if (isNaN(n) || n < 0 || n > 20) {
+      await ctx.reply("Consecutive losses must be 0 (disabled) to 20.");
+      return;
+    }
+    state.settings.maxConsecutiveLosses = n;
+    persistSettings();
+    await ctx.reply(
+      n === 0
+        ? "Consecutive-loss protection disabled."
+        : `Consecutive-loss protection: ${n} SL hits within ${state.settings.lossWindowMinutes}m → ${state.settings.cooldownMinutes}m cooldown.`
+    );
+    return;
+  }
+
+  if (setting === "losswindow" && parts[2]) {
+    const min = parseInt(parts[2]);
+    if (isNaN(min) || min < 1 || min > 1440) {
+      await ctx.reply("Loss window must be between 1 and 1440 minutes.");
+      return;
+    }
+    state.settings.lossWindowMinutes = min;
+    persistSettings();
+    await ctx.reply(`Loss-counting window set to ${min} minutes.`);
+    return;
+  }
+
+  if (setting === "cooldown" && parts[2]) {
+    const min = parseInt(parts[2]);
+    if (isNaN(min) || min < 1 || min > 1440) {
+      await ctx.reply("Cooldown must be between 1 and 1440 minutes.");
+      return;
+    }
+    state.settings.cooldownMinutes = min;
+    persistSettings();
+    await ctx.reply(`Per-symbol cooldown set to ${min} minutes.`);
+    return;
+  }
+
   if (setting === "lotsize" && parts[2]) {
     const lots = parseFloat(parts[2]);
     if (isNaN(lots) || lots < 0.01 || lots > 100) {
@@ -99,5 +155,5 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
-  await ctx.reply("Unknown setting. Usage: /risk maxpos <n> | /risk daily <pct> | /risk maxloss <usd> | /risk cap <usd> | /risk lotsize <lots> | /risk sl <pct> | /risk tp <pct>");
+  await ctx.reply("Unknown setting. Usage: /risk maxpos <n> | /risk daily <pct> | /risk maxloss <usd> | /risk cap <usd> | /risk trend <hours> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk lotsize <lots> | /risk sl <pct> | /risk tp <pct>");
 }

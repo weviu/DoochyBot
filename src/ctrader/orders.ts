@@ -3,6 +3,7 @@ import { state } from "../state";
 import { ParsedSignal } from "../signals/types";
 import { amendPositionSLTP } from "./amend";
 import { updateDailyPnL } from "../risk/dailyLoss";
+import { recordStopLoss } from "../risk/cooldown";
 
 let connection: any = null;
 
@@ -20,11 +21,23 @@ export function setConnection(conn: any): void {
     if (pos.positionStatus === "POSITION_STATUS_CLOSED" || pos.positionStatus === 2) {
       // Realized P&L from the closing deal drives the daily loss/profit limits.
       const cpd = data.deal?.closePositionDetail;
+      let net = 0;
       if (cpd) {
         const div = Math.pow(10, Number(cpd.moneyDigits ?? 2));
-        const net = (Number(cpd.grossProfit || 0) + Number(cpd.swap || 0) + Number(cpd.commission || 0)) / div;
+        net = (Number(cpd.grossProfit || 0) + Number(cpd.swap || 0) + Number(cpd.commission || 0)) / div;
         updateDailyPnL(net);
       }
+
+      // Per-symbol consecutive-loss protection. A stop-loss exit = the close came
+      // from the SL/TP order (or a forced stop-out) and the trade lost money;
+      // that excludes take-profits (net >= 0) and manual closes (no SL/TP order).
+      const tracked = state.positions.get(pos.positionId);
+      const ord = data.order;
+      const viaStopOrder = ord?.isStopOut || ord?.orderType === "STOP_LOSS_TAKE_PROFIT";
+      if (tracked && viaStopOrder && net < 0) {
+        recordStopLoss(tracked.symbol);
+      }
+
       if (state.positions.delete(pos.positionId)) {
         console.log(`[POSITIONS] Closed #${pos.positionId}. Open now: ${state.positions.size}`);
       }
