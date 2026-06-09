@@ -18,11 +18,12 @@ const closeall_1 = require("./bot/commands/closeall");
 const export_1 = require("./bot/commands/export");
 const status_1 = require("./bot/commands/status");
 const account_1 = require("./ctrader/account");
+const dailyLoss_1 = require("./risk/dailyLoss");
 const symbols_2 = require("./ctrader/symbols");
 const orders_1 = require("./ctrader/orders");
 const amend_1 = require("./ctrader/amend");
 const midnightClose_1 = require("./risk/midnightClose");
-const dailyLoss_1 = require("./risk/dailyLoss");
+const dailyLoss_2 = require("./risk/dailyLoss");
 const notify_1 = require("./bot/notify");
 dotenv_1.default.config();
 const config = {
@@ -102,6 +103,7 @@ async function startBot() {
             "/risk maxpos <n> - Set max open positions\n" +
             "/risk daily <pct> - Set daily loss limit (%)\n" +
             "/risk maxloss <usd> - Set max daily loss ($)\n" +
+            "/risk cap <usd> - Daily profit cap; stop new trades at this profit (0 = off)\n" +
             "/minhold <secs> - Min seconds to hold before TP is set\n" +
             "/closeall - Close all open positions\n" +
             "/export [from] [to] - Export trade history (CSV)\n" +
@@ -135,11 +137,21 @@ async function main() {
     (0, export_1.setExportConnection)(ctrader);
     (0, status_1.setStatusConnection)(ctrader);
     (0, midnightClose_1.startMidnightCheck)();
-    (0, dailyLoss_1.startDailyReset)();
+    (0, dailyLoss_2.startDailyReset)();
     console.log("[SAFETY] Midnight closer and daily reset active");
     await (0, account_1.fetchAccountInfo)(ctrader);
     await (0, symbols_2.fetchSymbols)(ctrader);
     await (0, orders_1.reconcilePositions)();
+    // Seed today's realized P&L from the broker so the daily loss/profit limits
+    // survive a restart, then re-apply the lock if a limit was already breached.
+    try {
+        state_1.state.dailyRealizedPnL = await (0, account_1.fetchTodayRealizedPnL)(ctrader);
+        console.log(`[PNL] Seeded today's realized P&L: ${state_1.state.dailyRealizedPnL.toFixed(2)}`);
+        (0, dailyLoss_1.evaluateDailyLimits)(false);
+    }
+    catch (err) {
+        console.warn(`[PNL] Could not seed daily P&L: ${err.errorCode || err.message || "request failed"}`);
+    }
     await startBot();
     (0, poller_1.startPoller)((signal) => {
         (0, gate_1.processSignal)(signal);

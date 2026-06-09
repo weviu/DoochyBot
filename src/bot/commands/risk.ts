@@ -5,7 +5,7 @@ export async function riskCmd(ctx: any) {
   const parts = msg.split(/\s+/);
 
   if (parts.length < 2) {
-    await ctx.reply("Usage: /risk maxpos <n> | /risk daily <%> | /risk maxloss <usd> | /risk lotsize <lots>");
+    await ctx.reply("Usage: /risk maxpos <n> | /risk daily <%> | /risk maxloss <usd> | /risk cap <usd> | /risk lotsize <lots>");
     return;
   }
 
@@ -47,6 +47,22 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
+  if (setting === "cap" && parts[2]) {
+    const usd = parseFloat(parts[2]);
+    if (isNaN(usd) || usd < 0) {
+      await ctx.reply("Profit cap USD must be 0 (disabled) or greater.");
+      return;
+    }
+    state.settings.dailyProfitCapUSD = usd;
+    persistSettings();
+    await ctx.reply(
+      usd === 0
+        ? "Daily profit cap disabled."
+        : `Daily profit cap set to $${usd}. New signals stop for the day once realized profit reaches it; open positions are unaffected.`
+    );
+    return;
+  }
+
   if (setting === "lotsize" && parts[2]) {
     const lots = parseFloat(parts[2]);
     if (isNaN(lots) || lots < 0.01 || lots > 100) {
@@ -83,5 +99,5 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
-  await ctx.reply("Unknown setting. Usage: /risk maxpos <n> | /risk daily <pct> | /risk maxloss <usd> | /risk lotsize <lots> | /risk sl <pct> | /risk tp <pct>");
+  await ctx.reply("Unknown setting. Usage: /risk maxpos <n> | /risk daily <pct> | /risk maxloss <usd> | /risk cap <usd> | /risk lotsize <lots> | /risk sl <pct> | /risk tp <pct>");
 }

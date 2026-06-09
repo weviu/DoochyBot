@@ -12,7 +12,8 @@ import { minholdCmd } from "./bot/commands/minhold";
 import { closeallCmd } from "./bot/commands/closeall";
 import { exportCmd, setExportConnection } from "./bot/commands/export";
 import { balanceCmd, statusCmd, setStatusConnection } from "./bot/commands/status";
-import { fetchAccountInfo } from "./ctrader/account";
+import { fetchAccountInfo, fetchTodayRealizedPnL } from "./ctrader/account";
+import { evaluateDailyLimits } from "./risk/dailyLoss";
 import { fetchSymbols } from "./ctrader/symbols";
 import { setConnection, reconcilePositions } from "./ctrader/orders";
 import { setAmendConnection } from "./ctrader/amend";
@@ -111,6 +112,7 @@ bot.command("help", async (ctx) => {
     "/risk maxpos <n> - Set max open positions\n" +
     "/risk daily <pct> - Set daily loss limit (%)\n" +
     "/risk maxloss <usd> - Set max daily loss ($)\n" +
+    "/risk cap <usd> - Daily profit cap; stop new trades at this profit (0 = off)\n" +
     "/minhold <secs> - Min seconds to hold before TP is set\n" +
     "/closeall - Close all open positions\n" +
     "/export [from] [to] - Export trade history (CSV)\n" +
@@ -152,6 +154,16 @@ console.log("[SAFETY] Midnight closer and daily reset active");
 await fetchAccountInfo(ctrader);
 await fetchSymbols(ctrader);
 await reconcilePositions();
+
+// Seed today's realized P&L from the broker so the daily loss/profit limits
+// survive a restart, then re-apply the lock if a limit was already breached.
+try {
+  state.dailyRealizedPnL = await fetchTodayRealizedPnL(ctrader);
+  console.log(`[PNL] Seeded today's realized P&L: ${state.dailyRealizedPnL.toFixed(2)}`);
+  evaluateDailyLimits(false);
+} catch (err: any) {
+  console.warn(`[PNL] Could not seed daily P&L: ${err.errorCode || err.message || "request failed"}`);
+}
 await startBot();
     startPoller((signal) => {
     processSignal(signal);

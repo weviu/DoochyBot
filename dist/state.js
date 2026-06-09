@@ -14,6 +14,7 @@ exports.DEFAULT_SETTINGS = {
     minHoldSeconds: 60,
     lotSize: 0.01,
     symbolLotSize: {},
+    dailyProfitCapUSD: 0,
 };
 exports.state = {
     paused: false,
@@ -46,6 +47,8 @@ function initSettings() {
             exports.state.settings.lotSize = saved.lotSize;
         if (saved.symbolLotSize)
             exports.state.settings.symbolLotSize = saved.symbolLotSize;
+        if (saved.dailyProfitCapUSD !== undefined)
+            exports.state.settings.dailyProfitCapUSD = saved.dailyProfitCapUSD;
         console.log("[STATE] Loaded saved settings. Allowed symbols:", exports.state.settings.allowedSymbols.length);
     }
 }
@@ -60,6 +63,7 @@ function persistSettings() {
         minHoldSeconds: exports.state.settings.minHoldSeconds,
         lotSize: exports.state.settings.lotSize,
         symbolLotSize: exports.state.settings.symbolLotSize,
+        dailyProfitCapUSD: exports.state.settings.dailyProfitCapUSD,
     });
 }
 //# sourceMappingURL=state.js.map

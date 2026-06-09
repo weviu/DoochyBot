@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { state } from "../state";
 import { ParsedSignal } from "../signals/types";
 import { amendPositionSLTP } from "./amend";
+import { updateDailyPnL } from "../risk/dailyLoss";
 
 let connection: any = null;
 
@@ -17,6 +18,13 @@ export function setConnection(conn: any): void {
     const pos = data.position;
     if (!pos?.positionId) return;
     if (pos.positionStatus === "POSITION_STATUS_CLOSED" || pos.positionStatus === 2) {
+      // Realized P&L from the closing deal drives the daily loss/profit limits.
+      const cpd = data.deal?.closePositionDetail;
+      if (cpd) {
+        const div = Math.pow(10, Number(cpd.moneyDigits ?? 2));
+        const net = (Number(cpd.grossProfit || 0) + Number(cpd.swap || 0) + Number(cpd.commission || 0)) / div;
+        updateDailyPnL(net);
+      }
       if (state.positions.delete(pos.positionId)) {
         console.log(`[POSITIONS] Closed #${pos.positionId}. Open now: ${state.positions.size}`);
       }

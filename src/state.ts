@@ -22,6 +22,7 @@ export interface BotSettings {
   minHoldSeconds: number;
   lotSize: number;
   symbolLotSize: Record<string, number>;
+  dailyProfitCapUSD: number; // lock trading once daily realized profit hits this; 0 = disabled
 }
 
 export interface BotState {
@@ -45,6 +46,7 @@ export const DEFAULT_SETTINGS: BotSettings = {
   minHoldSeconds: 60,
   lotSize: 0.01,
   symbolLotSize: {},
+  dailyProfitCapUSD: 0,
 };
 
 export const state: BotState = {
@@ -76,6 +78,7 @@ export function initSettings(): void {
     if (saved.minHoldSeconds !== undefined) state.settings.minHoldSeconds = saved.minHoldSeconds;
     if (saved.lotSize !== undefined) state.settings.lotSize = saved.lotSize;
     if (saved.symbolLotSize) state.settings.symbolLotSize = saved.symbolLotSize;
+    if (saved.dailyProfitCapUSD !== undefined) state.settings.dailyProfitCapUSD = saved.dailyProfitCapUSD;
     console.log("[STATE] Loaded saved settings. Allowed symbols:", state.settings.allowedSymbols.length);
   }
 }
@@ -91,6 +94,7 @@ export function persistSettings(): void {
     minHoldSeconds: state.settings.minHoldSeconds,
     lotSize: state.settings.lotSize,
     symbolLotSize: state.settings.symbolLotSize,
+    dailyProfitCapUSD: state.settings.dailyProfitCapUSD,
   });
 }
 

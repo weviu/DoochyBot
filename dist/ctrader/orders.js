@@ -7,6 +7,7 @@ exports.executeSignal = executeSignal;
 const crypto_1 = require("crypto");
 const state_1 = require("../state");
 const amend_1 = require("./amend");
+const dailyLoss_1 = require("../risk/dailyLoss");
 let connection = null;
 function setConnection(conn) {
     console.log('[ORDERS] setConnection called, sendCommand type:', typeof conn.sendCommand);
@@ -20,6 +21,13 @@ function setConnection(conn) {
         if (!pos?.positionId)
             return;
         if (pos.positionStatus === "POSITION_STATUS_CLOSED" || pos.positionStatus === 2) {
+            // Realized P&L from the closing deal drives the daily loss/profit limits.
+            const cpd = data.deal?.closePositionDetail;
+            if (cpd) {
+                const div = Math.pow(10, Number(cpd.moneyDigits ?? 2));
+                const net = (Number(cpd.grossProfit || 0) + Number(cpd.swap || 0) + Number(cpd.commission || 0)) / div;
+                (0, dailyLoss_1.updateDailyPnL)(net);
+            }
             if (state_1.state.positions.delete(pos.positionId)) {
                 console.log(`[POSITIONS] Closed #${pos.positionId}. Open now: ${state_1.state.positions.size}`);
             }

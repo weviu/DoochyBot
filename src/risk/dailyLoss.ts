@@ -1,17 +1,44 @@
 import { state } from "../state";
+import { notify } from "../bot/notify";
+
+// The hard daily loss threshold in USD (the tighter of the % and $ limits).
+function maxLossUSD(): number {
+  const limitPercent = (state.settings.dailyLossLimitPercent / 100) * 10000; // Assume $10k balance for now
+  return Math.min(limitPercent, state.settings.maxDailyLossUSD);
+}
+
+// If a daily limit is currently breached, return a human-readable reason for the
+// lock; otherwise null. The profit cap is disabled when set to 0.
+function breachedLimit(): string | null {
+  const cap = state.settings.dailyProfitCapUSD;
+  if (cap > 0 && state.dailyRealizedPnL >= cap) {
+    return `🎯 Daily profit cap reached: +${state.dailyRealizedPnL.toFixed(2)} USD (cap ${cap.toFixed(2)})`;
+  }
+  const loss = maxLossUSD();
+  if (state.dailyRealizedPnL < -loss) {
+    return `🛑 Daily loss limit hit: ${state.dailyRealizedPnL.toFixed(2)} USD (limit -${loss.toFixed(2)})`;
+  }
+  return null;
+}
+
+// Re-check the daily limits against current realized P&L and lock trading if a
+// limit is breached. Called after each close and once at boot. When `announce`
+// is set, pushes a Telegram alert on the transition into a locked state.
+export function evaluateDailyLimits(announce: boolean): void {
+  const reason = breachedLimit();
+  if (!reason) return;
+  const wasLocked = state.tradingLocked;
+  state.tradingLocked = true;
+  console.log(`[PNL] Trading locked — ${reason}`);
+  if (announce && !wasLocked) {
+    notify(`${reason}. New signals are blocked until midnight UTC or /resume. Open positions keep managing their SL/TP.`);
+  }
+}
 
 export function updateDailyPnL(closedPnl: number): void {
   state.dailyRealizedPnL += closedPnl;
   console.log(`[PNL] Updated: ${closedPnl >= 0 ? "+" : ""}${closedPnl.toFixed(2)} (total: ${state.dailyRealizedPnL.toFixed(2)})`);
-
-  const limitPercent = (state.settings.dailyLossLimitPercent / 100) * 10000; // Assume $10k balance for now
-  const limitUSD = state.settings.maxDailyLossUSD;
-  const maxLoss = Math.min(limitPercent, limitUSD);
-
-  if (state.dailyRealizedPnL < -maxLoss) {
-    state.tradingLocked = true;
-    console.log(`[PNL] DAILY LOSS LIMIT BREACHED. PnL: ${state.dailyRealizedPnL.toFixed(2)}. Limit: -${maxLoss.toFixed(2)}. Trading locked.`);
-  }
+  evaluateDailyLimits(true);
 }
 
 export function isLocked(): boolean {

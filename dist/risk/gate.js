@@ -55,12 +55,12 @@ function processSignal(signal) {
         console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - Max positions (${state_1.state.settings.maxPositions})`);
         return;
     }
-    // Check 5: Trading locked by daily loss limit?
+    // Check 5: Trading locked by a daily limit (loss limit or profit cap)?
     if ((0, dailyLoss_1.isLocked)()) {
-        console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} -   Daily loss limit reached`);
+        console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - Daily limit reached (trading locked)`);
         return;
     }
-    // Check 5: Duplicate signal within 60s?
+    // Check 6: Duplicate signal within 60s?
     const signalKey = `${signal.symbol}:${signal.direction}`;
     const lastTime = state_1.state.lastSignalTime.get(signalKey);
     const now = Date.now();
