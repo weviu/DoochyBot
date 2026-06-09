@@ -11,6 +11,7 @@ import { riskCmd } from "./bot/commands/risk";
 import { minholdCmd } from "./bot/commands/minhold";
 import { closeallCmd } from "./bot/commands/closeall";
 import { exportCmd, setExportConnection } from "./bot/commands/export";
+import { balanceCmd, statusCmd, setStatusConnection } from "./bot/commands/status";
 import { fetchAccountInfo } from "./ctrader/account";
 import { fetchSymbols } from "./ctrader/symbols";
 import { setConnection, reconcilePositions } from "./ctrader/orders";
@@ -114,6 +115,9 @@ bot.command("help", async (ctx) => {
     "/closeall - Close all open positions\n" +
     "/export [from] [to] - Export trade history (CSV)\n" +
     "\n" +
+    "/balance - Show account balance\n" +
+    "/status - Connection health + bot status\n" +
+    "\n" +
     "One position per symbol. Opposite signals only flip if confidence is higher."
   );
 });
@@ -125,6 +129,8 @@ bot.command("help", async (ctx) => {
   bot.command("minhold", minholdCmd);
   bot.command("closeall", closeallCmd);
   bot.command("export", exportCmd);
+  bot.command("balance", balanceCmd);
+  bot.command("status", statusCmd);
   bot.start({
     drop_pending_updates: true,
     onStart: () => console.log("[TELEGRAM] Bot started"),
@@ -139,6 +145,7 @@ setConnection(ctrader);
 setAmendConnection(ctrader);
 setMidnightConnection(ctrader);
 setExportConnection(ctrader);
+setStatusConnection(ctrader);
 startMidnightCheck();
 startDailyReset();
 console.log("[SAFETY] Midnight closer and daily reset active");

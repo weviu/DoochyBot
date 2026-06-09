@@ -17,7 +17,12 @@ async function symbolsCmd(ctx) {
             await ctx.reply("No symbols configured.");
             return;
         }
-        await ctx.reply("Allowed: " + state_1.state.settings.allowedSymbols.join(", "));
+        const lines = state_1.state.settings.allowedSymbols.map((s) => {
+            const custom = state_1.state.settings.symbolLotSize[s];
+            const lots = custom ?? state_1.state.settings.lotSize;
+            return `${s} — ${lots} lots${custom === undefined ? " (default)" : ""}`;
+        });
+        await ctx.reply("Allowed symbols:\n" + lines.join("\n"));
         return;
     }
     const action = parts[1]?.toLowerCase();

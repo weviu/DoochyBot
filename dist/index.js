@@ -16,6 +16,7 @@ const risk_1 = require("./bot/commands/risk");
 const minhold_1 = require("./bot/commands/minhold");
 const closeall_1 = require("./bot/commands/closeall");
 const export_1 = require("./bot/commands/export");
+const status_1 = require("./bot/commands/status");
 const account_1 = require("./ctrader/account");
 const symbols_2 = require("./ctrader/symbols");
 const orders_1 = require("./ctrader/orders");
@@ -105,6 +106,9 @@ async function startBot() {
             "/closeall - Close all open positions\n" +
             "/export [from] [to] - Export trade history (CSV)\n" +
             "\n" +
+            "/balance - Show account balance\n" +
+            "/status - Connection health + bot status\n" +
+            "\n" +
             "One position per symbol. Opposite signals only flip if confidence is higher.");
     });
     bot.command("pause", pause_1.pauseCmd);
@@ -114,6 +118,8 @@ async function startBot() {
     bot.command("minhold", minhold_1.minholdCmd);
     bot.command("closeall", closeall_1.closeallCmd);
     bot.command("export", export_1.exportCmd);
+    bot.command("balance", status_1.balanceCmd);
+    bot.command("status", status_1.statusCmd);
     bot.start({
         drop_pending_updates: true,
         onStart: () => console.log("[TELEGRAM] Bot started"),
@@ -127,6 +133,7 @@ async function main() {
     (0, amend_1.setAmendConnection)(ctrader);
     (0, midnightClose_1.setMidnightConnection)(ctrader);
     (0, export_1.setExportConnection)(ctrader);
+    (0, status_1.setStatusConnection)(ctrader);
     (0, midnightClose_1.startMidnightCheck)();
     (0, dailyLoss_1.startDailyReset)();
     console.log("[SAFETY] Midnight closer and daily reset active");
