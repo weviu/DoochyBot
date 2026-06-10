@@ -18,6 +18,7 @@ const closeall_1 = require("./bot/commands/closeall");
 const export_1 = require("./bot/commands/export");
 const status_1 = require("./bot/commands/status");
 const cooldown_1 = require("./bot/commands/cooldown");
+const positions_1 = require("./bot/commands/positions");
 const account_1 = require("./ctrader/account");
 const dailyLoss_1 = require("./risk/dailyLoss");
 const symbols_2 = require("./ctrader/symbols");
@@ -112,6 +113,7 @@ async function startBot() {
             "/cooldown - List cooled-down symbols\n" +
             "/cooldown reset [sym] - Clear a symbol's cooldown (or all)\n" +
             "/minhold <secs> - Min seconds to hold before TP is set\n" +
+            "/positions - Show open positions with entry, SL, TP, P&L\n" +
             "/closeall - Close all open positions\n" +
             "/export [from] [to] - Export trade history (CSV)\n" +
             "\n" +
@@ -130,6 +132,7 @@ async function startBot() {
     bot.command("balance", status_1.balanceCmd);
     bot.command("status", status_1.statusCmd);
     bot.command("cooldown", cooldown_1.cooldownCmd);
+    bot.command("positions", positions_1.positionsCmd);
     bot.start({
         drop_pending_updates: true,
         onStart: () => console.log("[TELEGRAM] Bot started"),

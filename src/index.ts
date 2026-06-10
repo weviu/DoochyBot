@@ -13,6 +13,7 @@ import { closeallCmd } from "./bot/commands/closeall";
 import { exportCmd, setExportConnection } from "./bot/commands/export";
 import { balanceCmd, statusCmd, setStatusConnection } from "./bot/commands/status";
 import { cooldownCmd } from "./bot/commands/cooldown";
+import { positionsCmd } from "./bot/commands/positions";
 import { fetchAccountInfo, fetchTodayRealizedPnL } from "./ctrader/account";
 import { evaluateDailyLimits } from "./risk/dailyLoss";
 import { fetchSymbols } from "./ctrader/symbols";
@@ -121,6 +122,7 @@ bot.command("help", async (ctx) => {
     "/cooldown - List cooled-down symbols\n" +
     "/cooldown reset [sym] - Clear a symbol's cooldown (or all)\n" +
     "/minhold <secs> - Min seconds to hold before TP is set\n" +
+    "/positions - Show open positions with entry, SL, TP, P&L\n" +
     "/closeall - Close all open positions\n" +
     "/export [from] [to] - Export trade history (CSV)\n" +
     "\n" +
@@ -141,6 +143,7 @@ bot.command("help", async (ctx) => {
   bot.command("balance", balanceCmd);
   bot.command("status", statusCmd);
   bot.command("cooldown", cooldownCmd);
+  bot.command("positions", positionsCmd);
   bot.start({
     drop_pending_updates: true,
     onStart: () => console.log("[TELEGRAM] Bot started"),

@@ -7,6 +7,8 @@ import { recordStopLoss } from "../risk/cooldown";
 
 let connection: any = null;
 
+export function getConnection(): any { return connection; }
+
 export function setConnection(conn: any): void {
   console.log('[ORDERS] setConnection called, sendCommand type:', typeof conn.sendCommand);
   connection = conn;

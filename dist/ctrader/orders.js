@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.getConnection = getConnection;
 exports.setConnection = setConnection;
 exports.getSymbolSpec = getSymbolSpec;
 exports.reconcilePositions = reconcilePositions;
@@ -10,6 +11,7 @@ const amend_1 = require("./amend");
 const dailyLoss_1 = require("../risk/dailyLoss");
 const cooldown_1 = require("../risk/cooldown");
 let connection = null;
+function getConnection() { return connection; }
 function setConnection(conn) {
     console.log('[ORDERS] setConnection called, sendCommand type:', typeof conn.sendCommand);
     connection = conn;
