@@ -125,16 +125,31 @@ export async function reconcilePositions(): Promise<void> {
       const spec = await getSymbolSpec(symbolId);
       if (spec?.lotSize) lots = volumeCents / spec.lotSize;
 
-      state.positions.set(p.positionId, {
+      const entry = Number(p.price) || 0;
+      const direction: "BUY" | "SELL" = td.tradeSide === "SELL" ? "SELL" : "BUY";
+      const posSlot = {
         symbol: symbolNameById(symbolId),
-        direction: td.tradeSide === "SELL" ? "SELL" : "BUY",
+        direction,
         volume: lots,
         volumeCents,
-        entryPrice: Number(p.price) || 0,
+        entryPrice: entry,
         openTime: Number(td.openTimestamp) || Date.now(),
         sl: p.stopLoss ?? null,
         tp: p.takeProfit ?? null,
-      });
+      };
+      state.positions.set(p.positionId, posSlot);
+
+      // If the position has no TP (e.g. bot restarted during minhold window),
+      // re-arm it immediately — the hold period has already passed.
+      if (!p.takeProfit && entry && state.settings.takeProfitPercent > 0) {
+        const tp = direction === "BUY"
+          ? entry * (1 + state.settings.takeProfitPercent / 100)
+          : entry * (1 - state.settings.takeProfitPercent / 100);
+        const sl = p.stopLoss ?? undefined;
+        console.log(`[RECONCILE] Re-arming TP ${tp.toFixed(2)} for position #${p.positionId} (${posSlot.symbol})`);
+        amendPositionSLTP(p.positionId, posSlot.symbol, entry, direction, { sl, tp });
+      }
+
       count++;
     }
 

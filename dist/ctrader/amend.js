@@ -42,9 +42,12 @@ async function sendAmend(positionId, fields, desc) {
         let execId;
         execId = connection.on("ProtoOAExecutionEvent", (event) => {
             const data = event.descriptor ?? event;
-            if (String(data.position?.positionId) !== pidStr)
+            // SL/TP amend responses carry positionId on the order object, not the
+            // position object (which may be absent). Check both.
+            const evtPositionId = String(data.position?.positionId ?? data.order?.positionId ?? "");
+            if (evtPositionId !== pidStr)
                 return;
-            if (data.executionType === "ORDER_REPLACED") {
+            if (data.executionType === "ORDER_REPLACED" || data.executionType === 3) {
                 cleanup();
                 console.log(`[AMEND] ${desc}: confirmed | Position #${positionId}`);
                 resolve();
