@@ -4,6 +4,7 @@ import { ParsedSignal } from "../signals/types";
 import { amendPositionSLTP } from "./amend";
 import { updateDailyPnL } from "../risk/dailyLoss";
 import { recordStopLoss } from "../risk/cooldown";
+import { recordPrice } from "../risk/trend";
 
 let connection: any = null;
 
@@ -127,6 +128,10 @@ export async function reconcilePositions(): Promise<void> {
 
       const entry = Number(p.price) || 0;
       const direction: "BUY" | "SELL" = td.tradeSide === "SELL" ? "SELL" : "BUY";
+      // Seed the trend price history with the broker's current mark price so
+      // floatingPnL() has a value immediately after restart.
+      const symName = symbolNameById(symbolId);
+      if (entry) recordPrice(symName, entry, Date.now());
       const posSlot = {
         symbol: symbolNameById(symbolId),
         direction,

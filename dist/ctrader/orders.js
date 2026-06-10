@@ -10,6 +10,7 @@ const state_1 = require("../state");
 const amend_1 = require("./amend");
 const dailyLoss_1 = require("../risk/dailyLoss");
 const cooldown_1 = require("../risk/cooldown");
+const trend_1 = require("../risk/trend");
 let connection = null;
 function getConnection() { return connection; }
 function setConnection(conn) {
@@ -120,6 +121,11 @@ async function reconcilePositions() {
                 lots = volumeCents / spec.lotSize;
             const entry = Number(p.price) || 0;
             const direction = td.tradeSide === "SELL" ? "SELL" : "BUY";
+            // Seed the trend price history with the broker's current mark price so
+            // floatingPnL() has a value immediately after restart.
+            const symName = symbolNameById(symbolId);
+            if (entry)
+                (0, trend_1.recordPrice)(symName, entry, Date.now());
             const posSlot = {
                 symbol: symbolNameById(symbolId),
                 direction,

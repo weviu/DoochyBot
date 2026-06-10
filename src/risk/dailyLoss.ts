@@ -89,7 +89,7 @@ export function startDailyReset(): void {
     if (now.getUTCHours() === 0 && now.getUTCMinutes() === 0 && !resetToday) {
       resetToday = true;
       state.dailyRealizedPnL = 0;
-      state.dailyPnLSeeded = false; // will re-seed on next broker interaction or restart
+      state.dailyPnLSeeded = true; // we just set it to 0 — that is the correct value
       state.tradingLocked = false;
       console.log("[PNL] New trading day — P&L and lock reset");
     }
