@@ -39,8 +39,9 @@ function breachedLimit() {
         }
     }
     const loss = maxLossUSD();
-    if (state_1.state.dailyRealizedPnL < -loss) {
-        return `🛑 Daily loss limit hit: ${state_1.state.dailyRealizedPnL.toFixed(2)} USD (limit -${loss.toFixed(2)})`;
+    const totalPnL = state_1.state.dailyRealizedPnL + floatingPnL();
+    if (totalPnL < -loss) {
+        return `🛑 Daily loss limit hit: ${totalPnL.toFixed(2)} USD (limit -${loss.toFixed(2)})`;
     }
     return null;
 }
