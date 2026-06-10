@@ -6,6 +6,7 @@ exports.statusCmd = statusCmd;
 const state_1 = require("../../state");
 const account_1 = require("../../ctrader/account");
 const cooldown_1 = require("../../risk/cooldown");
+const dailyLoss_1 = require("../../risk/dailyLoss");
 let connection = null;
 function setStatusConnection(conn) {
     connection = conn;
@@ -56,7 +57,8 @@ async function statusCmd(ctx) {
         `Trading: ${state_1.state.paused ? "⏸ paused" : "▶️ active"}${state_1.state.tradingLocked ? " 🔒 locked" : ""}`,
         `Open positions: ${state_1.state.positions.size}/${state_1.state.settings.maxPositions}`,
         `Daily realized P&L: ${dailyPnL >= 0 ? "+" : ""}${dailyPnL.toFixed(2)} ${info.currency}`,
-        `Profit cap: ${cap > 0 ? `$${cap.toFixed(2)}` : "off"}`,
+        `Floating P&L: ${(() => { const f = (0, dailyLoss_1.floatingPnL)(); return `${f >= 0 ? "+" : ""}${f.toFixed(2)}`; })()} ${info.currency}`,
+        `Profit cap: ${cap > 0 ? `$${cap.toFixed(2)} (total ${(dailyPnL + (0, dailyLoss_1.floatingPnL)()).toFixed(2)} used)` : "off"}`,
         `Trend filter: ${state_1.state.settings.trendLookbackHours > 0 ? `${state_1.state.settings.trendLookbackHours}h` : "off"}`,
         `Cooldowns: ${cooldowns.length === 0 ? "none" : cooldowns.map((c) => `${c.symbol} ${Math.ceil(c.remainingMs / 60_000)}m`).join(", ")}`,
         `Allowed symbols: ${state_1.state.settings.allowedSymbols.length}`,

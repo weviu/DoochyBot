@@ -86,6 +86,8 @@ function processSignal(signal) {
         return;
     }
     // Check 7: Trading locked by a daily limit (loss limit or profit cap)?
+    // Re-evaluate here so the profit cap catches rising floating P&L between closes.
+    (0, dailyLoss_1.evaluateDailyLimits)(true);
     if ((0, dailyLoss_1.isLocked)()) {
         console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - Daily limit reached (trading locked)`);
         return;

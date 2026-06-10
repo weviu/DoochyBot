@@ -1,5 +1,6 @@
 import { state } from "../state";
 import { notify } from "../bot/notify";
+import { getLatestPrice } from "./trend";
 
 // The hard daily loss threshold in USD (the tighter of the % and $ limits).
 function maxLossUSD(): number {
@@ -7,12 +8,30 @@ function maxLossUSD(): number {
   return Math.min(limitPercent, state.settings.maxDailyLossUSD);
 }
 
+// Sum of unrealized P&L across all open positions using the latest feed prices.
+// Approximation: no quote-to-USD conversion, accurate enough for XAUUSD/BTCUSD.
+export function floatingPnL(): number {
+  let total = 0;
+  for (const pos of state.positions.values()) {
+    const mark = getLatestPrice(pos.symbol);
+    if (!mark || !pos.entryPrice) continue;
+    const diff = pos.direction === "BUY" ? mark - pos.entryPrice : pos.entryPrice - mark;
+    total += diff * (pos.volumeCents / 100);
+  }
+  return total;
+}
+
 // If a daily limit is currently breached, return a human-readable reason for the
-// lock; otherwise null. The profit cap is disabled when set to 0.
+// lock; otherwise null. The profit cap uses realized + floating so an account
+// already at +$390 realized won't open more positions while floating +$50.
+// The loss limit stays realized-only — unrealized dips shouldn't lock you out.
 function breachedLimit(): string | null {
   const cap = state.settings.dailyProfitCapUSD;
-  if (cap > 0 && state.dailyRealizedPnL >= cap) {
-    return `🎯 Daily profit cap reached: +${state.dailyRealizedPnL.toFixed(2)} USD (cap ${cap.toFixed(2)})`;
+  if (cap > 0) {
+    const total = state.dailyRealizedPnL + floatingPnL();
+    if (total >= cap) {
+      return `🎯 Daily profit cap reached: +${total.toFixed(2)} USD (cap ${cap.toFixed(2)})`;
+    }
   }
   const loss = maxLossUSD();
   if (state.dailyRealizedPnL < -loss) {

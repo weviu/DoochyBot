@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.recordPrice = recordPrice;
+exports.getLatestPrice = getLatestPrice;
 exports.getTrend = getTrend;
 const state_1 = require("../state");
 const history = new Map();
@@ -22,6 +23,13 @@ function recordPrice(symbol, price, time) {
     const cutoff = time - lookback * HOUR_MS * 2;
     while (samples.length && samples[0].time < cutoff)
         samples.shift();
+}
+// Most recent recorded price for a symbol, or null if none yet.
+function getLatestPrice(symbol) {
+    const samples = history.get(symbol);
+    if (!samples || samples.length === 0)
+        return null;
+    return samples[samples.length - 1].price;
 }
 // Compare the latest price to the price ~N hours ago. Returns UNKNOWN when there
 // isn't yet enough history (at least half the lookback) to judge — callers skip

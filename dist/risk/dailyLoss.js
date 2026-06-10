@@ -1,22 +1,42 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.floatingPnL = floatingPnL;
 exports.evaluateDailyLimits = evaluateDailyLimits;
 exports.updateDailyPnL = updateDailyPnL;
 exports.isLocked = isLocked;
 exports.startDailyReset = startDailyReset;
 const state_1 = require("../state");
 const notify_1 = require("../bot/notify");
+const trend_1 = require("./trend");
 // The hard daily loss threshold in USD (the tighter of the % and $ limits).
 function maxLossUSD() {
     const limitPercent = (state_1.state.settings.dailyLossLimitPercent / 100) * 10000; // Assume $10k balance for now
     return Math.min(limitPercent, state_1.state.settings.maxDailyLossUSD);
 }
+// Sum of unrealized P&L across all open positions using the latest feed prices.
+// Approximation: no quote-to-USD conversion, accurate enough for XAUUSD/BTCUSD.
+function floatingPnL() {
+    let total = 0;
+    for (const pos of state_1.state.positions.values()) {
+        const mark = (0, trend_1.getLatestPrice)(pos.symbol);
+        if (!mark || !pos.entryPrice)
+            continue;
+        const diff = pos.direction === "BUY" ? mark - pos.entryPrice : pos.entryPrice - mark;
+        total += diff * (pos.volumeCents / 100);
+    }
+    return total;
+}
 // If a daily limit is currently breached, return a human-readable reason for the
-// lock; otherwise null. The profit cap is disabled when set to 0.
+// lock; otherwise null. The profit cap uses realized + floating so an account
+// already at +$390 realized won't open more positions while floating +$50.
+// The loss limit stays realized-only — unrealized dips shouldn't lock you out.
 function breachedLimit() {
     const cap = state_1.state.settings.dailyProfitCapUSD;
-    if (cap > 0 && state_1.state.dailyRealizedPnL >= cap) {
-        return `🎯 Daily profit cap reached: +${state_1.state.dailyRealizedPnL.toFixed(2)} USD (cap ${cap.toFixed(2)})`;
+    if (cap > 0) {
+        const total = state_1.state.dailyRealizedPnL + floatingPnL();
+        if (total >= cap) {
+            return `🎯 Daily profit cap reached: +${total.toFixed(2)} USD (cap ${cap.toFixed(2)})`;
+        }
     }
     const loss = maxLossUSD();
     if (state_1.state.dailyRealizedPnL < -loss) {

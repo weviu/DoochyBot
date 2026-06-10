@@ -1,6 +1,6 @@
 import { state, Position } from "../state";
 import { ParsedSignal } from "../signals/types";
-import { isLocked } from "./dailyLoss";
+import { isLocked, evaluateDailyLimits } from "./dailyLoss";
 import { recordPrice, getTrend } from "./trend";
 import { getCooldown } from "./cooldown";
 import { executeSignal } from "../ctrader/orders";
@@ -97,6 +97,8 @@ if (state.positions.size >= state.settings.maxPositions) {
 }
 
 // Check 7: Trading locked by a daily limit (loss limit or profit cap)?
+// Re-evaluate here so the profit cap catches rising floating P&L between closes.
+evaluateDailyLimits(true);
 if (isLocked()) {
   console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - Daily limit reached (trading locked)`);
   return;

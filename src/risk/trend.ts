@@ -35,6 +35,13 @@ export function recordPrice(symbol: string, price: number, time: number): void {
   while (samples.length && samples[0].time < cutoff) samples.shift();
 }
 
+// Most recent recorded price for a symbol, or null if none yet.
+export function getLatestPrice(symbol: string): number | null {
+  const samples = history.get(symbol);
+  if (!samples || samples.length === 0) return null;
+  return samples[samples.length - 1].price;
+}
+
 // Compare the latest price to the price ~N hours ago. Returns UNKNOWN when there
 // isn't yet enough history (at least half the lookback) to judge — callers skip
 // the filter in that case rather than block all trades.
