@@ -8,17 +8,20 @@ exports.startDailyReset = startDailyReset;
 const state_1 = require("../state");
 const notify_1 = require("../bot/notify");
 const trend_1 = require("./trend");
+const livePrices_1 = require("../ctrader/livePrices");
 // The hard daily loss threshold in USD (the tighter of the % and $ limits).
 function maxLossUSD() {
     const limitPercent = (state_1.state.settings.dailyLossLimitPercent / 100) * 10000; // Assume $10k balance for now
     return Math.min(limitPercent, state_1.state.settings.maxDailyLossUSD);
 }
-// Sum of unrealized P&L across all open positions using the latest feed prices.
+// Sum of unrealized P&L across all open positions. Uses the live cTrader spot
+// price (authoritative, matches the broker's Net USD) and only falls back to the
+// stale HTTP-feed price if no spot quote has arrived for that symbol yet.
 // Approximation: no quote-to-USD conversion, accurate enough for XAUUSD/BTCUSD.
 function floatingPnL() {
     let total = 0;
     for (const pos of state_1.state.positions.values()) {
-        const mark = (0, trend_1.getLatestPrice)(pos.symbol);
+        const mark = (0, livePrices_1.getMarkPrice)(pos.symbol, pos.direction) ?? (0, trend_1.getLatestPrice)(pos.symbol);
         if (!mark || !pos.entryPrice)
             continue;
         const diff = pos.direction === "BUY" ? mark - pos.entryPrice : pos.entryPrice - mark;
@@ -63,7 +66,7 @@ function evaluateDailyLimits(announce) {
     state_1.state.tradingLocked = true;
     console.log(`[PNL] Trading locked — ${reason}`);
     if (announce && !wasLocked) {
-        (0, notify_1.notify)(`${reason}. New signals are blocked until midnight UTC or /resume. Open positions keep managing their SL/TP.`);
+        (0, notify_1.notify)(`${reason}. New signals are blocked until midnight UTC or /resume.`);
     }
 }
 function updateDailyPnL(closedPnl) {

@@ -11,6 +11,7 @@ const amend_1 = require("./amend");
 const dailyLoss_1 = require("../risk/dailyLoss");
 const cooldown_1 = require("../risk/cooldown");
 const trend_1 = require("../risk/trend");
+const livePrices_1 = require("./livePrices");
 let connection = null;
 function getConnection() { return connection; }
 function setConnection(conn) {
@@ -24,6 +25,7 @@ function setConnection(conn) {
         const pos = data.position;
         if (!pos?.positionId)
             return;
+        const positionId = Number(pos.positionId);
         if (pos.positionStatus === "POSITION_STATUS_CLOSED" || pos.positionStatus === 2) {
             // Realized P&L from the closing deal drives the daily loss/profit limits.
             const cpd = data.deal?.closePositionDetail;
@@ -36,14 +38,24 @@ function setConnection(conn) {
             // Per-symbol consecutive-loss protection. A stop-loss exit = the close came
             // from the SL/TP order (or a forced stop-out) and the trade lost money;
             // that excludes take-profits (net >= 0) and manual closes (no SL/TP order).
-            const tracked = state_1.state.positions.get(pos.positionId);
+            const tracked = state_1.state.positions.get(positionId);
             const ord = data.order;
             const viaStopOrder = ord?.isStopOut || ord?.orderType === "STOP_LOSS_TAKE_PROFIT";
             if (tracked && viaStopOrder && net < 0) {
                 (0, cooldown_1.recordStopLoss)(tracked.symbol);
             }
-            if (state_1.state.positions.delete(pos.positionId)) {
-                console.log(`[POSITIONS] Closed #${pos.positionId}. Open now: ${state_1.state.positions.size}`);
+            if (state_1.state.positions.delete(positionId)) {
+                console.log(`[POSITIONS] Closed #${positionId}. Open now: ${state_1.state.positions.size}`);
+            }
+            // When a position closes, realized P&L changes — the remaining cap headroom
+            // shifts. Re-amend all remaining positions so their cap TPs tighten (or
+            // loosen) to reflect the new headroom. Only fires when cap is enabled.
+            if (state_1.state.settings.dailyProfitCapUSD > 0 && state_1.state.dailyPnLSeeded && state_1.state.positions.size > 0) {
+                for (const [pid, p] of state_1.state.positions.entries()) {
+                    (0, amend_1.amendPositionSLTP)(pid, p.symbol, p.entryPrice, p.direction, {
+                        sl: p.sl ?? undefined,
+                    });
+                }
             }
         }
     });
@@ -136,7 +148,8 @@ async function reconcilePositions() {
                 sl: p.stopLoss ?? null,
                 tp: p.takeProfit ?? null,
             };
-            state_1.state.positions.set(p.positionId, posSlot);
+            const pid = Number(p.positionId);
+            state_1.state.positions.set(pid, posSlot);
             // If the position has no TP (e.g. bot restarted during minhold window),
             // re-arm it immediately — the hold period has already passed.
             if (!p.takeProfit && entry && state_1.state.settings.takeProfitPercent > 0) {
@@ -144,8 +157,8 @@ async function reconcilePositions() {
                     ? entry * (1 + state_1.state.settings.takeProfitPercent / 100)
                     : entry * (1 - state_1.state.settings.takeProfitPercent / 100);
                 const sl = p.stopLoss ?? undefined;
-                console.log(`[RECONCILE] Re-arming TP ${tp.toFixed(2)} for position #${p.positionId} (${posSlot.symbol})`);
-                (0, amend_1.amendPositionSLTP)(p.positionId, posSlot.symbol, entry, direction, { sl, tp });
+                console.log(`[RECONCILE] Re-arming TP ${tp.toFixed(2)} for position #${pid} (${posSlot.symbol})`);
+                (0, amend_1.amendPositionSLTP)(pid, posSlot.symbol, entry, direction, { sl, tp });
             }
             count++;
         }
@@ -223,7 +236,7 @@ async function executeSignal(signal) {
                     cleanup();
                     const pos = data.position;
                     const deal = data.deal;
-                    const positionId = pos.positionId;
+                    const positionId = Number(pos.positionId);
                     const entryPrice = deal?.executionPrice || pos.price || 0;
                     state_1.state.positions.set(positionId, {
                         symbol: signal.symbol,
@@ -235,6 +248,8 @@ async function executeSignal(signal) {
                         confidence: signal.confidence,
                     });
                     console.log(`[ORDER] Filled: ${signal.direction} ${lots} lots ${signal.symbol} @ ${entryPrice} | Position #${positionId}`);
+                    // Stream live prices for this symbol so floating P&L / cap stay accurate.
+                    (0, livePrices_1.subscribeSpots)([symbolId]);
                     (0, amend_1.amendPositionSLTP)(positionId, signal.symbol, entryPrice, signal.direction, {
                         sl: signal.sl,
                         tp: signal.tp,

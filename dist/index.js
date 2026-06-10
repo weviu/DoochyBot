@@ -23,9 +23,11 @@ const account_1 = require("./ctrader/account");
 const dailyLoss_1 = require("./risk/dailyLoss");
 const symbols_2 = require("./ctrader/symbols");
 const orders_1 = require("./ctrader/orders");
+const livePrices_1 = require("./ctrader/livePrices");
 const amend_1 = require("./ctrader/amend");
 const midnightClose_1 = require("./risk/midnightClose");
 const dailyLoss_2 = require("./risk/dailyLoss");
+const capMonitor_1 = require("./risk/capMonitor");
 const notify_1 = require("./bot/notify");
 dotenv_1.default.config();
 const config = {
@@ -92,33 +94,36 @@ async function startBot() {
         await ctx.reply("/pause - Stop executing signals\n" +
             "/resume - Resume executing signals\n" +
             "\n" +
-            "/symbols - List allowed symbols\n" +
+            "/symbols - List allowed symbols with lot sizes\n" +
             "/symbols add <sym> - Add symbol\n" +
             "/symbols add all - Add all high-confidence symbols\n" +
             "/symbols remove <sym> - Remove symbol\n" +
             "/symbols reset - Restore default symbol list\n" +
-            "/symbols <sym> <lots> - Set lot size for symbol\n" +
+            "/symbols <sym> <lots> - Set per-symbol lot size\n" +
             "\n" +
-            "/risk lotsize <lots> - Set default lot size\n" +
-            "/risk sl <pct> - Set stop loss (% of entry)\n" +
-            "/risk tp <pct> - Set take profit (% of entry)\n" +
-            "/risk maxpos <n> - Set max open positions\n" +
-            "/risk daily <pct> - Set daily loss limit (%)\n" +
-            "/risk maxloss <usd> - Set max daily loss ($)\n" +
-            "/risk cap <usd> - Daily profit cap; stop new trades at this profit (0 = off)\n" +
+            "/risk lotsize <lots> - Default lot size\n" +
+            "/risk sl <pct> - Stop loss (% of entry)\n" +
+            "/risk tp <pct> - Take profit (% of entry)\n" +
+            "/risk maxpos <n> - Max open positions\n" +
+            "/risk daily <pct> - Daily loss limit (%)\n" +
+            "/risk maxloss <usd> - Max daily loss ($)\n" +
+            "/risk cap <usd> - Daily profit cap: force-close all & block signals at this profit (0 = off)\n" +
+            "/risk capbuffer <usd> - Close cap_usd - buffer$ early so realized never overshoots cap\n" +
             "/risk trend <hours> - Only take signals aligned with this trend lookback (0 = off)\n" +
-            "/risk losses <n> - SL hits per symbol that trigger a cooldown (0 = off)\n" +
+            "/risk losses <n> - SL hits per symbol before cooldown (0 = off)\n" +
             "/risk losswindow <min> - Window for counting SL hits\n" +
-            "/risk cooldown <min> - How long a symbol stays paused after the streak\n" +
+            "/risk cooldown <min> - How long a symbol is paused after the streak\n" +
+            "\n" +
             "/cooldown - List cooled-down symbols\n" +
             "/cooldown reset [sym] - Clear a symbol's cooldown (or all)\n" +
-            "/minhold <secs> - Min seconds to hold before TP is set\n" +
-            "/positions - Show open positions with entry, SL, TP, P&L\n" +
-            "/closeall - Close all open positions\n" +
-            "/export [from] [to] - Export trade history (CSV)\n" +
+            "/minhold <secs> - Min hold time before TP is set\n" +
             "\n" +
-            "/balance - Show account balance\n" +
-            "/status - Connection health + bot status\n" +
+            "/positions - Open positions: entry, mark, SL, TP, P&L\n" +
+            "/closeall - Close all open positions\n" +
+            "/export [from] [to] - Export trade history\n" +
+            "\n" +
+            "/balance - Account balance\n" +
+            "/status - Connection health, P&L, cap, cooldowns\n" +
             "\n" +
             "One position per symbol. Opposite signals only flip if confidence is higher.");
     });
@@ -143,25 +148,28 @@ async function main() {
     (0, state_1.initSettings)();
     const ctrader = await connectCtrader();
     (0, orders_1.setConnection)(ctrader);
+    (0, livePrices_1.setLivePriceConnection)(ctrader);
     (0, amend_1.setAmendConnection)(ctrader);
     (0, midnightClose_1.setMidnightConnection)(ctrader);
     (0, export_1.setExportConnection)(ctrader);
     (0, status_1.setStatusConnection)(ctrader);
     (0, midnightClose_1.startMidnightCheck)();
     (0, dailyLoss_2.startDailyReset)();
+    (0, capMonitor_1.startCapMonitor)();
     console.log("[SAFETY] Midnight closer and daily reset active");
     await (0, account_1.fetchAccountInfo)(ctrader);
     await (0, symbols_2.fetchSymbols)(ctrader);
-    await (0, orders_1.reconcilePositions)();
-    // Seed today's realized P&L from the broker so the daily loss/profit limits
-    // survive a restart. Retry once on failure. If both attempts fail, daily limits
-    // are disabled for this session rather than running against a false 0 baseline.
+    // Seed today's realized P&L from the broker BEFORE reconciling positions. This
+    // order is critical: reconcilePositions() re-arms TPs on positions opened before
+    // the restart, and the cap-TP logic in amend.ts only applies when dailyPnLSeeded
+    // is true. Seeding first means re-armed TPs are correctly capped to the remaining
+    // headroom instead of a full normal TP that could blow past the cap. Retry once;
+    // if both attempts fail, daily limits are disabled rather than run against a false 0.
     for (let attempt = 1; attempt <= 2; attempt++) {
         try {
             state_1.state.dailyRealizedPnL = await (0, account_1.fetchTodayRealizedPnL)(ctrader);
             state_1.state.dailyPnLSeeded = true;
             console.log(`[PNL] Seeded today's realized P&L: ${state_1.state.dailyRealizedPnL.toFixed(2)}`);
-            (0, dailyLoss_1.evaluateDailyLimits)(false);
             break;
         }
         catch (err) {
@@ -171,6 +179,11 @@ async function main() {
             }
         }
     }
+    await (0, orders_1.reconcilePositions)();
+    // Start streaming live prices for any position we already hold so floating P&L
+    // and the profit cap are accurate immediately, not just after the next signal.
+    await (0, livePrices_1.subscribeOpenPositions)();
+    (0, dailyLoss_1.evaluateDailyLimits)(false);
     await startBot();
     (0, poller_1.startPoller)((signal) => {
         (0, gate_1.processSignal)(signal);

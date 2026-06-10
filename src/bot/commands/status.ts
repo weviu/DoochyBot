@@ -2,7 +2,6 @@ import { state } from "../../state";
 import { fetchTrader, fetchTodayRealizedPnL } from "../../ctrader/account";
 import { activeCooldowns } from "../../risk/cooldown";
 import { floatingPnL } from "../../risk/dailyLoss";
-import { getSymbolSpec } from "../../ctrader/orders";
 
 let connection: any = null;
 
@@ -24,7 +23,6 @@ export async function balanceCmd(ctx: any) {
 }
 
 export async function statusCmd(ctx: any) {
-  // Health check: a live ProtoOATraderReq confirms the cTrader link is alive.
   let connOk = false;
   let info = state.accountInfo;
   if (connection) {
@@ -36,8 +34,6 @@ export async function statusCmd(ctx: any) {
     }
   }
 
-  // Pull today's realized P&L from the broker; fall back to the in-memory
-  // counter if the request fails.
   let dailyPnL = state.dailyRealizedPnL;
   if (connOk) {
     try {
@@ -47,30 +43,10 @@ export async function statusCmd(ctx: any) {
     }
   }
 
-  // Compute floating P&L from live broker mark prices (reconcile), not feed
-  // prices — feed prices are absent right after a restart until first signal.
-  let liveFloating = 0;
-  if (connOk && state.positions.size > 0) {
-    try {
-      const res = await connection.sendCommand("ProtoOAReconcileReq", {
-        ctidTraderAccountId: parseInt(process.env.ACCOUNT_ID || "0"),
-      });
-      for (const p of res.position || []) {
-        const tracked = state.positions.get(p.positionId);
-        if (!tracked) continue;
-        const mark = Number(p.price) || 0;
-        if (!mark || !tracked.entryPrice) continue;
-        const symbolId = state.symbolMap.get(tracked.symbol);
-        if (symbolId === undefined) continue;
-        const spec = await getSymbolSpec(symbolId);
-        if (!spec?.lotSize) continue;
-        const diff = tracked.direction === "BUY" ? mark - tracked.entryPrice : tracked.entryPrice - mark;
-        liveFloating += diff * (tracked.volumeCents / 100);
-      }
-    } catch {
-      liveFloating = floatingPnL(); // fall back to feed-price estimate
-    }
-  }
+  // Feed prices (recordPrice) are updated on every signal that passes through gate.
+  // Immediately after restart they're seeded with entry prices until the first
+  // signal for each symbol arrives, so floating may show ~0 briefly.
+  const liveFloating = floatingPnL();
 
   const cap = state.settings.dailyProfitCapUSD;
   const cooldowns = activeCooldowns();

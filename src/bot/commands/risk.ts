@@ -58,7 +58,23 @@ export async function riskCmd(ctx: any) {
     await ctx.reply(
       usd === 0
         ? "Daily profit cap disabled."
-        : `Daily profit cap set to $${usd}. New signals stop for the day once realized profit reaches it; open positions are unaffected.`
+        : `Daily profit cap set to $${usd}. Once realized + floating P&L reaches it, ALL positions are force-closed and new signals stop for the day. Buffer: $${(state.settings.capBufferUSD ?? 0).toFixed(2)} below cap.`
+    );
+    return;
+  }
+
+  if (setting === "capbuffer" && parts[2]) {
+    const usd = parseFloat(parts[2]);
+    if (isNaN(usd) || usd < 0) {
+      await ctx.reply("Cap buffer USD must be 0 or greater.");
+      return;
+    }
+    state.settings.capBufferUSD = usd;
+    persistSettings();
+    await ctx.reply(
+      usd === 0
+        ? "Cap buffer cleared — positions close exactly at the cap."
+        : `Cap buffer set to $${usd}. Positions force-close once profit reaches cap − $${usd}, so the cap is never overshot.`
     );
     return;
   }

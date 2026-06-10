@@ -23,6 +23,7 @@ export interface BotSettings {
   lotSize: number;
   symbolLotSize: Record<string, number>;
   dailyProfitCapUSD: number; // lock trading once daily realized profit hits this; 0 = disabled
+  capBufferUSD: number; // force-close this many $ BELOW the cap to never overshoot it
   trendLookbackHours: number; // higher-timeframe trend filter lookback; 0 = disabled
   maxConsecutiveLosses: number; // SL hits on one symbol within the window that trigger a cooldown; 0 = disabled
   lossWindowMinutes: number; // window over which SL hits are counted
@@ -52,6 +53,7 @@ export const DEFAULT_SETTINGS: BotSettings = {
   lotSize: 0.01,
   symbolLotSize: {},
   dailyProfitCapUSD: 0,
+  capBufferUSD: 0,
   trendLookbackHours: 4,
   maxConsecutiveLosses: 3,
   lossWindowMinutes: 60,
@@ -89,6 +91,7 @@ export function initSettings(): void {
     if (saved.lotSize !== undefined) state.settings.lotSize = saved.lotSize;
     if (saved.symbolLotSize) state.settings.symbolLotSize = saved.symbolLotSize;
     if (saved.dailyProfitCapUSD !== undefined) state.settings.dailyProfitCapUSD = saved.dailyProfitCapUSD;
+    if (saved.capBufferUSD !== undefined) state.settings.capBufferUSD = saved.capBufferUSD;
     if (saved.trendLookbackHours !== undefined) state.settings.trendLookbackHours = saved.trendLookbackHours;
     if (saved.maxConsecutiveLosses !== undefined) state.settings.maxConsecutiveLosses = saved.maxConsecutiveLosses;
     if (saved.lossWindowMinutes !== undefined) state.settings.lossWindowMinutes = saved.lossWindowMinutes;
@@ -109,6 +112,7 @@ export function persistSettings(): void {
     lotSize: state.settings.lotSize,
     symbolLotSize: state.settings.symbolLotSize,
     dailyProfitCapUSD: state.settings.dailyProfitCapUSD,
+    capBufferUSD: state.settings.capBufferUSD,
     trendLookbackHours: state.settings.trendLookbackHours,
     maxConsecutiveLosses: state.settings.maxConsecutiveLosses,
     lossWindowMinutes: state.settings.lossWindowMinutes,

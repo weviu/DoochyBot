@@ -123,7 +123,41 @@ export async function amendPositionSLTP(
   if (sl) sl = round(sl, digits);
   if (tp) tp = round(tp, digits);
 
-  const delayMs = (state.settings.minHoldSeconds ?? 60) * 1000;
+  // If a profit cap is configured, compute the price at which this position
+  // would exhaust the remaining daily headroom. Use whichever TP triggers first
+  // (closer to entry). This implements the hard cap: e.g. cap=$400, realized=$390
+  // → remaining=$10, position closes the moment it earns $10 regardless of normal TP.
+  const cap = state.settings.dailyProfitCapUSD;
+  if (cap > 0 && state.dailyPnLSeeded) {
+    const pos = state.positions.get(positionId);
+    const units = pos?.volumeCents ? pos.volumeCents / 100 : 0;
+    // Headroom left before the cap, minus the same safety buffer the live monitor
+    // uses, so the broker-side TP (the only protection while the bot is down)
+    // also lands under the cap.
+    let remaining = cap - state.dailyRealizedPnL - (state.settings.capBufferUSD ?? 0);
+    // Split the headroom across all currently-open positions. If the bot is down
+    // when several hit their TP near-simultaneously, each banks only its share, so
+    // the combined realized still lands at (or under) the cap instead of N× over.
+    const openCount = Math.max(1, state.positions.size);
+    remaining = remaining / openCount;
+    if (units > 0 && remaining > 0) {
+      const diff = round(remaining / units, digits);
+      const capTp = round(direction === "BUY" ? entryPrice + diff : entryPrice - diff, digits);
+      if (tp === null) {
+        tp = capTp;
+        console.log(`[AMEND] Cap TP ${capTp} set (headroom/${openCount}: ${remaining.toFixed(2)}) | Position #${positionId}`);
+      } else if (Math.abs(capTp - entryPrice) < Math.abs(tp - entryPrice)) {
+        console.log(`[AMEND] Cap TP ${capTp} overrides normal TP ${tp} (headroom/${openCount}: ${remaining.toFixed(2)}) | Position #${positionId}`);
+        tp = capTp;
+      }
+    }
+  }
+
+  // Elapsed-time-aware minhold: if the position has already been open past the
+  // hold period (e.g. re-amend after a sibling closes), delay is 0.
+  const openTime = state.positions.get(positionId)?.openTime ?? Date.now();
+  const elapsed = Date.now() - openTime;
+  const delayMs = Math.max(0, (state.settings.minHoldSeconds ?? 60) * 1000 - elapsed);
 
   // With no min-hold delay, set SL and TP in a SINGLE amend. cTrader's amend
   // replaces the full SL/TP state anyway, so one call is cleaner and avoids a
