@@ -1,5 +1,5 @@
 import { state } from "../../state";
-import { getLatestPrice } from "../../risk/trend";
+import { getMarkPrice } from "../../ctrader/livePrices";
 
 export async function positionsCmd(ctx: any) {
   if (state.positions.size === 0) {
@@ -14,9 +14,7 @@ export async function positionsCmd(ctx: any) {
     const sl = pos.sl;
     const tp = pos.tp;
 
-    // Feed price from the trend buffer (updated on every signal via recordPrice).
-    // Falls back to entry if no signal has arrived for this symbol yet.
-    const mark = getLatestPrice(pos.symbol) ?? pos.entryPrice;
+    const mark = getMarkPrice(pos.symbol, pos.direction) ?? pos.entryPrice;
     const priceDiff = pos.direction === "BUY" ? mark - pos.entryPrice : pos.entryPrice - mark;
     const units = pos.volumeCents / 100;
     const pnl = priceDiff * units;

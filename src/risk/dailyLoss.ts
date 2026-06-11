@@ -1,6 +1,5 @@
 import { state } from "../state";
 import { notify } from "../bot/notify";
-import { getLatestPrice } from "./trend";
 import { getMarkPrice } from "../ctrader/livePrices";
 
 // The hard daily loss threshold in USD (the tighter of the % and $ limits).
@@ -16,7 +15,7 @@ function maxLossUSD(): number {
 export function floatingPnL(): number {
   let total = 0;
   for (const pos of state.positions.values()) {
-    const mark = getMarkPrice(pos.symbol, pos.direction) ?? getLatestPrice(pos.symbol);
+    const mark = getMarkPrice(pos.symbol, pos.direction);
     if (!mark || !pos.entryPrice) continue;
     const diff = pos.direction === "BUY" ? mark - pos.entryPrice : pos.entryPrice - mark;
     total += diff * (pos.volumeCents / 100);

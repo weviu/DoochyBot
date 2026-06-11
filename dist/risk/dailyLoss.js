@@ -7,7 +7,6 @@ exports.isLocked = isLocked;
 exports.startDailyReset = startDailyReset;
 const state_1 = require("../state");
 const notify_1 = require("../bot/notify");
-const trend_1 = require("./trend");
 const livePrices_1 = require("../ctrader/livePrices");
 // The hard daily loss threshold in USD (the tighter of the % and $ limits).
 function maxLossUSD() {
@@ -21,7 +20,7 @@ function maxLossUSD() {
 function floatingPnL() {
     let total = 0;
     for (const pos of state_1.state.positions.values()) {
-        const mark = (0, livePrices_1.getMarkPrice)(pos.symbol, pos.direction) ?? (0, trend_1.getLatestPrice)(pos.symbol);
+        const mark = (0, livePrices_1.getMarkPrice)(pos.symbol, pos.direction);
         if (!mark || !pos.entryPrice)
             continue;
         const diff = pos.direction === "BUY" ? mark - pos.entryPrice : pos.entryPrice - mark;

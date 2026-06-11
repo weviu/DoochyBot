@@ -118,7 +118,6 @@ bot.command("help", async (ctx) => {
     "/risk maxloss <usd> - Max daily loss ($)\n" +
     "/risk cap <usd> - Daily profit cap: force-close all & block signals at this profit (0 = off)\n" +
     "/risk capbuffer <usd> - Close cap_usd - buffer$ early so realized never overshoots cap\n" +
-    "/risk trend <hours> - Only take signals aligned with this trend lookback (0 = off)\n" +
     "/risk losses <n> - SL hits per symbol before cooldown (0 = off)\n" +
     "/risk losswindow <min> - Window for counting SL hits\n" +
     "/risk cooldown <min> - How long a symbol is paused after the streak\n" +

@@ -79,22 +79,6 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
-  if (setting === "trend" && parts[2]) {
-    const hours = parseFloat(parts[2]);
-    if (isNaN(hours) || hours < 0 || hours > 168) {
-      await ctx.reply("Trend lookback hours must be 0 (disabled) to 168.");
-      return;
-    }
-    state.settings.trendLookbackHours = hours;
-    persistSettings();
-    await ctx.reply(
-      hours === 0
-        ? "Trend filter disabled."
-        : `Trend filter on: only take signals aligned with the ${hours}h price trend.`
-    );
-    return;
-  }
-
   if (setting === "losses" && parts[2]) {
     const n = parseInt(parts[2]);
     if (isNaN(n) || n < 0 || n > 20) {
@@ -171,5 +155,5 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
-  await ctx.reply("Unknown setting. Usage: /risk maxpos <n> | /risk daily <pct> | /risk maxloss <usd> | /risk cap <usd> | /risk trend <hours> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk lotsize <lots> | /risk sl <pct> | /risk tp <pct>");
+  await ctx.reply("Unknown setting. Usage: /risk maxpos <n> | /risk daily <pct> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk lotsize <lots> | /risk sl <pct> | /risk tp <pct>");
 }

@@ -4,7 +4,6 @@ import { ParsedSignal } from "../signals/types";
 import { amendPositionSLTP } from "./amend";
 import { updateDailyPnL } from "../risk/dailyLoss";
 import { recordStopLoss } from "../risk/cooldown";
-import { recordPrice } from "../risk/trend";
 import { subscribeSpots } from "./livePrices";
 
 let connection: any = null;
@@ -144,9 +143,8 @@ export async function reconcilePositions(): Promise<void> {
       // Seed the trend price history with the broker's current mark price so
       // floatingPnL() has a value immediately after restart.
       const symName = symbolNameById(symbolId);
-      if (entry) recordPrice(symName, entry, Date.now());
       const posSlot = {
-        symbol: symbolNameById(symbolId),
+        symbol: symName,
         direction,
         volume: lots,
         volumeCents,

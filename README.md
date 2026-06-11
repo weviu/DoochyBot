@@ -68,7 +68,6 @@ Only `ALLOWED_USERS` may issue commands.
 | `/risk maxloss <usd>` | Max daily loss $ (default `200`) |
 | `/risk cap <usd>` | **Daily profit cap:** force-closes all positions & blocks new signals once realized + floating P&L reaches this value. `0` = off. |
 | `/risk capbuffer <usd>` | Trigger force-close at `cap − buffer` so a sub-second price move can't carry realized over the cap. Recommended: 5–10% of cap. |
-| `/risk trend <hours>` | Higher-timeframe trend filter: only take signals aligned with the N-hour price trend. `0` = off (default `4`). |
 | `/risk losses <n>` | SL hits on one symbol within the window that trigger a cooldown. `0` = off (default `3`). |
 | `/risk losswindow <min>` | Rolling window for counting SL hits (default `60`). |
 | `/risk cooldown <min>` | How long a symbol is paused after the streak (default `120`). |
@@ -109,8 +108,7 @@ HTTP poll (signals.route07.com)
   → risk/gate.ts
       1. Paused?
       2. Allowed symbol?
-      3. Trend filter (4h default)
-      4. Consecutive-loss cooldown
+      3. Consecutive-loss cooldown
       5. Max positions
       6. One position per symbol
       7. Confidence flip check (opposite direction)

@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.positionsCmd = positionsCmd;
 const state_1 = require("../../state");
-const trend_1 = require("../../risk/trend");
+const livePrices_1 = require("../../ctrader/livePrices");
 async function positionsCmd(ctx) {
     if (state_1.state.positions.size === 0) {
         await ctx.reply("No open positions.");
@@ -13,9 +13,7 @@ async function positionsCmd(ctx) {
     for (const [posId, pos] of state_1.state.positions.entries()) {
         const sl = pos.sl;
         const tp = pos.tp;
-        // Feed price from the trend buffer (updated on every signal via recordPrice).
-        // Falls back to entry if no signal has arrived for this symbol yet.
-        const mark = (0, trend_1.getLatestPrice)(pos.symbol) ?? pos.entryPrice;
+        const mark = (0, livePrices_1.getMarkPrice)(pos.symbol, pos.direction) ?? pos.entryPrice;
         const priceDiff = pos.direction === "BUY" ? mark - pos.entryPrice : pos.entryPrice - mark;
         const units = pos.volumeCents / 100;
         const pnl = priceDiff * units;

@@ -16,7 +16,6 @@ exports.DEFAULT_SETTINGS = {
     symbolLotSize: {},
     dailyProfitCapUSD: 0,
     capBufferUSD: 0,
-    trendLookbackHours: 4,
     maxConsecutiveLosses: 3,
     lossWindowMinutes: 60,
     cooldownMinutes: 120,
@@ -57,8 +56,6 @@ function initSettings() {
             exports.state.settings.dailyProfitCapUSD = saved.dailyProfitCapUSD;
         if (saved.capBufferUSD !== undefined)
             exports.state.settings.capBufferUSD = saved.capBufferUSD;
-        if (saved.trendLookbackHours !== undefined)
-            exports.state.settings.trendLookbackHours = saved.trendLookbackHours;
         if (saved.maxConsecutiveLosses !== undefined)
             exports.state.settings.maxConsecutiveLosses = saved.maxConsecutiveLosses;
         if (saved.lossWindowMinutes !== undefined)
@@ -81,7 +78,6 @@ function persistSettings() {
         symbolLotSize: exports.state.settings.symbolLotSize,
         dailyProfitCapUSD: exports.state.settings.dailyProfitCapUSD,
         capBufferUSD: exports.state.settings.capBufferUSD,
-        trendLookbackHours: exports.state.settings.trendLookbackHours,
         maxConsecutiveLosses: exports.state.settings.maxConsecutiveLosses,
         lossWindowMinutes: exports.state.settings.lossWindowMinutes,
         cooldownMinutes: exports.state.settings.cooldownMinutes,
