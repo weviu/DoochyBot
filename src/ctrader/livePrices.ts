@@ -16,6 +16,11 @@ const quotes = new Map<number, Quote>();
 // symbolIds we've already asked the broker to stream.
 const subscribed = new Set<number>();
 
+// symbolIds we've already logged a first quote for — diagnostic only, so the
+// logs prove whether spot events actually arrive for a held symbol (vs. the
+// subscribe silently succeeding but no data streaming).
+const loggedFirstQuote = new Set<number>();
+
 // ProtoOASpotEvent bid/ask are integers in 1/100000 of a price unit.
 const SPOT_SCALE = 100_000;
 
@@ -32,6 +37,14 @@ export function setLivePriceConnection(conn: any): void {
     const bid = data.bid != null ? Number(data.bid) / SPOT_SCALE : prev.bid;
     const ask = data.ask != null ? Number(data.ask) / SPOT_SCALE : prev.ask;
     quotes.set(symId, { bid, ask, time: Date.now() });
+
+    // Diagnostic: confirm in the logs that spot data is actually streaming for a
+    // symbol. If a position is open but this line never appears for its symbolId,
+    // the broker isn't pushing spots despite the subscribe succeeding.
+    if (!loggedFirstQuote.has(symId)) {
+      loggedFirstQuote.add(symId);
+      console.log(`[SPOT] First quote for symbol ${symId}: bid=${bid} ask=${ask}`);
+    }
   });
 }
 
@@ -49,6 +62,14 @@ export async function subscribeSpots(symbolIds: number[]): Promise<void> {
     fresh.forEach((id) => subscribed.add(id));
     console.log(`[SPOT] Subscribed to ${fresh.length} symbol(s): ${fresh.join(",")}`);
   } catch (err: any) {
+    // ALREADY_SUBSCRIBED means the broker already streams these — that's a
+    // success for our purposes. Cache them so we stop re-sending every call
+    // (capMonitor/subscribeOpenPositions run this repeatedly).
+    if (err.errorCode === "ALREADY_SUBSCRIBED") {
+      fresh.forEach((id) => subscribed.add(id));
+      console.log(`[SPOT] Already subscribed to ${fresh.join(",")} — cached`);
+      return;
+    }
     console.warn(`[SPOT] Subscribe failed for ${fresh.join(",")}: ${err.errorCode || err.message || "request failed"}`);
   }
 }

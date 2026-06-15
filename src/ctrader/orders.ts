@@ -126,6 +126,10 @@ export async function reconcilePositions(): Promise<void> {
       ctidTraderAccountId: parseInt(process.env.ACCOUNT_ID || "0"),
     });
     const positions = res.position || [];
+    // Diagnostic: how many positions the broker actually returned, before our
+    // status filter. If this is 0 while positions are open in cTrader, the
+    // reconcile request itself is coming back empty (account/host routing).
+    console.log(`[RECONCILE] Broker returned ${positions.length} raw position(s).`);
 
     let count = 0;
     for (const p of positions) {
@@ -210,6 +214,15 @@ export async function executeSignal(signal: ParsedSignal): Promise<void> {
   // event and mis-attribute fills (double/wrong SL, missed positions).
   const label = randomUUID();
 
+  // Register as pending the instant we're about to submit, so the duplicate gate
+  // sees an outstanding order for this symbol+direction before any fill arrives.
+  // cleanup() (fill/timeout/reject) and the catch below all clear it again.
+  state.pendingOrders.set(label, {
+    symbol: signal.symbol,
+    direction: signal.direction,
+    placedAt: Date.now(),
+  });
+
   try {
     console.log(`[ORDER] Placing ${signal.direction} ${lots} lots (${orderVolume} vol) ${signal.symbol} (label ${label.slice(0, 8)})...`);
 
@@ -220,10 +233,26 @@ export async function executeSignal(signal: ParsedSignal): Promise<void> {
         clearTimeout(timeout);
         connection.removeEventListener(listenerId);
         connection.removeEventListener(errorListenerId);
+        state.pendingOrders.delete(label);
       };
 
-      const timeout = setTimeout(() => {
+      const timeout = setTimeout(async () => {
         cleanup();
+        // The order is still unfilled but remains LIVE at the broker — it can
+        // fill later, unattended. Cancel it before abandoning the attempt.
+        if (ourOrderId !== null) {
+          try {
+            await connection.sendCommand("ProtoOACancelOrderReq", {
+              ctidTraderAccountId: parseInt(process.env.ACCOUNT_ID || "0"),
+              orderId: ourOrderId,
+            });
+            console.log(`[ORDER] Timed out — cancelled unfilled order ${ourOrderId} (${signal.symbol})`);
+          } catch (e: any) {
+            console.log(`[ORDER] Timed out — cancel request FAILED for order ${ourOrderId} (${signal.symbol}): ${e.message}`);
+          }
+        } else {
+          console.log(`[ORDER] Timed out for ${signal.symbol} before an orderId was known — nothing to cancel`);
+        }
         reject(new Error("Order fill timeout (30s)"));
       }, 30_000);
 
@@ -289,6 +318,10 @@ export async function executeSignal(signal: ParsedSignal): Promise<void> {
 
     await fillPromise;
   } catch (err: any) {
+    // Belt-and-braces: cleanup() clears the entry on the normal fill/timeout/
+    // reject paths, but if sendCommand itself threw before any listener fired,
+    // clear it here so a failed submission never blocks future signals.
+    state.pendingOrders.delete(label);
     console.log(`[ORDER] Failed: ${signal.direction} ${signal.symbol} — ${err.message}`);
   }
 }

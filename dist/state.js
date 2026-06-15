@@ -27,6 +27,7 @@ exports.state = {
     dailyPnLSeeded: false,
     settings: { ...exports.DEFAULT_SETTINGS },
     positions: new Map(),
+    pendingOrders: new Map(),
     lastSignalTime: new Map(),
     accountInfo: { balance: 0, equity: 0, currency: "USD" },
     symbolMap: new Map(),

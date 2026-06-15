@@ -69,6 +69,18 @@ export function processSignal(signal: ParsedSignal): void {
     return;
   }
 
+  // Check 4b: An order for this symbol+direction is already placed but not yet
+  // filled. The duplicate check (Check 7) only looks at executed signals, and
+  // Check 4 only looks at open positions — neither sees an order still awaiting
+  // fill. Without this, a signal that keeps re-arriving submits a fresh order
+  // every cycle while the prior ones sit pending at the broker.
+  for (const pending of state.pendingOrders.values()) {
+    if (pending.symbol === signal.symbol && pending.direction === signal.direction) {
+      console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} — Order already pending fill`);
+      return;
+    }
+  }
+
   // Check 5: Max positions reached?
   if (state.positions.size >= state.settings.maxPositions) {
     console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - Max positions (${state.settings.maxPositions})`);

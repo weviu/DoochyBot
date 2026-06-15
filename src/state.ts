@@ -12,6 +12,15 @@ export interface Position {
   tp?: number | null;
 }
 
+// An order that has been submitted to the broker but not yet filled, cancelled,
+// or rejected. Tracked so the duplicate gate can reject repeat signals while a
+// fill is still outstanding (no Position exists yet at that point).
+export interface PendingOrder {
+  symbol: string;
+  direction: "BUY" | "SELL";
+  placedAt: number;
+}
+
 export interface BotSettings {
   allowedSymbols: string[];
   maxPositions: number;
@@ -36,6 +45,7 @@ export interface BotState {
   dailyPnLSeeded: boolean; // false until broker seed succeeds; limits are skipped until then
   settings: BotSettings;
   positions: Map<number, Position>;
+  pendingOrders: Map<string, PendingOrder>; // keyed by order label, awaiting fill
   lastSignalTime: Map<string, number>;
   accountInfo: AccountInfo;
   symbolMap: Map<string, number>;
@@ -65,6 +75,7 @@ export const state: BotState = {
   dailyPnLSeeded: false,
   settings: { ...DEFAULT_SETTINGS },
   positions: new Map(),
+  pendingOrders: new Map(),
   lastSignalTime: new Map(),
   accountInfo: { balance: 0, equity: 0, currency: "USD" },
   symbolMap: new Map(),
