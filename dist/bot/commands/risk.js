@@ -6,7 +6,7 @@ async function riskCmd(ctx) {
     const msg = ctx.message.text.trim();
     const parts = msg.split(/\s+/);
     if (parts.length < 2) {
-        await ctx.reply("Usage: /risk maxpos <n> | /risk daily <%> | /risk maxloss <usd> | /risk cap <usd> | /risk lotsize <lots>");
+        await ctx.reply("Usage: /risk pertrade <usd> | /risk lotsize <lots> | /risk sl <pct> | /risk tp <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd>");
         return;
     }
     const setting = parts[1]?.toLowerCase();
@@ -19,17 +19,6 @@ async function riskCmd(ctx) {
         state_1.state.settings.maxPositions = n;
         (0, state_1.persistSettings)();
         await ctx.reply(`Max positions set to ${n}.`);
-        return;
-    }
-    if (setting === "daily" && parts[2]) {
-        const pct = parseFloat(parts[2]);
-        if (isNaN(pct) || pct < 0.1 || pct > 100) {
-            await ctx.reply("Daily loss limit must be between 0.1 and 100.");
-            return;
-        }
-        state_1.state.settings.dailyLossLimitPercent = pct;
-        (0, state_1.persistSettings)();
-        await ctx.reply(`Daily loss limit set to ${pct}%.`);
         return;
     }
     if (setting === "maxloss" && parts[2]) {
@@ -112,10 +101,15 @@ async function riskCmd(ctx) {
         }
         state_1.state.settings.lotSize = lots;
         (0, state_1.persistSettings)();
-        await ctx.reply(`Lot size set to ${lots}.`);
+        await ctx.reply(`Lot size set to ${lots}.` +
+            (state_1.state.settings.riskPerTradeUSD > 0
+                ? ` ⚠ Ignored while per-trade risk is on ($${state_1.state.settings.riskPerTradeUSD}). Run /risk pertrade 0 to use lot sizes.`
+                : ""));
         return;
     }
-    if (setting === "risk" && parts[2]) {
+    // "pertrade" is the documented name; "risk" kept as a silent alias so older
+    // muscle memory still works.
+    if ((setting === "pertrade" || setting === "risk") && parts[2]) {
         const usd = parseFloat(parts[2]);
         if (isNaN(usd) || usd < 0) {
             await ctx.reply("Per-trade risk USD must be 0 (disabled) or greater.");
@@ -150,6 +144,6 @@ async function riskCmd(ctx) {
         await ctx.reply(`Take profit set to ${pct}% of entry.`);
         return;
     }
-    await ctx.reply("Unknown setting. Usage: /risk maxpos <n> | /risk daily <pct> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk lotsize <lots> | /risk risk <usd> | /risk sl <pct> | /risk tp <pct>");
+    await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk lotsize <lots> | /risk sl <pct> | /risk tp <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min>");
 }
 //# sourceMappingURL=risk.js.map

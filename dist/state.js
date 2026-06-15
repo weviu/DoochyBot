@@ -7,7 +7,6 @@ const storage_1 = require("./storage");
 exports.DEFAULT_SETTINGS = {
     allowedSymbols: ["BTCUSD", "XAUUSD", "XAGUSD"],
     maxPositions: 3,
-    dailyLossLimitPercent: 2,
     maxDailyLossUSD: 200,
     stopLossPercent: 0.5,
     takeProfitPercent: 0.75,
@@ -40,8 +39,6 @@ function initSettings() {
             exports.state.settings.allowedSymbols = saved.allowedSymbols;
         if (saved.maxPositions)
             exports.state.settings.maxPositions = saved.maxPositions;
-        if (saved.dailyLossLimitPercent !== undefined)
-            exports.state.settings.dailyLossLimitPercent = saved.dailyLossLimitPercent;
         if (saved.maxDailyLossUSD !== undefined)
             exports.state.settings.maxDailyLossUSD = saved.maxDailyLossUSD;
         if (saved.stopLossPercent !== undefined)
@@ -73,7 +70,6 @@ function persistSettings() {
     (0, storage_1.saveSettings)({
         allowedSymbols: exports.state.settings.allowedSymbols,
         maxPositions: exports.state.settings.maxPositions,
-        dailyLossLimitPercent: exports.state.settings.dailyLossLimitPercent,
         maxDailyLossUSD: exports.state.settings.maxDailyLossUSD,
         stopLossPercent: exports.state.settings.stopLossPercent,
         takeProfitPercent: exports.state.settings.takeProfitPercent,

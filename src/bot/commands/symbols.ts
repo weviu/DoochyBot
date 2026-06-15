@@ -101,7 +101,12 @@ export async function symbolsCmd(ctx: any) {
     }
     state.settings.symbolLotSize[symbol] = lots;
     persistSettings();
-    await ctx.reply(`${symbol} lot size set to ${lots}.`);
+    await ctx.reply(
+      `${symbol} lot size set to ${lots}.` +
+      (state.settings.riskPerTradeUSD > 0
+        ? ` ⚠ Ignored while per-trade risk is on ($${state.settings.riskPerTradeUSD}). Run /risk pertrade 0 to use lot sizes.`
+        : "")
+    );
     return;
   }
 

@@ -96,7 +96,10 @@ async function symbolsCmd(ctx) {
         }
         state_1.state.settings.symbolLotSize[symbol] = lots;
         (0, state_1.persistSettings)();
-        await ctx.reply(`${symbol} lot size set to ${lots}.`);
+        await ctx.reply(`${symbol} lot size set to ${lots}.` +
+            (state_1.state.settings.riskPerTradeUSD > 0
+                ? ` ⚠ Ignored while per-trade risk is on ($${state_1.state.settings.riskPerTradeUSD}). Run /risk pertrade 0 to use lot sizes.`
+                : ""));
         return;
     }
     await ctx.reply("Usage: /symbols | /symbols add <SYM> | /symbols add all | /symbols remove <SYM> | /symbols reset | /symbols <SYM> <lots>");

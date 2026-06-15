@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setStatusConnection = setStatusConnection;
-exports.balanceCmd = balanceCmd;
 exports.statusCmd = statusCmd;
 const state_1 = require("../../state");
 const account_1 = require("../../ctrader/account");
@@ -10,19 +9,6 @@ const dailyLoss_1 = require("../../risk/dailyLoss");
 let connection = null;
 function setStatusConnection(conn) {
     connection = conn;
-}
-async function balanceCmd(ctx) {
-    if (!connection) {
-        await ctx.reply("No cTrader connection.");
-        return;
-    }
-    try {
-        const info = await (0, account_1.fetchTrader)(connection);
-        await ctx.reply(`Balance: ${info.balance.toFixed(2)} ${info.currency}`);
-    }
-    catch (err) {
-        await ctx.reply(`Failed to fetch balance: ${err.errorCode || err.message || "request failed"}`);
-    }
 }
 async function statusCmd(ctx) {
     let connOk = false;
@@ -60,7 +46,7 @@ async function statusCmd(ctx) {
         `Daily realized P&L: ${dailyPnL >= 0 ? "+" : ""}${dailyPnL.toFixed(2)} ${info.currency}`,
         `Floating P&L: ${liveFloating >= 0 ? "+" : ""}${liveFloating.toFixed(2)} ${info.currency}`,
         `Profit cap: ${cap > 0 ? `$${cap.toFixed(2)} (total ${(dailyPnL + liveFloating).toFixed(2)} used)` : "off"}`,
-        `Daily loss limit: -$${Math.min((state_1.state.settings.dailyLossLimitPercent / 100) * 10000, state_1.state.settings.maxDailyLossUSD).toFixed(2)} (force-close all)`,
+        `Daily loss limit: -$${(0, dailyLoss_1.maxLossUSD)().toFixed(2)} (force-close all)`,
         `Sizing: ${state_1.state.settings.riskPerTradeUSD > 0 ? `$${state_1.state.settings.riskPerTradeUSD.toFixed(2)} risk/trade @ ${state_1.state.settings.stopLossPercent}% SL` : `fixed lots (${state_1.state.settings.lotSize})`}`,
         `Cooldowns: ${cooldowns.length === 0 ? "none" : cooldowns.map((c) => `${c.symbol} ${Math.ceil(c.remainingMs / 60_000)}m`).join(", ")}`,
         `Allowed symbols: ${state_1.state.settings.allowedSymbols.length}`,

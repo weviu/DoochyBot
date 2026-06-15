@@ -5,7 +5,7 @@ export async function riskCmd(ctx: any) {
   const parts = msg.split(/\s+/);
 
   if (parts.length < 2) {
-    await ctx.reply("Usage: /risk maxpos <n> | /risk daily <%> | /risk maxloss <usd> | /risk cap <usd> | /risk lotsize <lots>");
+    await ctx.reply("Usage: /risk pertrade <usd> | /risk lotsize <lots> | /risk sl <pct> | /risk tp <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd>");
     return;
   }
 
@@ -20,18 +20,6 @@ export async function riskCmd(ctx: any) {
     state.settings.maxPositions = n;
     persistSettings();
     await ctx.reply(`Max positions set to ${n}.`);
-    return;
-  }
-
-  if (setting === "daily" && parts[2]) {
-    const pct = parseFloat(parts[2]);
-    if (isNaN(pct) || pct < 0.1 || pct > 100) {
-      await ctx.reply("Daily loss limit must be between 0.1 and 100.");
-      return;
-    }
-    state.settings.dailyLossLimitPercent = pct;
-    persistSettings();
-    await ctx.reply(`Daily loss limit set to ${pct}%.`);
     return;
   }
 
@@ -127,11 +115,18 @@ export async function riskCmd(ctx: any) {
     }
     state.settings.lotSize = lots;
     persistSettings();
-    await ctx.reply(`Lot size set to ${lots}.`);
+    await ctx.reply(
+      `Lot size set to ${lots}.` +
+      (state.settings.riskPerTradeUSD > 0
+        ? ` ⚠ Ignored while per-trade risk is on ($${state.settings.riskPerTradeUSD}). Run /risk pertrade 0 to use lot sizes.`
+        : "")
+    );
     return;
   }
 
-  if (setting === "risk" && parts[2]) {
+  // "pertrade" is the documented name; "risk" kept as a silent alias so older
+  // muscle memory still works.
+  if ((setting === "pertrade" || setting === "risk") && parts[2]) {
     const usd = parseFloat(parts[2]);
     if (isNaN(usd) || usd < 0) {
       await ctx.reply("Per-trade risk USD must be 0 (disabled) or greater.");
@@ -171,5 +166,5 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
-  await ctx.reply("Unknown setting. Usage: /risk maxpos <n> | /risk daily <pct> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk lotsize <lots> | /risk risk <usd> | /risk sl <pct> | /risk tp <pct>");
+  await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk lotsize <lots> | /risk sl <pct> | /risk tp <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min>");
 }

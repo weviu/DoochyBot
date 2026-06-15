@@ -2,10 +2,11 @@ import { state } from "../state";
 import { notify } from "../bot/notify";
 import { getMarkPrice } from "../ctrader/livePrices";
 
-// The hard daily loss threshold in USD (the tighter of the % and $ limits).
+// The hard daily loss threshold in USD. Single source of truth, set via
+// /risk maxloss. (The old percent-based limit was removed — it duplicated this
+// and was computed off a hardcoded $10k balance, which was misleading.)
 export function maxLossUSD(): number {
-  const limitPercent = (state.settings.dailyLossLimitPercent / 100) * 10000; // Assume $10k balance for now
-  return Math.min(limitPercent, state.settings.maxDailyLossUSD);
+  return state.settings.maxDailyLossUSD;
 }
 
 // Sum of unrealized P&L across all open positions. Uses the live cTrader spot

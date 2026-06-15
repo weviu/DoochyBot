@@ -24,7 +24,6 @@ export interface PendingOrder {
 export interface BotSettings {
   allowedSymbols: string[];
   maxPositions: number;
-  dailyLossLimitPercent: number;
   maxDailyLossUSD: number;
   stopLossPercent: number;
   takeProfitPercent: number;
@@ -55,7 +54,6 @@ export interface BotState {
 export const DEFAULT_SETTINGS: BotSettings = {
   allowedSymbols: ["BTCUSD", "XAUUSD", "XAGUSD"],
   maxPositions: 3,
-  dailyLossLimitPercent: 2,
   maxDailyLossUSD: 200,
   stopLossPercent: 0.5,
   takeProfitPercent: 0.75,
@@ -94,7 +92,6 @@ export function initSettings(): void {
   if (saved) {
     if (saved.allowedSymbols) state.settings.allowedSymbols = saved.allowedSymbols;
     if (saved.maxPositions) state.settings.maxPositions = saved.maxPositions;
-    if (saved.dailyLossLimitPercent !== undefined) state.settings.dailyLossLimitPercent = saved.dailyLossLimitPercent;
     if (saved.maxDailyLossUSD !== undefined) state.settings.maxDailyLossUSD = saved.maxDailyLossUSD;
     if (saved.stopLossPercent !== undefined) state.settings.stopLossPercent = saved.stopLossPercent;
     if (saved.takeProfitPercent !== undefined) state.settings.takeProfitPercent = saved.takeProfitPercent;
@@ -115,7 +112,6 @@ export function persistSettings(): void {
   saveSettings({
     allowedSymbols: state.settings.allowedSymbols,
     maxPositions: state.settings.maxPositions,
-    dailyLossLimitPercent: state.settings.dailyLossLimitPercent,
     maxDailyLossUSD: state.settings.maxDailyLossUSD,
     stopLossPercent: state.settings.stopLossPercent,
     takeProfitPercent: state.settings.takeProfitPercent,

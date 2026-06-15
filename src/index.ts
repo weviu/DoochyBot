@@ -11,7 +11,7 @@ import { riskCmd } from "./bot/commands/risk";
 import { minholdCmd } from "./bot/commands/minhold";
 import { closeallCmd } from "./bot/commands/closeall";
 import { exportCmd, setExportConnection } from "./bot/commands/export";
-import { balanceCmd, statusCmd, setStatusConnection } from "./bot/commands/status";
+import { statusCmd, setStatusConnection } from "./bot/commands/status";
 import { cooldownCmd } from "./bot/commands/cooldown";
 import { positionsCmd } from "./bot/commands/positions";
 import { fetchAccountInfo, fetchTodayRealizedPnL } from "./ctrader/account";
@@ -101,41 +101,48 @@ async function startBot() {
 
 bot.command("help", async (ctx) => {
   await ctx.reply(
-    "/pause - Stop executing signals\n" +
-    "/resume - Resume executing signals\n" +
+    "▶ CONTROL\n" +
+    "/pause — stop executing signals\n" +
+    "/resume — resume executing signals\n" +
     "\n" +
-    "/symbols - List allowed symbols with lot sizes\n" +
-    "/symbols add <sym> - Add symbol\n" +
-    "/symbols add all - Add all high-confidence symbols\n" +
-    "/symbols remove <sym> - Remove symbol\n" +
-    "/symbols reset - Restore default symbol list\n" +
-    "/symbols <sym> <lots> - Set per-symbol lot size\n" +
+    "▶ SYMBOLS\n" +
+    "/symbols — list allowed symbols\n" +
+    "/symbols add <sym> — add a symbol\n" +
+    "/symbols add all — add all high confidence symbols\n" +
+    "/symbols remove <sym> — remove a symbol\n" +
+    "/symbols reset — restore default list\n" +
     "\n" +
-    "/risk lotsize <lots> - Default lot size (fixed sizing)\n" +
-    "/risk risk <usd> - Risk $ per trade: size derived from SL%, bounds each trade's loss (0 = fixed lots)\n" +
-    "/risk sl <pct> - Stop loss (% of entry)\n" +
-    "/risk tp <pct> - Take profit (% of entry)\n" +
-    "/risk maxpos <n> - Max open positions\n" +
-    "/risk daily <pct> - Daily loss limit (%)\n" +
-    "/risk maxloss <usd> - Max daily loss ($)\n" +
-    "/risk cap <usd> - Daily profit cap: force-close all & block signals at this profit (0 = off)\n" +
-    "/risk capbuffer <usd> - Close cap_usd - buffer$ early so realized never overshoots cap\n" +
-    "/risk losses <n> - SL hits per symbol before cooldown (0 = off)\n" +
-    "/risk losswindow <min> - Window for counting SL hits\n" +
-    "/risk cooldown <min> - How long a symbol is paused after the streak\n" +
+    "▶ SIZING (how big each trade is)\n" +
+    "/risk pertrade <usd> — RISK MODE: size auto set so the stop loses ~$usd. Overrides lots. (0 = off)\n" +
+    "/risk lotsize <lots> — FIXED MODE default size (used only when pertrade = 0)\n" +
+    "/symbols <sym> <lots> — FIXED MODE per symbol size (used only when pertrade = 0)\n" +
     "\n" +
-    "/cooldown - List cooled-down symbols\n" +
-    "/cooldown reset [sym] - Clear a symbol's cooldown (or all)\n" +
-    "/minhold <secs> - Min hold time before TP is set\n" +
+    "▶ STOP / TARGET\n" +
+    "/risk sl <pct> — stop loss distance (% of entry). In risk mode this also sets trade size.\n" +
+    "/risk tp <pct> — take profit (% of entry)\n" +
+    "/minhold <secs> — min hold before TP arms\n" +
     "\n" +
-    "/positions - Open positions: entry, mark, SL, TP, P&L\n" +
-    "/closeall - Close all open positions\n" +
-    "/export [from] [to] - Export trade history\n" +
+    "▶ DAILY LIMITS (both force close ALL positions + stop for the day)\n" +
+    "/risk maxloss <usd> — daily loss limit\n" +
+    "/risk cap <usd> — daily profit cap (0 = off)\n" +
+    "/risk capbuffer <usd> — trigger cap this many $ early\n" +
+    "/risk maxpos <n> — max concurrent positions\n" +
     "\n" +
-    "/balance - Account balance\n" +
-    "/status - Connection health, P&L, cap, cooldowns\n" +
+    "▶ COOLDOWN (per symbol loss streak)\n" +
+    "/risk losses <n> — SL hits before cooldown (0 = off)\n" +
+    "/risk losswindow <min> — window to count hits\n" +
+    "/risk cooldown <min> — pause length\n" +
+    "/cooldown — list cooled down symbols\n" +
+    "/cooldown reset [sym] — clear a cooldown (or all)\n" +
     "\n" +
-    "One position per symbol. Opposite signals only flip if confidence is higher."
+    "▶ POSITIONS & INFO\n" +
+    "/status — connection, P&L, limits, sizing, cooldowns\n" +
+    "/positions — open positions: entry, mark, SL, TP, P&L\n" +
+    "/closeall — close all open positions\n" +
+    "\n" +
+    "/export [from] [to] — export trade history\n" +
+    "\n" +
+    "Notes: pertrade > 0 overrides all lot sizes. One position per symbol. Opposite signals flip only on higher confidence."
   );
 });
 
@@ -146,7 +153,6 @@ bot.command("help", async (ctx) => {
   bot.command("minhold", minholdCmd);
   bot.command("closeall", closeallCmd);
   bot.command("export", exportCmd);
-  bot.command("balance", balanceCmd);
   bot.command("status", statusCmd);
   bot.command("cooldown", cooldownCmd);
   bot.command("positions", positionsCmd);
