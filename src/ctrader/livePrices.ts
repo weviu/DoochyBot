@@ -92,7 +92,9 @@ export async function subscribeOpenPositions(): Promise<void> {
 export function getMarkPrice(symbol: string, direction: "BUY" | "SELL"): number | null {
   const symId = state.symbolMap.get(symbol);
   if (symId === undefined) return null;
-  const q = quotes.get(symId);
+  // quotes is keyed by Number(symbolId); coerce defensively so a stray string
+  // symbolId can never silently miss the lookup (the bug that zeroed floating P&L).
+  const q = quotes.get(Number(symId));
   if (!q) return null;
   const price = direction === "BUY" ? q.bid : q.ask;
   return price > 0 ? price : null;
@@ -102,5 +104,5 @@ export function getMarkPrice(symbol: string, direction: "BUY" | "SELL"): number 
 export function hasLiveQuote(symbol: string): boolean {
   const symId = state.symbolMap.get(symbol);
   if (symId === undefined) return false;
-  return quotes.has(symId);
+  return quotes.has(Number(symId));
 }

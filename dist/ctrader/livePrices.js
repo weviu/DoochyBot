@@ -87,7 +87,9 @@ function getMarkPrice(symbol, direction) {
     const symId = state_1.state.symbolMap.get(symbol);
     if (symId === undefined)
         return null;
-    const q = quotes.get(symId);
+    // quotes is keyed by Number(symbolId); coerce defensively so a stray string
+    // symbolId can never silently miss the lookup (the bug that zeroed floating P&L).
+    const q = quotes.get(Number(symId));
     if (!q)
         return null;
     const price = direction === "BUY" ? q.bid : q.ask;
@@ -98,6 +100,6 @@ function hasLiveQuote(symbol) {
     const symId = state_1.state.symbolMap.get(symbol);
     if (symId === undefined)
         return false;
-    return quotes.has(symId);
+    return quotes.has(Number(symId));
 }
 //# sourceMappingURL=livePrices.js.map
