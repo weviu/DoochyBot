@@ -14,6 +14,7 @@ exports.DEFAULT_SETTINGS = {
     minHoldSeconds: 60,
     lotSize: 0.01,
     symbolLotSize: {},
+    riskPerTradeUSD: 0,
     dailyProfitCapUSD: 0,
     capBufferUSD: 0,
     maxConsecutiveLosses: 3,
@@ -53,6 +54,8 @@ function initSettings() {
             exports.state.settings.lotSize = saved.lotSize;
         if (saved.symbolLotSize)
             exports.state.settings.symbolLotSize = saved.symbolLotSize;
+        if (saved.riskPerTradeUSD !== undefined)
+            exports.state.settings.riskPerTradeUSD = saved.riskPerTradeUSD;
         if (saved.dailyProfitCapUSD !== undefined)
             exports.state.settings.dailyProfitCapUSD = saved.dailyProfitCapUSD;
         if (saved.capBufferUSD !== undefined)
@@ -77,6 +80,7 @@ function persistSettings() {
         minHoldSeconds: exports.state.settings.minHoldSeconds,
         lotSize: exports.state.settings.lotSize,
         symbolLotSize: exports.state.settings.symbolLotSize,
+        riskPerTradeUSD: exports.state.settings.riskPerTradeUSD,
         dailyProfitCapUSD: exports.state.settings.dailyProfitCapUSD,
         capBufferUSD: exports.state.settings.capBufferUSD,
         maxConsecutiveLosses: exports.state.settings.maxConsecutiveLosses,

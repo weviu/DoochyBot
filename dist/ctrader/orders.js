@@ -95,6 +95,26 @@ function lotsToVolume(lots, spec) {
         vol = spec.maxVolume;
     return vol;
 }
+// Compute the broker volume (cents) so a stopLossPercent move against the
+// position loses ~riskUSD at the given price. The money model is the same one
+// floatingPnL uses: $PnL = priceDiff × volumeCents/100. The stop sits
+// stopDistance = price × slPct/100 away, so volumeCents = riskUSD × 100 /
+// stopDistance. Snapped to the symbol's min/step/max like lotsToVolume.
+function riskBasedVolume(riskUSD, price, slPct, spec) {
+    if (!spec.lotSize)
+        return null;
+    const stopDistance = price * (slPct / 100);
+    if (stopDistance <= 0)
+        return null;
+    let vol = (riskUSD * 100) / stopDistance;
+    if (spec.stepVolume > 0)
+        vol = Math.round(vol / spec.stepVolume) * spec.stepVolume;
+    if (spec.minVolume && vol < spec.minVolume)
+        vol = spec.minVolume;
+    if (spec.maxVolume && vol > spec.maxVolume)
+        vol = spec.maxVolume;
+    return vol > 0 ? vol : null;
+}
 // Reverse lookup of a symbolId to its name using the cached symbolMap.
 function symbolNameById(symbolId) {
     const target = String(symbolId);
@@ -181,7 +201,6 @@ async function executeSignal(signal) {
         return;
     }
     console.log(`[ORDER] Resolved ${signal.symbol} → symbolId ${symbolId}`);
-    const lots = state_1.state.settings.symbolLotSize[signal.symbol] ?? state_1.state.settings.lotSize;
     // Size the order using the symbol's real contract specs. A hardcoded
     // multiplier produces wildly wrong volumes for non-FX symbols (e.g. BTC),
     // which the broker rejects as NOT_ENOUGH_MONEY.
@@ -190,11 +209,45 @@ async function executeSignal(signal) {
         console.log(`[ORDER] No contract spec for ${signal.symbol}; skipping`);
         return;
     }
-    const orderVolume = lotsToVolume(lots, spec);
+    // Two sizing modes:
+    //  - Risk-based (riskPerTradeUSD > 0): derive the volume so a stopLossPercent
+    //    stop loses ~riskPerTradeUSD, using the live mark price. This bounds every
+    //    trade's worst case to a fixed dollar amount — a flat SL % otherwise gives
+    //    wildly different $ risk per symbol (e.g. one XAUUSD stop = 5× a BTCUSD one).
+    //    Falls back to fixed lots if no live quote has arrived for the symbol yet.
+    //  - Fixed (riskPerTradeUSD == 0): the configured per-symbol / default lot size.
+    let orderVolume = null;
+    const riskUSD = state_1.state.settings.riskPerTradeUSD ?? 0;
+    const slPct = state_1.state.settings.stopLossPercent;
+    if (riskUSD > 0 && slPct > 0) {
+        const mark = (0, livePrices_1.getMarkPrice)(signal.symbol, signal.direction);
+        if (mark && mark > 0) {
+            orderVolume = riskBasedVolume(riskUSD, mark, slPct, spec);
+            if (orderVolume) {
+                // Report the ACTUAL risk after snapping to broker min/step/max — a tiny
+                // computed size can floor up to minVolume and exceed the target.
+                const actualRisk = mark * (slPct / 100) * (orderVolume / 100);
+                console.log(`[ORDER] Risk-sized ${signal.symbol}: ${orderVolume} vol → ~$${actualRisk.toFixed(2)} at ${slPct}% SL (target $${riskUSD})`);
+                if (actualRisk > riskUSD * 1.5) {
+                    console.log(`[ORDER] ⚠ ${signal.symbol}: broker min volume forces risk to ~$${actualRisk.toFixed(2)}, above target $${riskUSD}`);
+                }
+            }
+        }
+        else {
+            console.log(`[ORDER] No live price for ${signal.symbol} yet — using fixed lot size for this order`);
+        }
+    }
+    if (orderVolume === null) {
+        const fixedLots = state_1.state.settings.symbolLotSize[signal.symbol] ?? state_1.state.settings.lotSize;
+        orderVolume = lotsToVolume(fixedLots, spec);
+    }
     if (!orderVolume) {
         console.log(`[ORDER] Could not compute volume for ${signal.symbol} (lotSize ${spec.lotSize}); skipping`);
         return;
     }
+    // Display lots derived from the final broker volume, so logs and the stored
+    // position reflect the size actually sent regardless of sizing mode.
+    const lots = spec.lotSize ? orderVolume / spec.lotSize : 0;
     // Unique label per order so we can correlate execution events back to THIS
     // order. Without it, concurrent orders' listeners all match any ORDER_FILLED
     // event and mis-attribute fills (double/wrong SL, missed positions).

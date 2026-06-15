@@ -131,6 +131,22 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
+  if (setting === "risk" && parts[2]) {
+    const usd = parseFloat(parts[2]);
+    if (isNaN(usd) || usd < 0) {
+      await ctx.reply("Per-trade risk USD must be 0 (disabled) or greater.");
+      return;
+    }
+    state.settings.riskPerTradeUSD = usd;
+    persistSettings();
+    await ctx.reply(
+      usd === 0
+        ? "Per-trade risk sizing disabled — using fixed lot sizes."
+        : `Per-trade risk set to $${usd}. Position size is now derived so a ${state.settings.stopLossPercent}% stop loses ~$${usd}, regardless of symbol. Overrides fixed lot size (used as fallback when no live price yet).`
+    );
+    return;
+  }
+
   if (setting === "sl" && parts[2]) {
     const pct = parseFloat(parts[2]);
     if (isNaN(pct) || pct < 0.05 || pct > 50) {
@@ -155,5 +171,5 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
-  await ctx.reply("Unknown setting. Usage: /risk maxpos <n> | /risk daily <pct> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk lotsize <lots> | /risk sl <pct> | /risk tp <pct>");
+  await ctx.reply("Unknown setting. Usage: /risk maxpos <n> | /risk daily <pct> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk lotsize <lots> | /risk risk <usd> | /risk sl <pct> | /risk tp <pct>");
 }

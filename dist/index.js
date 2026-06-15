@@ -102,7 +102,8 @@ async function startBot() {
             "/symbols reset - Restore default symbol list\n" +
             "/symbols <sym> <lots> - Set per-symbol lot size\n" +
             "\n" +
-            "/risk lotsize <lots> - Default lot size\n" +
+            "/risk lotsize <lots> - Default lot size (fixed sizing)\n" +
+            "/risk risk <usd> - Risk $ per trade: size derived from SL%, bounds each trade's loss (0 = fixed lots)\n" +
             "/risk sl <pct> - Stop loss (% of entry)\n" +
             "/risk tp <pct> - Take profit (% of entry)\n" +
             "/risk maxpos <n> - Max open positions\n" +
