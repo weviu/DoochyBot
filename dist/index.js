@@ -92,46 +92,46 @@ async function startBot() {
         await ctx.reply("DoochyBot running.");
     });
     bot.command("help", async (ctx) => {
-        await ctx.reply("▶ CONTROL\n" +
-            "/pause — stop executing signals\n" +
-            "/resume — resume executing signals\n" +
+        await ctx.reply("• CONTROL\n" +
+            "/pause: stop executing signals\n" +
+            "/resume: resume executing signals\n" +
             "\n" +
-            "▶ SYMBOLS\n" +
-            "/symbols — list allowed symbols\n" +
-            "/symbols add <sym> — add a symbol\n" +
-            "/symbols add all — add all high confidence symbols\n" +
-            "/symbols remove <sym> — remove a symbol\n" +
-            "/symbols reset — restore default list\n" +
+            "• SYMBOLS\n" +
+            "/symbols: list allowed symbols\n" +
+            "/symbols add <sym>: add a symbol\n" +
+            "/symbols add all: add all high confidence symbols\n" +
+            "/symbols remove <sym>: remove a symbol\n" +
+            "/symbols reset: restore default list\n" +
             "\n" +
-            "▶ SIZING (how big each trade is)\n" +
-            "/risk pertrade <usd> — RISK MODE: size auto set so the stop loses ~$usd. Overrides lots. (0 = off)\n" +
-            "/risk lotsize <lots> — FIXED MODE default size (used only when pertrade = 0)\n" +
-            "/symbols <sym> <lots> — FIXED MODE per symbol size (used only when pertrade = 0)\n" +
+            "• SIZING (how big each trade is)\n" +
+            "/risk pertrade <usd>: RISK MODE: size auto set so the stop loses ~$usd. Overrides lots. (0 = off)\n" +
+            "/risk lotsize <lots>: FIXED MODE default size (used only when pertrade = 0)\n" +
+            "/symbols <sym> <lots>: FIXED MODE per symbol size (used only when pertrade = 0)\n" +
             "\n" +
-            "▶ STOP / TARGET\n" +
-            "/risk sl <pct> — stop loss distance (% of entry). In risk mode this also sets trade size.\n" +
-            "/risk tp <pct> — take profit (% of entry)\n" +
-            "/minhold <secs> — min hold before TP arms\n" +
+            "• STOP / TARGET\n" +
+            "/risk sl <pct>: stop loss distance (% of entry). In risk mode this also sets trade size.\n" +
+            "/risk tp <pct>: take profit (% of entry)\n" +
+            "/minhold <secs>: min hold before TP arms\n" +
             "\n" +
-            "▶ DAILY LIMITS (both force close ALL positions + stop for the day)\n" +
-            "/risk maxloss <usd> — daily loss limit\n" +
-            "/risk cap <usd> — daily profit cap (0 = off)\n" +
-            "/risk capbuffer <usd> — trigger cap this many $ early\n" +
-            "/risk maxpos <n> — max concurrent positions\n" +
+            "• DAILY LIMITS (both force close ALL positions + stop for the day)\n" +
+            "/risk maxloss <usd>: daily loss limit\n" +
+            "/risk cap <usd>: daily profit cap (0 = off)\n" +
+            "/risk capbuffer <usd>: trigger cap this many $ early\n" +
+            "/risk maxpos <n>: max concurrent positions\n" +
             "\n" +
-            "▶ COOLDOWN (per symbol loss streak)\n" +
-            "/risk losses <n> — SL hits before cooldown (0 = off)\n" +
-            "/risk losswindow <min> — window to count hits\n" +
-            "/risk cooldown <min> — pause length\n" +
-            "/cooldown — list cooled down symbols\n" +
-            "/cooldown reset [sym] — clear a cooldown (or all)\n" +
+            "• COOLDOWN (per symbol loss streak)\n" +
+            "/risk losses <n>: SL hits before cooldown (0 = off)\n" +
+            "/risk losswindow <min>: window to count hits\n" +
+            "/risk cooldown <min>: pause length\n" +
+            "/cooldown: list cooled down symbols\n" +
+            "/cooldown reset [sym]: clear a cooldown (or all)\n" +
             "\n" +
-            "▶ POSITIONS & INFO\n" +
-            "/status — connection, P&L, limits, sizing, cooldowns\n" +
-            "/positions — open positions: entry, mark, SL, TP, P&L\n" +
-            "/closeall — close all open positions\n" +
+            "• POSITIONS & INFO\n" +
+            "/status: connection, P&L, limits, sizing, cooldowns\n" +
+            "/positions: open positions: entry, mark, SL, TP, P&L\n" +
+            "/closeall: close all open positions\n" +
             "\n" +
-            "/export [from] [to] — export trade history\n" +
+            "/export [from] [to]: export trade history\n" +
             "\n" +
             "Notes: pertrade > 0 overrides all lot sizes. One position per symbol. Opposite signals flip only on higher confidence.");
     });
