@@ -234,7 +234,14 @@ async function executeSignal(signal) {
                     }
                 }
                 else {
-                    console.log(`[ORDER] Timed out for ${signal.symbol} before an orderId was known — nothing to cancel`);
+                    // No ORDER_ACCEPTED ever arrived — the broker never acknowledged the
+                    // order, so it was almost certainly REJECTED outright. cTrader sends
+                    // that rejection as a generic PROTO_OA_ERROR_RES (payload 2142), which
+                    // the ctrader-layer can't route and just logs as "Unknown payload type
+                    // 2142" — that line above this is the real cause. Common reasons:
+                    // ACCESS_TOKEN lacks the "trading" scope, CTRADER_HOST (demo/live)
+                    // doesn't match the account, or a wrong ACCOUNT_ID.
+                    console.log(`[ORDER] No broker acknowledgement for ${signal.symbol} — order was likely REJECTED (see any "Unknown payload type 2142" / PROTO_OA_ERROR_RES above). Check: ACCESS_TOKEN has "trading" scope, CTRADER_HOST matches the account (demo vs live), and ACCOUNT_ID is correct.`);
                 }
                 reject(new Error("Order fill timeout (30s)"));
             }, 30_000);

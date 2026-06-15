@@ -3,7 +3,7 @@ import { notify } from "../bot/notify";
 import { getMarkPrice } from "../ctrader/livePrices";
 
 // The hard daily loss threshold in USD (the tighter of the % and $ limits).
-function maxLossUSD(): number {
+export function maxLossUSD(): number {
   const limitPercent = (state.settings.dailyLossLimitPercent / 100) * 10000; // Assume $10k balance for now
   return Math.min(limitPercent, state.settings.maxDailyLossUSD);
 }

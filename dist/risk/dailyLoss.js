@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.maxLossUSD = maxLossUSD;
 exports.floatingPnL = floatingPnL;
 exports.evaluateDailyLimits = evaluateDailyLimits;
 exports.updateDailyPnL = updateDailyPnL;

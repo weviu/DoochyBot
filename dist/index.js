@@ -28,6 +28,7 @@ const amend_1 = require("./ctrader/amend");
 const midnightClose_1 = require("./risk/midnightClose");
 const dailyLoss_2 = require("./risk/dailyLoss");
 const capMonitor_1 = require("./risk/capMonitor");
+const lossMonitor_1 = require("./risk/lossMonitor");
 const notify_1 = require("./bot/notify");
 dotenv_1.default.config();
 const config = {
@@ -155,7 +156,8 @@ async function main() {
     (0, midnightClose_1.startMidnightCheck)();
     (0, dailyLoss_2.startDailyReset)();
     (0, capMonitor_1.startCapMonitor)();
-    console.log("[SAFETY] Midnight closer and daily reset active");
+    (0, lossMonitor_1.startLossMonitor)();
+    console.log("[SAFETY] Midnight closer, daily reset, and loss monitor active");
     await (0, account_1.fetchAccountInfo)(ctrader);
     await (0, symbols_2.fetchSymbols)(ctrader);
     // Seed today's realized P&L from the broker BEFORE reconciling positions. This

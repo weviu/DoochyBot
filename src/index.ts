@@ -23,6 +23,7 @@ import { setAmendConnection } from "./ctrader/amend";
 import { setMidnightConnection, startMidnightCheck } from "./risk/midnightClose";
 import { startDailyReset } from "./risk/dailyLoss";
 import { startCapMonitor } from "./risk/capMonitor";
+import { startLossMonitor } from "./risk/lossMonitor";
 import { setNotifier } from "./bot/notify";
 
 dotenv.config();
@@ -167,7 +168,8 @@ setStatusConnection(ctrader);
 startMidnightCheck();
 startDailyReset();
 startCapMonitor();
-console.log("[SAFETY] Midnight closer and daily reset active");
+startLossMonitor();
+console.log("[SAFETY] Midnight closer, daily reset, and loss monitor active");
 await fetchAccountInfo(ctrader);
 await fetchSymbols(ctrader);
 
