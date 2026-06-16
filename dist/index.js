@@ -30,6 +30,7 @@ const dailyLoss_2 = require("./risk/dailyLoss");
 const capMonitor_1 = require("./risk/capMonitor");
 const lossMonitor_1 = require("./risk/lossMonitor");
 const notify_1 = require("./bot/notify");
+const webhook_1 = require("./webhook");
 dotenv_1.default.config();
 const config = {
     ctrader: {
@@ -196,6 +197,7 @@ async function main() {
     (0, poller_1.startPoller)((signal) => {
         (0, gate_1.processSignal)(signal);
     });
+    (0, webhook_1.startWebhookServer)();
     console.log("[BOOT] Ready");
 }
 main().catch((err) => {

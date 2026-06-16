@@ -22,4 +22,9 @@ export interface ParsedSignal {
   timestamp: string;
   sl?: number;
   tp?: number;
+  // Order type. Absent/"MARKET" → immediate market fill (the feed's behaviour,
+  // unchanged). "LIMIT" with limitPrice → a resting limit order placed by the
+  // channel listener; fills only when price reaches limitPrice.
+  orderType?: "MARKET" | "LIMIT";
+  limitPrice?: number;
 }

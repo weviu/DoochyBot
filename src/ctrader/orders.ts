@@ -275,6 +275,16 @@ export async function executeSignal(signal: ParsedSignal): Promise<void> {
     placedAt: Date.now(),
   });
 
+  // Channel limit signals rest at the broker until price reaches the level,
+  // rather than filling immediately like the feed's market orders. They carry
+  // their SL/TP on the order itself so the resting order is self-contained
+  // (protected even across a bot restart). Handled separately from the immediate
+  // market fill path below; sizing/volume above is shared.
+  if (signal.orderType === "LIMIT" && signal.limitPrice && signal.limitPrice > 0) {
+    await placeLimitOrder(signal, symbolId, orderVolume, lots, label);
+    return;
+  }
+
   try {
     console.log(`[ORDER] Placing ${signal.direction} ${lots} lots (${orderVolume} vol) ${signal.symbol} (label ${label.slice(0, 8)})...`);
 
@@ -382,5 +392,144 @@ export async function executeSignal(signal: ParsedSignal): Promise<void> {
     // clear it here so a failed submission never blocks future signals.
     state.pendingOrders.delete(label);
     console.log(`[ORDER] Failed: ${signal.direction} ${signal.symbol} — ${err.message}`);
+  }
+}
+
+/**
+ * Place a resting LIMIT order (channel signals). Unlike a market order it does
+ * not fill immediately — it sits at the broker (GOOD_TILL_CANCEL) until price
+ * reaches limitPrice, which may be seconds or hours. SL/TP are attached to the
+ * order, so the resting order is protected even if the bot restarts before it
+ * fills. We wait only long enough for the broker to ACCEPT the order (confirming
+ * it is resting, or catching an outright rejection) and then return, leaving a
+ * listener to record the position whenever the fill eventually arrives.
+ *
+ * Sizing/volume is computed by the caller (executeSignal) and shared with the
+ * market path; only the order-send and fill-handling differ here.
+ */
+async function placeLimitOrder(
+  signal: ParsedSignal,
+  symbolId: number,
+  orderVolume: number,
+  lots: number,
+  label: string
+): Promise<void> {
+  if (!connection) {
+    console.log("[ORDER] No cTrader connection");
+    state.pendingOrders.delete(label);
+    return;
+  }
+
+  const limitPrice = signal.limitPrice!;
+  // SL/TP come verbatim from the channel message (no arithmetic → no float junk,
+  // so no rounding needed). Drop either if it sits on the wrong side of the limit
+  // entry; the broker would reject the whole order otherwise.
+  let sl: number | null = signal.sl ?? null;
+  let tp: number | null = signal.tp ?? null;
+  if (sl !== null && ((signal.direction === "BUY" && sl >= limitPrice) || (signal.direction === "SELL" && sl <= limitPrice))) {
+    console.log(`[ORDER] Invalid SL ${sl} for ${signal.direction} limit @ ${limitPrice}; dropping SL`);
+    sl = null;
+  }
+  if (tp !== null && ((signal.direction === "BUY" && tp <= limitPrice) || (signal.direction === "SELL" && tp >= limitPrice))) {
+    console.log(`[ORDER] Invalid TP ${tp} for ${signal.direction} limit @ ${limitPrice}; dropping TP`);
+    tp = null;
+  }
+
+  let fillListenerId = "";
+  let errorListenerId = "";
+  let settled = false; // placement phase resolved (accepted/filled) or failed
+
+  const placement = new Promise<void>((resolve, reject) => {
+    // If the broker never acknowledges, the order was almost certainly rejected
+    // (same PROTO_OA_ERROR_RES / "Unknown payload type 2142" case as market
+    // orders). Give up the placement wait — but never auto-cancel a resting
+    // order just because it hasn't filled; that's the whole point of a limit.
+    const placeTimeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      connection.removeEventListener(fillListenerId);
+      connection.removeEventListener(errorListenerId);
+      state.pendingOrders.delete(label);
+      reject(new Error("No broker acknowledgement for limit order (likely rejected)"));
+    }, 10_000);
+
+    errorListenerId = connection.on("ProtoOAOrderErrorEvent", (event: any) => {
+      const data = event.descriptor ?? event;
+      console.log(`[ORDER] Limit OrderError for ${signal.symbol}:`, JSON.stringify(data));
+      if (settled) return;
+      settled = true;
+      clearTimeout(placeTimeout);
+      connection.removeEventListener(fillListenerId);
+      connection.removeEventListener(errorListenerId);
+      state.pendingOrders.delete(label);
+      reject(new Error(`Order rejected: ${data.errorCode || "unknown"} ${data.description || ""}`));
+    });
+
+    fillListenerId = connection.on("ProtoOAExecutionEvent", (event: any) => {
+      const data = event.descriptor ?? event;
+      if (data.order?.tradeData?.label !== label) return;
+      console.log(`[ORDER] Limit execution event (${signal.symbol}): type=${data.executionType} positionId=${data.position?.positionId}`);
+
+      if (data.executionType === "ORDER_ACCEPTED" && !settled) {
+        // The order is now resting at the broker. End the placement wait but keep
+        // the fill listener registered for the (later) fill.
+        settled = true;
+        clearTimeout(placeTimeout);
+        connection.removeEventListener(errorListenerId);
+        console.log(`[ORDER] Limit resting: ${signal.direction} ${lots} lots ${signal.symbol} @ ${limitPrice} (SL ${sl ?? "—"} / TP ${tp ?? "—"})`);
+        resolve();
+        return;
+      }
+
+      if (data.executionType === "ORDER_FILLED" && data.position?.positionId) {
+        const positionId = Number(data.position.positionId);
+        const entryPrice = data.deal?.executionPrice || data.position.price || limitPrice;
+        // SL/TP are already attached to the order broker-side; mirror them onto
+        // the in-memory position for display and live monitoring.
+        state.positions.set(positionId, {
+          symbol: signal.symbol,
+          direction: signal.direction,
+          volume: lots,
+          volumeCents: orderVolume,
+          entryPrice,
+          openTime: Date.now(),
+          confidence: signal.confidence,
+          sl,
+          tp,
+        });
+        subscribeSpots([symbolId]);
+        connection.removeEventListener(fillListenerId);
+        state.pendingOrders.delete(label);
+        console.log(`[ORDER] Limit filled: ${signal.direction} ${lots} lots ${signal.symbol} @ ${entryPrice} | Position #${positionId}`);
+        // A limit through the market can fill instantly without a separate
+        // ORDER_ACCEPTED first — settle the placement wait here too.
+        if (!settled) {
+          settled = true;
+          clearTimeout(placeTimeout);
+          connection.removeEventListener(errorListenerId);
+          resolve();
+        }
+      }
+    });
+  });
+
+  try {
+    console.log(`[ORDER] Placing LIMIT ${signal.direction} ${lots} lots (${orderVolume} vol) ${signal.symbol} @ ${limitPrice} (label ${label.slice(0, 8)})...`);
+    await connection.sendCommand("ProtoOANewOrderReq", {
+      ctidTraderAccountId: parseInt(process.env.ACCOUNT_ID || "0"),
+      symbolId,
+      orderType: "LIMIT",
+      tradeSide: signal.direction,
+      volume: orderVolume,
+      limitPrice,
+      timeInForce: "GOOD_TILL_CANCEL",
+      ...(sl !== null ? { stopLoss: sl } : {}),
+      ...(tp !== null ? { takeProfit: tp } : {}),
+      label,
+    });
+    await placement;
+  } catch (err: any) {
+    state.pendingOrders.delete(label);
+    console.log(`[ORDER] Limit failed: ${signal.direction} ${signal.symbol} — ${err.message}`);
   }
 }

@@ -25,6 +25,7 @@ import { startDailyReset } from "./risk/dailyLoss";
 import { startCapMonitor } from "./risk/capMonitor";
 import { startLossMonitor } from "./risk/lossMonitor";
 import { setNotifier } from "./bot/notify";
+import { startWebhookServer } from "./webhook";
 
 dotenv.config();
 
@@ -209,6 +210,7 @@ await startBot();
     startPoller((signal) => {
     processSignal(signal);
   });
+  startWebhookServer();
   console.log("[BOOT] Ready");
 }
 
