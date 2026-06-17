@@ -230,23 +230,42 @@ export async function executeSignal(signal: ParsedSignal): Promise<void> {
   const riskUSD = state.settings.riskPerTradeUSD ?? 0;
   const slPct = state.settings.stopLossPercent;
   if (riskUSD > 0 && slPct > 0) {
-    const mark = getMarkPrice(signal.symbol, signal.direction);
-    if (mark && mark > 0) {
-      orderVolume = riskBasedVolume(riskUSD, mark, slPct, spec);
+    // Prefer the live mark, but fall back to the signal's own price (feed price /
+    // channel limit price) when no spot has streamed for this symbol yet. The old
+    // behaviour silently dropped to a fixed lot here, so the FIRST trade on a
+    // symbol after a restart ignored the risk cap entirely (the -$350 XAUUSD).
+    let price = getMarkPrice(signal.symbol, signal.direction);
+    if (!price || price <= 0) {
+      price = signal.limitPrice && signal.limitPrice > 0
+        ? signal.limitPrice
+        : signal.price && signal.price > 0
+        ? signal.price
+        : null;
+      if (price) {
+        console.log(`[ORDER] No live quote for ${signal.symbol} yet — sizing from signal price ${price}`);
+      }
+    }
+
+    if (price && price > 0) {
+      orderVolume = riskBasedVolume(riskUSD, price, slPct, spec);
       if (orderVolume) {
         // Report the ACTUAL risk after snapping to broker min/step/max — a tiny
         // computed size can floor up to minVolume and exceed the target.
-        const actualRisk = mark * (slPct / 100) * (orderVolume / 100);
+        const actualRisk = price * (slPct / 100) * (orderVolume / 100);
         console.log(`[ORDER] Risk-sized ${signal.symbol}: ${orderVolume} vol → ~$${actualRisk.toFixed(2)} at ${slPct}% SL (target $${riskUSD})`);
         if (actualRisk > riskUSD * 1.5) {
           console.log(`[ORDER] ⚠ ${signal.symbol}: broker min volume forces risk to ~$${actualRisk.toFixed(2)}, above target $${riskUSD}`);
         }
       }
     } else {
-      console.log(`[ORDER] No live price for ${signal.symbol} yet — using fixed lot size for this order`);
+      // Risk mode is on but we have no price at all — refuse rather than fire an
+      // unsized fixed lot, which would violate the whole point of the risk cap.
+      console.log(`[ORDER] Risk mode on but no price for ${signal.symbol} (no live quote, signal carries none) — skipping to avoid an unsized order`);
+      return;
     }
   }
 
+  // Fixed mode only (riskPerTradeUSD == 0): the configured per-symbol / default lot.
   if (orderVolume === null) {
     const fixedLots = state.settings.symbolLotSize[signal.symbol] ?? state.settings.lotSize;
     orderVolume = lotsToVolume(fixedLots, spec);

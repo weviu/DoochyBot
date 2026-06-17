@@ -18,7 +18,7 @@ import { fetchAccountInfo, fetchTodayRealizedPnL } from "./ctrader/account";
 import { evaluateDailyLimits } from "./risk/dailyLoss";
 import { fetchSymbols } from "./ctrader/symbols";
 import { setConnection, reconcilePositions } from "./ctrader/orders";
-import { setLivePriceConnection, subscribeOpenPositions } from "./ctrader/livePrices";
+import { setLivePriceConnection, subscribeOpenPositions, subscribeSpots } from "./ctrader/livePrices";
 import { setAmendConnection } from "./ctrader/amend";
 import { setMidnightConnection, startMidnightCheck } from "./risk/midnightClose";
 import { startDailyReset } from "./risk/dailyLoss";
@@ -180,6 +180,17 @@ startLossMonitor();
 console.log("[SAFETY] Midnight closer, daily reset, and loss monitor active");
 await fetchAccountInfo(ctrader);
 await fetchSymbols(ctrader);
+
+// Pre-subscribe spot streams for every allowed symbol so a live quote is already
+// flowing before the first signal arrives. Without this, the first trade on a
+// symbol has no mark price and risk-based sizing can't size against it.
+const allowedSymbolIds = [...new Set(
+  state.settings.allowedSymbols
+    .map((s) => state.symbolMap.get(s) ?? state.symbolMap.get(s.replace(/USD$/, "")))
+    .filter((id): id is number => id !== undefined)
+)];
+await subscribeSpots(allowedSymbolIds);
+console.log(`[BOOT] Pre-subscribed spots for ${allowedSymbolIds.length} allowed symbol(s)`);
 
 // Seed today's realized P&L from the broker BEFORE reconciling positions. This
 // order is critical: reconcilePositions() re-arms TPs on positions opened before

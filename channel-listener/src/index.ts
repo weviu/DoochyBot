@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as readline from "readline";
-import { TelegramClient, utils } from "telegram";
+import { TelegramClient, Api, utils } from "telegram";
 import { StringSession } from "telegram/sessions";
 import { NewMessage, NewMessageEvent } from "telegram/events";
 
@@ -98,6 +98,40 @@ function prompt(question: string): Promise<string> {
   }));
 }
 
+/**
+ * Resolve the configured channel into an entity, accepting either form:
+ *   - public username:  "sureshotgold", "@sureshotgold", "t.me/sureshotgold"
+ *   - private invite:   "https://t.me/+2bCJ...", "t.me/+2bCJ...", "+2bCJ..."
+ *
+ * Private channels (created from an invite link) have no username, so getEntity
+ * can't find them. We resolve those via the invite hash with CheckChatInvite,
+ * which returns the chat directly because the account is already a member.
+ */
+async function resolveChannel(client: TelegramClient, raw: string): Promise<Api.TypeEntityLike> {
+  // Strip any t.me/ URL wrapper so we're left with "username", "+hash" or "joinchat/hash".
+  let id = raw.trim().replace(/^https?:\/\//i, "").replace(/^t\.me\//i, "");
+
+  const inviteHash =
+    id.startsWith("+") ? id.slice(1)
+    : /^joinchat\//i.test(id) ? id.replace(/^joinchat\//i, "")
+    : null;
+
+  if (inviteHash) {
+    const res = await client.invoke(new Api.messages.CheckChatInvite({ hash: inviteHash }));
+    // Already a member → the chat is included directly.
+    if (res instanceof Api.ChatInviteAlready || res instanceof Api.ChatInvitePeek) {
+      return res.chat;
+    }
+    throw new Error(
+      `The account is not a member of the private channel for invite +${inviteHash}. ` +
+      `Join it in Telegram first, then restart.`
+    );
+  }
+
+  // Public username (drop a leading @).
+  return client.getEntity(id.replace(/^@/, ""));
+}
+
 async function main(): Promise<void> {
   const config = loadConfig();
   const parser = new SignalParser();
@@ -131,7 +165,7 @@ async function main(): Promise<void> {
   // entity to "[object Object]", which it then fails to look up.
   let targetPeerId: string;
   try {
-    const channel = await client.getEntity(config.channelUsername);
+    const channel = await resolveChannel(client, config.channelUsername);
     targetPeerId = utils.getPeerId(channel);
     const title = (channel as { title?: string }).title || config.channelUsername;
     console.log(`[telegram] Listening to channel: ${title} (peer ${targetPeerId})`);
@@ -142,12 +176,16 @@ async function main(): Promise<void> {
 
   client.addEventHandler(async (event: NewMessageEvent) => {
     try {
-      // Only act on messages from the SureShot Gold channel.
-      const chatId = event.message?.chatId;
-      if (!chatId || chatId.toString() !== targetPeerId) return;
-
+      const chatId = event.message?.chatId?.toString();
       const text = event.message?.message ?? "";
-      console.log(`[message] ${JSON.stringify(text)}`);
+
+      // Log EVERY incoming message before any filtering or parsing, with its
+      // chatId, so we can see the real format and confirm the channel match
+      // (chatId should equal the target peer id logged at startup).
+      console.log(`[channel] Message (chat ${chatId} / target ${targetPeerId}): ${JSON.stringify(text)}`);
+
+      // Only act on messages from the SureShot Gold channel.
+      if (!chatId || chatId !== targetPeerId) return;
 
       const signal = parser.processMessage(text);
       if (signal) {

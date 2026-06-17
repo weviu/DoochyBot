@@ -168,6 +168,14 @@ async function main() {
     console.log("[SAFETY] Midnight closer, daily reset, and loss monitor active");
     await (0, account_1.fetchAccountInfo)(ctrader);
     await (0, symbols_2.fetchSymbols)(ctrader);
+    // Pre-subscribe spot streams for every allowed symbol so a live quote is already
+    // flowing before the first signal arrives. Without this, the first trade on a
+    // symbol has no mark price and risk-based sizing can't size against it.
+    const allowedSymbolIds = [...new Set(state_1.state.settings.allowedSymbols
+            .map((s) => state_1.state.symbolMap.get(s) ?? state_1.state.symbolMap.get(s.replace(/USD$/, "")))
+            .filter((id) => id !== undefined))];
+    await (0, livePrices_1.subscribeSpots)(allowedSymbolIds);
+    console.log(`[BOOT] Pre-subscribed spots for ${allowedSymbolIds.length} allowed symbol(s)`);
     // Seed today's realized P&L from the broker BEFORE reconciling positions. This
     // order is critical: reconcilePositions() re-arms TPs on positions opened before
     // the restart, and the cap-TP logic in amend.ts only applies when dailyPnLSeeded
