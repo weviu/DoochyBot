@@ -81,25 +81,11 @@ async function getSymbolSpec(symbolId) {
     symbolSpecs.set(symbolId, spec);
     return spec;
 }
-// Convert a lot size into the broker's "cents" volume unit, clamped to the
-// symbol's min/max and snapped to its step. Returns null if unknown.
-function lotsToVolume(lots, spec) {
-    if (!spec.lotSize)
-        return null;
-    let vol = lots * spec.lotSize;
-    if (spec.stepVolume > 0)
-        vol = Math.round(vol / spec.stepVolume) * spec.stepVolume;
-    if (spec.minVolume && vol < spec.minVolume)
-        vol = spec.minVolume;
-    if (spec.maxVolume && vol > spec.maxVolume)
-        vol = spec.maxVolume;
-    return vol;
-}
 // Compute the broker volume (cents) so a stopLossPercent move against the
 // position loses ~riskUSD at the given price. The money model is the same one
 // floatingPnL uses: $PnL = priceDiff × volumeCents/100. The stop sits
 // stopDistance = price × slPct/100 away, so volumeCents = riskUSD × 100 /
-// stopDistance. Snapped to the symbol's min/step/max like lotsToVolume.
+// stopDistance. Snapped to the symbol's min/step/max.
 function riskBasedVolume(riskUSD, price, slPct, spec) {
     if (!spec.lotSize)
         return null;
@@ -216,52 +202,43 @@ async function executeSignal(signal) {
     //    wildly different $ risk per symbol (e.g. one XAUUSD stop = 5× a BTCUSD one).
     //    Falls back to fixed lots if no live quote has arrived for the symbol yet.
     //  - Fixed (riskPerTradeUSD == 0): the configured per-symbol / default lot size.
-    let orderVolume = null;
+    // Sizing is risk-based only: size so a stopLossPercent stop loses ~riskUSD.
+    // There is no fixed-lot mode — if risk sizing isn't configured we refuse to
+    // trade rather than guess a size (an unsized order is how the -$350 happened).
     const riskUSD = state_1.state.settings.riskPerTradeUSD ?? 0;
     const slPct = state_1.state.settings.stopLossPercent;
-    if (riskUSD > 0 && slPct > 0) {
-        // Prefer the live mark, but fall back to the signal's own price (feed price /
-        // channel limit price) when no spot has streamed for this symbol yet. The old
-        // behaviour silently dropped to a fixed lot here, so the FIRST trade on a
-        // symbol after a restart ignored the risk cap entirely (the -$350 XAUUSD).
-        let price = (0, livePrices_1.getMarkPrice)(signal.symbol, signal.direction);
-        if (!price || price <= 0) {
-            price = signal.limitPrice && signal.limitPrice > 0
-                ? signal.limitPrice
-                : signal.price && signal.price > 0
-                    ? signal.price
-                    : null;
-            if (price) {
-                console.log(`[ORDER] No live quote for ${signal.symbol} yet — sizing from signal price ${price}`);
-            }
-        }
-        if (price && price > 0) {
-            orderVolume = riskBasedVolume(riskUSD, price, slPct, spec);
-            if (orderVolume) {
-                // Report the ACTUAL risk after snapping to broker min/step/max — a tiny
-                // computed size can floor up to minVolume and exceed the target.
-                const actualRisk = price * (slPct / 100) * (orderVolume / 100);
-                console.log(`[ORDER] Risk-sized ${signal.symbol}: ${orderVolume} vol → ~$${actualRisk.toFixed(2)} at ${slPct}% SL (target $${riskUSD})`);
-                if (actualRisk > riskUSD * 1.5) {
-                    console.log(`[ORDER] ⚠ ${signal.symbol}: broker min volume forces risk to ~$${actualRisk.toFixed(2)}, above target $${riskUSD}`);
-                }
-            }
-        }
-        else {
-            // Risk mode is on but we have no price at all — refuse rather than fire an
-            // unsized fixed lot, which would violate the whole point of the risk cap.
-            console.log(`[ORDER] Risk mode on but no price for ${signal.symbol} (no live quote, signal carries none) — skipping to avoid an unsized order`);
-            return;
+    if (riskUSD <= 0 || slPct <= 0) {
+        console.log(`[ORDER] Risk sizing not configured (pertrade=$${riskUSD}, SL=${slPct}%) — skipping ${signal.symbol}. Set /risk pertrade and /risk sl.`);
+        return;
+    }
+    // Prefer the live mark, but fall back to the signal's own price (feed price /
+    // channel limit price) when no spot has streamed for this symbol yet.
+    let price = (0, livePrices_1.getMarkPrice)(signal.symbol, signal.direction);
+    if (!price || price <= 0) {
+        price = signal.limitPrice && signal.limitPrice > 0
+            ? signal.limitPrice
+            : signal.price && signal.price > 0
+                ? signal.price
+                : null;
+        if (price) {
+            console.log(`[ORDER] No live quote for ${signal.symbol} yet — sizing from signal price ${price}`);
         }
     }
-    // Fixed mode only (riskPerTradeUSD == 0): the configured per-symbol / default lot.
-    if (orderVolume === null) {
-        const fixedLots = state_1.state.settings.symbolLotSize[signal.symbol] ?? state_1.state.settings.lotSize;
-        orderVolume = lotsToVolume(fixedLots, spec);
+    if (!price || price <= 0) {
+        console.log(`[ORDER] No price for ${signal.symbol} (no live quote, signal carries none) — skipping to avoid an unsized order`);
+        return;
     }
+    const orderVolume = riskBasedVolume(riskUSD, price, slPct, spec);
     if (!orderVolume) {
         console.log(`[ORDER] Could not compute volume for ${signal.symbol} (lotSize ${spec.lotSize}); skipping`);
         return;
+    }
+    // Report the ACTUAL risk after snapping to broker min/step/max — a tiny
+    // computed size can floor up to minVolume and exceed the target.
+    const actualRisk = price * (slPct / 100) * (orderVolume / 100);
+    console.log(`[ORDER] Risk-sized ${signal.symbol}: ${orderVolume} vol → ~$${actualRisk.toFixed(2)} at ${slPct}% SL (target $${riskUSD})`);
+    if (actualRisk > riskUSD * 1.5) {
+        console.log(`[ORDER] ⚠ ${signal.symbol}: broker min volume forces risk to ~$${actualRisk.toFixed(2)}, above target $${riskUSD}`);
     }
     // Display lots derived from the final broker volume, so logs and the stored
     // position reflect the size actually sent regardless of sizing mode.

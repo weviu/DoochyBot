@@ -105,12 +105,10 @@ async function startBot() {
             "/symbols reset: restore default list\n" +
             "\n" +
             "• SIZING (how big each trade is)\n" +
-            "/risk pertrade <usd>: RISK MODE: size auto set so the stop loses ~$usd. Overrides lots. (0 = off)\n" +
-            "/risk lotsize <lots>: FIXED MODE default size (used only when pertrade = 0)\n" +
-            "/symbols <sym> <lots>: FIXED MODE per symbol size (used only when pertrade = 0)\n" +
+            "/risk pertrade <usd>: size each trade so its stop loses ~$usd (0 = off)\n" +
             "\n" +
             "• STOP / TARGET\n" +
-            "/risk sl <pct>: stop loss distance (% of entry). In risk mode this also sets trade size.\n" +
+            "/risk sl <pct>: stop loss distance (% of entry). Also sets trade size (derived from the stop).\n" +
             "/risk tp <pct>: take profit (% of entry)\n" +
             "/minhold <secs>: min hold before TP arms\n" +
             "\n" +
@@ -134,7 +132,7 @@ async function startBot() {
             "\n" +
             "/export [from] [to]: export trade history\n" +
             "\n" +
-            "Notes: pertrade > 0 overrides all lot sizes. One position per symbol. Opposite signals flip only on higher confidence.");
+            "Notes: trade size comes from pertrade + the SL %. One position per symbol. Opposite signals flip only on higher confidence.");
     });
     bot.command("pause", pause_1.pauseCmd);
     bot.command("resume", resume_1.resumeCmd);

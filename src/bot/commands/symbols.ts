@@ -17,12 +17,7 @@ export async function symbolsCmd(ctx: any) {
       await ctx.reply("No symbols configured.");
       return;
     }
-    const lines = state.settings.allowedSymbols.map((s) => {
-      const custom = state.settings.symbolLotSize[s];
-      const lots = custom ?? state.settings.lotSize;
-      return `${s}: ${lots} lots${custom === undefined ? " (default)" : ""}`;
-    });
-    await ctx.reply("Allowed symbols:\n" + lines.join("\n"));
+    await ctx.reply("Allowed symbols:\n" + state.settings.allowedSymbols.join("\n"));
     return;
   }
 
@@ -91,24 +86,5 @@ export async function symbolsCmd(ctx: any) {
     return;
   }
 
-  // /symbols <SYMBOL> <lotsize> - set per-symbol lot size
-  const symbol = parts[1]?.toUpperCase();
-  const lots = parseFloat(parts[2]);
-  if (symbol && !isNaN(lots)) {
-    if (lots < 0.01 || lots > 100) {
-      await ctx.reply("Lot size must be between 0.01 and 100.");
-      return;
-    }
-    state.settings.symbolLotSize[symbol] = lots;
-    persistSettings();
-    await ctx.reply(
-      `${symbol} lot size set to ${lots}.` +
-      (state.settings.riskPerTradeUSD > 0
-        ? ` ⚠ Ignored while per-trade risk is on ($${state.settings.riskPerTradeUSD}). Run /risk pertrade 0 to use lot sizes.`
-        : "")
-    );
-    return;
-  }
-
-  await ctx.reply("Usage: /symbols | /symbols add <SYM> | /symbols add all | /symbols remove <SYM> | /symbols reset | /symbols <SYM> <lots>");
+  await ctx.reply("Usage: /symbols | /symbols add <SYM> | /symbols add all | /symbols remove <SYM> | /symbols reset");
 }

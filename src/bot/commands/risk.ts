@@ -5,7 +5,7 @@ export async function riskCmd(ctx: any) {
   const parts = msg.split(/\s+/);
 
   if (parts.length < 2) {
-    await ctx.reply("Usage: /risk pertrade <usd> | /risk lotsize <lots> | /risk sl <pct> | /risk tp <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd>");
+    await ctx.reply("Usage: /risk pertrade <usd> | /risk sl <pct> | /risk tp <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd>");
     return;
   }
 
@@ -107,22 +107,6 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
-  if (setting === "lotsize" && parts[2]) {
-    const lots = parseFloat(parts[2]);
-    if (isNaN(lots) || lots < 0.01 || lots > 100) {
-      await ctx.reply("Lot size must be between 0.01 and 100.");
-      return;
-    }
-    state.settings.lotSize = lots;
-    persistSettings();
-    await ctx.reply(
-      `Lot size set to ${lots}.` +
-      (state.settings.riskPerTradeUSD > 0
-        ? ` ⚠ Ignored while per-trade risk is on ($${state.settings.riskPerTradeUSD}). Run /risk pertrade 0 to use lot sizes.`
-        : "")
-    );
-    return;
-  }
 
   // "pertrade" is the documented name; "risk" kept as a silent alias so older
   // muscle memory still works.
@@ -166,5 +150,5 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
-  await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk lotsize <lots> | /risk sl <pct> | /risk tp <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min>");
+  await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk sl <pct> | /risk tp <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min>");
 }

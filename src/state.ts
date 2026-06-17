@@ -28,9 +28,7 @@ export interface BotSettings {
   stopLossPercent: number;
   takeProfitPercent: number;
   minHoldSeconds: number;
-  lotSize: number;
-  symbolLotSize: Record<string, number>;
-  riskPerTradeUSD: number; // when > 0, size each position so a stopLossPercent stop loses ~this many $; overrides fixed lot size. 0 = use fixed lots.
+  riskPerTradeUSD: number; // size each position so a stopLossPercent stop loses ~this many $. Required to trade (0 = trading disabled; there is no fixed-lot fallback).
   dailyProfitCapUSD: number; // lock trading once daily realized profit hits this; 0 = disabled
   capBufferUSD: number; // force-close this many $ BELOW the cap to never overshoot it
   maxConsecutiveLosses: number; // SL hits on one symbol within the window that trigger a cooldown; 0 = disabled
@@ -58,8 +56,6 @@ export const DEFAULT_SETTINGS: BotSettings = {
   stopLossPercent: 0.5,
   takeProfitPercent: 0.75,
   minHoldSeconds: 60,
-  lotSize: 0.01,
-  symbolLotSize: {},
   riskPerTradeUSD: 0,
   dailyProfitCapUSD: 0,
   capBufferUSD: 0,
@@ -96,8 +92,6 @@ export function initSettings(): void {
     if (saved.stopLossPercent !== undefined) state.settings.stopLossPercent = saved.stopLossPercent;
     if (saved.takeProfitPercent !== undefined) state.settings.takeProfitPercent = saved.takeProfitPercent;
     if (saved.minHoldSeconds !== undefined) state.settings.minHoldSeconds = saved.minHoldSeconds;
-    if (saved.lotSize !== undefined) state.settings.lotSize = saved.lotSize;
-    if (saved.symbolLotSize) state.settings.symbolLotSize = saved.symbolLotSize;
     if (saved.riskPerTradeUSD !== undefined) state.settings.riskPerTradeUSD = saved.riskPerTradeUSD;
     if (saved.dailyProfitCapUSD !== undefined) state.settings.dailyProfitCapUSD = saved.dailyProfitCapUSD;
     if (saved.capBufferUSD !== undefined) state.settings.capBufferUSD = saved.capBufferUSD;
@@ -116,8 +110,6 @@ export function persistSettings(): void {
     stopLossPercent: state.settings.stopLossPercent,
     takeProfitPercent: state.settings.takeProfitPercent,
     minHoldSeconds: state.settings.minHoldSeconds,
-    lotSize: state.settings.lotSize,
-    symbolLotSize: state.settings.symbolLotSize,
     riskPerTradeUSD: state.settings.riskPerTradeUSD,
     dailyProfitCapUSD: state.settings.dailyProfitCapUSD,
     capBufferUSD: state.settings.capBufferUSD,
