@@ -38,16 +38,16 @@ export async function statusCmd(ctx: any) {
   const cap = state.settings.dailyProfitCapUSD;
   const cooldowns = activeCooldowns();
   const lines = [
-    `cTrader: ${connOk ? "✅ connected" : "❌ not connected"}`,
+    `cTrader: ${connOk ? "connected" : "not connected"}`,
     `Account: ${process.env.ACCOUNT_ID || "?"}`,
     `Balance: ${info.balance.toFixed(2)} ${info.currency}`,
-    `Trading: ${state.paused ? "⏸ paused" : "▶️ active"}${state.tradingLocked ? " 🔒 locked" : ""}`,
+    `Trading: ${state.paused ? "paused" : "active"}${state.tradingLocked ? " (locked)" : ""}`,
     `Open positions: ${state.positions.size}/${state.settings.maxPositions}`,
     `Daily realized P&L: ${dailyPnL >= 0 ? "+" : ""}${dailyPnL.toFixed(2)} ${info.currency}`,
     `Floating P&L: ${liveFloating >= 0 ? "+" : ""}${liveFloating.toFixed(2)} ${info.currency}`,
     `Profit cap: ${cap > 0 ? `$${cap.toFixed(2)} (total ${(dailyPnL + liveFloating).toFixed(2)} used)` : "off"}`,
     `Daily loss limit: -$${maxLossUSD().toFixed(2)} (force-close all)`,
-    `Sizing: ${state.settings.riskPerTradeUSD > 0 ? `$${state.settings.riskPerTradeUSD.toFixed(2)} risk/trade @ ${state.settings.stopLossPercent}% SL` : "⚠ not set — /risk pertrade required to trade"}`,
+    `Sizing: ${state.settings.riskPerTradeUSD > 0 ? `$${state.settings.riskPerTradeUSD.toFixed(2)} risk/trade @ ${state.settings.stopLossPercent}% SL` : "not set - /risk pertrade required to trade"}`,
     `Cooldowns: ${cooldowns.length === 0 ? "none" : cooldowns.map((c) => `${c.symbol} ${Math.ceil(c.remainingMs / 60_000)}m`).join(", ")}`,
     `Allowed symbols: ${state.settings.allowedSymbols.length}`,
   ];

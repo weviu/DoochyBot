@@ -33,13 +33,13 @@ function breachedLimit(): string | null {
   if (cap > 0) {
     const total = state.dailyRealizedPnL + floatingPnL();
     if (total >= cap) {
-      return `🎯 Daily profit cap reached: +${total.toFixed(2)} USD (cap ${cap.toFixed(2)})`;
+      return `Daily profit cap reached: +${total.toFixed(2)} USD (cap ${cap.toFixed(2)})`;
     }
   }
   const loss = maxLossUSD();
   const totalPnL = state.dailyRealizedPnL + floatingPnL();
   if (totalPnL < -loss) {
-    return `🛑 Daily loss limit hit: ${totalPnL.toFixed(2)} USD (limit -${loss.toFixed(2)})`;
+    return `Daily loss limit hit: ${totalPnL.toFixed(2)} USD (limit -${loss.toFixed(2)})`;
   }
   return null;
 }

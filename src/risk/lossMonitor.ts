@@ -64,7 +64,7 @@ export function startLossMonitor(): void {
     try {
       const { closed, failed } = await closeAllPositions();
       notify(
-        `🛑 Daily loss limit hit: ${total.toFixed(2)} USD (limit -${limit.toFixed(2)}). ` +
+        `Daily loss limit hit: ${total.toFixed(2)} USD (limit -${limit.toFixed(2)}). ` +
         `Force-closed ${closed}/${count} position(s)${failed ? ` — ${failed} FAILED, check manually` : ""}. ` +
         `New signals blocked until midnight UTC or /resume.`
       );

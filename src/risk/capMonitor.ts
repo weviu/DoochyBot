@@ -51,7 +51,7 @@ export function startCapMonitor(): void {
       const { closed, failed } = await closeAllPositions();
       state.tradingLocked = true;
       notify(
-        `🎯 Daily profit cap hit: +${total.toFixed(2)} USD (cap ${cap.toFixed(2)}). ` +
+        `Daily profit cap hit: +${total.toFixed(2)} USD (cap ${cap.toFixed(2)}). ` +
         `Force-closed ${closed}/${count} position(s)${failed ? ` — ${failed} FAILED, check manually` : ""}. ` +
         `New signals blocked until midnight UTC or /resume.`
       );

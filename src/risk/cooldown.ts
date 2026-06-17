@@ -50,7 +50,7 @@ export function recordStopLoss(symbol: string, time = Date.now()): void {
     const untilStr = new Date(until).toISOString().slice(11, 16);
     console.log(`[COOLDOWN] ${symbol} paused until ${untilStr} UTC (${state.settings.cooldownMinutes}m)`);
     notify(
-      `🧊 ${symbol} cooled down: ${max} stop-losses in ${state.settings.lossWindowMinutes}m. ` +
+      `${symbol} cooled down: ${max} stop-losses in ${state.settings.lossWindowMinutes}m. ` +
       `New ${symbol} signals paused for ${state.settings.cooldownMinutes}m (until ${untilStr} UTC). ` +
       `Use /cooldown reset ${symbol} to clear early.`
     );

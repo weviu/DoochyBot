@@ -90,7 +90,34 @@ async function startBot() {
         await next();
     });
     bot.command("start", async (ctx) => {
-        await ctx.reply("DoochyBot running.");
+        await ctx.reply("DoochyBot running.\nNew here? Send /guide to set up trading, or /help for all commands.");
+    });
+    bot.command("guide", async (ctx) => {
+        await ctx.reply("HOW TO START TRADING\n" +
+            "\n" +
+            "1. Set your risk per trade (REQUIRED)\n" +
+            "Nothing trades until this is set. It is the max $ you lose if a trade's stop is hit; the bot sizes every position to match.\n" +
+            "   /risk pertrade 50\n" +
+            "\n" +
+            "2. Set your stop and target (sensible defaults already on)\n" +
+            "SL = where the stop sits (% from entry); it also drives trade size together with pertrade. TP = where the target sits.\n" +
+            "   /risk sl 0.5\n" +
+            "   /risk tp 0.75\n" +
+            "\n" +
+            "3. Choose which symbols to trade\n" +
+            "   /symbols  (show current list)\n" +
+            "   /symbols add XAUUSD\n" +
+            "\n" +
+            "4. Set daily safety limits (recommended)\n" +
+            "Each one force-closes everything and stops trading for the day when hit.\n" +
+            "   /risk maxloss 200  (daily loss limit)\n" +
+            "   /risk cap 300      (daily profit cap, 0 = off)\n" +
+            "\n" +
+            "5. Confirm it is live\n" +
+            "   /resume  (only if you previously paused)\n" +
+            "   /status  (Sizing should show your $ risk, not 'not set')\n" +
+            "\n" +
+            "Done. Signals will now execute. See /help for the full command list.");
     });
     bot.command("help", async (ctx) => {
         await ctx.reply("• CONTROL\n" +
@@ -105,11 +132,12 @@ async function startBot() {
             "/symbols reset: restore default list\n" +
             "\n" +
             "• SIZING (how big each trade is)\n" +
-            "/risk pertrade <usd>: size each trade so its stop loses ~$usd (0 = off)\n" +
+            "/risk pertrade <usd>: max $ you lose if a trade's stop is hit; the bot sizes the lots to match (0 = trading off)\n" +
             "\n" +
             "• STOP / TARGET\n" +
-            "/risk sl <pct>: stop loss distance (% of entry). Also sets trade size (derived from the stop).\n" +
-            "/risk tp <pct>: take profit (% of entry)\n" +
+            "/risk sl <pct>: where the stop sits, as % from entry. Also drives size (with pertrade): tighter stop = bigger trade.\n" +
+            "/risk tp <pct>: where the target sits, as % from entry.\n" +
+            "Note: channel signals carry their own SL/TP, which override these %s.\n" +
             "/minhold <secs>: min hold before TP arms\n" +
             "\n" +
             "• DAILY LIMITS (both force close ALL positions + stop for the day)\n" +

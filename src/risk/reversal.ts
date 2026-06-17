@@ -41,7 +41,7 @@ export async function executeReversal(
   } else {
     const msg = `CRITICAL: closed ${existing.direction} ${existing.symbol} #${positionId} but new ${signal.direction} ${signal.symbol} did NOT open — account may be unhedged`;
     console.log(`[REVERSAL] ${msg}`);
-    await notify(`⚠️ ${msg}`);
+    await notify(msg);
   }
   // P&L from the close is handled by the normal position-close tracking.
 }

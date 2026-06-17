@@ -68,7 +68,7 @@ function startLossMonitor() {
         console.log(`[LOSS] Breach: realized ${state_1.state.dailyRealizedPnL.toFixed(2)} + floating ${floating.toFixed(2)} = ${total.toFixed(2)} <= -${limit.toFixed(2)}. Force-closing ${count} position(s).`);
         try {
             const { closed, failed } = await (0, midnightClose_1.closeAllPositions)();
-            (0, notify_1.notify)(`🛑 Daily loss limit hit: ${total.toFixed(2)} USD (limit -${limit.toFixed(2)}). ` +
+            (0, notify_1.notify)(`Daily loss limit hit: ${total.toFixed(2)} USD (limit -${limit.toFixed(2)}). ` +
                 `Force-closed ${closed}/${count} position(s)${failed ? ` — ${failed} FAILED, check manually` : ""}. ` +
                 `New signals blocked until midnight UTC or /resume.`);
         }

@@ -38,7 +38,7 @@ function recordStopLoss(symbol, time = Date.now()) {
         hits.length = 0; // reset the streak; the cooldown now governs this symbol
         const untilStr = new Date(until).toISOString().slice(11, 16);
         console.log(`[COOLDOWN] ${symbol} paused until ${untilStr} UTC (${state_1.state.settings.cooldownMinutes}m)`);
-        (0, notify_1.notify)(`🧊 ${symbol} cooled down: ${max} stop-losses in ${state_1.state.settings.lossWindowMinutes}m. ` +
+        (0, notify_1.notify)(`${symbol} cooled down: ${max} stop-losses in ${state_1.state.settings.lossWindowMinutes}m. ` +
             `New ${symbol} signals paused for ${state_1.state.settings.cooldownMinutes}m (until ${untilStr} UTC). ` +
             `Use /cooldown reset ${symbol} to clear early.`);
     }

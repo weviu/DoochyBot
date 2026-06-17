@@ -34,7 +34,7 @@ async function executeReversal(positionId, existing, signal) {
     else {
         const msg = `CRITICAL: closed ${existing.direction} ${existing.symbol} #${positionId} but new ${signal.direction} ${signal.symbol} did NOT open — account may be unhedged`;
         console.log(`[REVERSAL] ${msg}`);
-        await (0, notify_1.notify)(`⚠️ ${msg}`);
+        await (0, notify_1.notify)(msg);
     }
     // P&L from the close is handled by the normal position-close tracking.
 }

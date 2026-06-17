@@ -253,7 +253,7 @@ export async function executeSignal(signal: ParsedSignal): Promise<void> {
   const actualRisk = price * (slPct / 100) * (orderVolume / 100);
   console.log(`[ORDER] Risk-sized ${signal.symbol}: ${orderVolume} vol → ~$${actualRisk.toFixed(2)} at ${slPct}% SL (target $${riskUSD})`);
   if (actualRisk > riskUSD * 1.5) {
-    console.log(`[ORDER] ⚠ ${signal.symbol}: broker min volume forces risk to ~$${actualRisk.toFixed(2)}, above target $${riskUSD}`);
+    console.log(`[ORDER] ${signal.symbol}: broker min volume forces risk to ~$${actualRisk.toFixed(2)}, above target $${riskUSD}`);
   }
 
   // Display lots derived from the final broker volume, so logs and the stored

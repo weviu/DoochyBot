@@ -49,7 +49,7 @@ function startCapMonitor() {
         try {
             const { closed, failed } = await (0, midnightClose_1.closeAllPositions)();
             state_1.state.tradingLocked = true;
-            (0, notify_1.notify)(`🎯 Daily profit cap hit: +${total.toFixed(2)} USD (cap ${cap.toFixed(2)}). ` +
+            (0, notify_1.notify)(`Daily profit cap hit: +${total.toFixed(2)} USD (cap ${cap.toFixed(2)}). ` +
                 `Force-closed ${closed}/${count} position(s)${failed ? ` — ${failed} FAILED, check manually` : ""}. ` +
                 `New signals blocked until midnight UTC or /resume.`);
         }
