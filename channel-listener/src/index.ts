@@ -179,13 +179,13 @@ async function main(): Promise<void> {
       const chatId = event.message?.chatId?.toString();
       const text = event.message?.message ?? "";
 
-      // Log EVERY incoming message before any filtering or parsing, with its
-      // chatId, so we can see the real format and confirm the channel match
-      // (chatId should equal the target peer id logged at startup).
-      console.log(`[channel] Message (chat ${chatId} / target ${targetPeerId}): ${JSON.stringify(text)}`);
-
-      // Only act on messages from the SureShot Gold channel.
+      // The account receives updates from every chat it belongs to (MTProto has
+      // no per-channel subscription), so ignore anything that isn't the target
+      // channel before doing anything else — including logging.
       if (!chatId || chatId !== targetPeerId) return;
+
+      // Log only target-channel messages, so the log reflects what we actually act on.
+      console.log(`[channel] Message: ${JSON.stringify(text)}`);
 
       const signal = parser.processMessage(text);
       if (signal) {
@@ -198,28 +198,40 @@ async function main(): Promise<void> {
     }
   }, new NewMessage({}));
 
-  // Health check: if the connection drops and gramJS's own retries give up,
-  // reconnect with exponential backoff. The process stays alive throughout.
-  let backoff = 1000;
-  const MAX_BACKOFF = 60_000;
+  // Liveness watchdog. The MTProto update stream can go silent while the Node
+  // process stays alive and `client.connected` still reports true — pm2 then sees
+  // us as "online" and never restarts, so messages are silently missed (this is
+  // exactly what dropped a 7am signal). A passive `client.connected` check does
+  // not catch that. Instead actively round-trip to Telegram on an interval; on
+  // repeated failure force a reconnect, and if that fails exit so pm2 restarts us
+  // cleanly with the saved session.
+  const withTimeout = <T>(p: Promise<T>, ms: number): Promise<T> =>
+    Promise.race([
+      p,
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error("timeout")), ms)),
+    ]);
+
+  let watchdogFails = 0;
   setInterval(async () => {
-    if (client.connected) {
-      backoff = 1000;
-      return;
-    }
-    console.warn(`[telegram] Disconnected — reconnecting in ${backoff}ms`);
-    await new Promise((r) => setTimeout(r, backoff));
-    backoff = Math.min(backoff * 2, MAX_BACKOFF);
     try {
-      await client.connect();
-      if (client.connected) {
-        console.log("[telegram] Reconnected");
-        backoff = 1000;
-      }
+      await withTimeout(client.invoke(new Api.updates.GetState()), 15_000);
+      if (watchdogFails > 0) console.log("[telegram] Liveness recovered");
+      watchdogFails = 0;
     } catch (err) {
-      console.error("[telegram] Reconnect attempt failed:", err);
+      watchdogFails++;
+      console.warn(`[telegram] Liveness check failed (${watchdogFails}/3): ${err instanceof Error ? err.message : err}`);
+      if (watchdogFails < 3) return;
+      try {
+        await client.connect();
+        await withTimeout(client.invoke(new Api.updates.GetState()), 15_000);
+        console.log("[telegram] Reconnected — updates flowing again");
+        watchdogFails = 0;
+      } catch (reErr) {
+        console.error(`[telegram] Connection dead, reconnect failed — exiting for pm2 restart: ${reErr instanceof Error ? reErr.message : reErr}`);
+        process.exit(1);
+      }
     }
-  }, 5000).unref();
+  }, 60_000);
 
   console.log("[telegram] Listener is running");
 }
