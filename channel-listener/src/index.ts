@@ -3,7 +3,7 @@ import * as path from "path";
 import * as readline from "readline";
 import { TelegramClient, Api, utils } from "telegram";
 import { StringSession } from "telegram/sessions";
-import { NewMessage, NewMessageEvent } from "telegram/events";
+import { NewMessage, NewMessageEvent, Raw } from "telegram/events";
 
 import { SignalParser } from "./parser";
 import { sendSignal } from "./webhook";
@@ -198,13 +198,25 @@ async function main(): Promise<void> {
     }
   }, new NewMessage({}));
 
+  // VALIDATION INSTRUMENTATION (diagnosing missed signals after a gramJS
+  // reconnect). Count EVERY raw update the client receives, regardless of chat.
+  // The hypothesis is that after a socket reconnect the update stream stops
+  // delivering updates to our handlers while the request channel (GetState)
+  // keeps answering. If so, after a reconnect we should see GetState succeed and
+  // its pts advance while this raw-update count stays at 0.
+  let rawUpdatesSinceTick = 0;
+  let lastUpdateAt = Date.now();
+  client.addEventHandler(() => {
+    rawUpdatesSinceTick++;
+    lastUpdateAt = Date.now();
+  }, new Raw({}));
+
   // Liveness watchdog. The MTProto update stream can go silent while the Node
-  // process stays alive and `client.connected` still reports true — pm2 then sees
-  // us as "online" and never restarts, so messages are silently missed (this is
-  // exactly what dropped a 7am signal). A passive `client.connected` check does
-  // not catch that. Instead actively round-trip to Telegram on an interval; on
-  // repeated failure force a reconnect, and if that fails exit so pm2 restarts us
-  // cleanly with the saved session.
+  // process stays alive and `client.connected` still reports true, so pm2 sees
+  // us as "online" and never restarts and messages are silently missed. A passive
+  // `client.connected` check does not catch that, so actively round-trip to
+  // Telegram on an interval; on repeated failure force a reconnect, and if that
+  // fails exit so pm2 restarts us cleanly with the saved session.
   const withTimeout = <T>(p: Promise<T>, ms: number): Promise<T> =>
     Promise.race([
       p,
@@ -214,7 +226,13 @@ async function main(): Promise<void> {
   let watchdogFails = 0;
   setInterval(async () => {
     try {
-      await withTimeout(client.invoke(new Api.updates.GetState()), 15_000);
+      const st: any = await withTimeout(client.invoke(new Api.updates.GetState()), 15_000);
+      // Validation line: pairs the server update counter (pts) with how many
+      // updates we actually received. pts climbing while updates stay 0 over
+      // several ticks is the dead-update-stream signature.
+      const sinceUpdate = Math.round((Date.now() - lastUpdateAt) / 1000);
+      console.log(`[telegram] Liveness OK: GetState pts=${st?.pts} qts=${st?.qts}, raw updates last 60s=${rawUpdatesSinceTick}, last update ${sinceUpdate}s ago`);
+      rawUpdatesSinceTick = 0;
       if (watchdogFails > 0) console.log("[telegram] Liveness recovered");
       watchdogFails = 0;
     } catch (err) {
@@ -224,10 +242,10 @@ async function main(): Promise<void> {
       try {
         await client.connect();
         await withTimeout(client.invoke(new Api.updates.GetState()), 15_000);
-        console.log("[telegram] Reconnected — updates flowing again");
+        console.log("[telegram] Reconnected, updates flowing again");
         watchdogFails = 0;
       } catch (reErr) {
-        console.error(`[telegram] Connection dead, reconnect failed — exiting for pm2 restart: ${reErr instanceof Error ? reErr.message : reErr}`);
+        console.error(`[telegram] Connection dead, reconnect failed, exiting for pm2 restart: ${reErr instanceof Error ? reErr.message : reErr}`);
         process.exit(1);
       }
     }
