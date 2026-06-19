@@ -159,13 +159,14 @@ async function main(): Promise<void> {
   saveSession(session);
   console.log("[telegram] Connected and authenticated");
 
-  // Resolve the channel entity from its username and capture its marked peer id.
-  // We filter messages manually against this id rather than handing the entity to
-  // NewMessage({ chats }): gramJS resolves that filter lazily and stringifies the
-  // entity to "[object Object]", which it then fails to look up.
+  // Resolve the channel once. We keep both the entity (for direct polling) and
+  // its marked peer id (to match incoming push updates). We match messages
+  // manually rather than via NewMessage({ chats }), which gramJS resolves lazily
+  // and mishandles (it stringifies the entity to "[object Object]").
+  let channel: Api.TypeEntityLike;
   let targetPeerId: string;
   try {
-    const channel = await resolveChannel(client, config.channelUsername);
+    channel = await resolveChannel(client, config.channelUsername);
     targetPeerId = utils.getPeerId(channel);
     const title = (channel as { title?: string }).title || config.channelUsername;
     console.log(`[telegram] Listening to channel: ${title} (peer ${targetPeerId})`);
@@ -174,29 +175,66 @@ async function main(): Promise<void> {
     throw err;
   }
 
+  // Messages reach us two ways, both feeding this one handler (deduped by message
+  // id so nothing is processed twice):
+  //  - push updates: instant, but a single channel's push stream can silently
+  //    desync and stop while the rest of the account keeps flowing.
+  //  - polling: slower but reliable; the safety net for the above.
+  const seen = new Set<number>();
+  const handleMessage = async (id: number, text: string, source: string): Promise<void> => {
+    if (id && seen.has(id)) return;
+    if (id) seen.add(id);
+    console.log(`[channel] Message (${source}, id ${id}): ${JSON.stringify(text)}`);
+    const signal = parser.processMessage(text);
+    if (signal) {
+      console.log("[signal] Complete signal extracted:", signal);
+      await sendSignal(signal, config.webhookUrl);
+    }
+  };
+
+  // Push path: instant delivery while the channel's update stream is healthy.
   client.addEventHandler(async (event: NewMessageEvent) => {
     try {
       const chatId = event.message?.chatId?.toString();
-      const text = event.message?.message ?? "";
-
-      // The account receives updates from every chat it belongs to (MTProto has
-      // no per-channel subscription), so ignore anything that isn't the target
-      // channel before doing anything else — including logging.
       if (!chatId || chatId !== targetPeerId) return;
-
-      // Log only target-channel messages, so the log reflects what we actually act on.
-      console.log(`[channel] Message: ${JSON.stringify(text)}`);
-
-      const signal = parser.processMessage(text);
-      if (signal) {
-        console.log("[signal] Complete signal extracted:", signal);
-        await sendSignal(signal, config.webhookUrl);
-      }
+      await handleMessage(event.message!.id, event.message!.message ?? "", "push");
     } catch (err) {
       // A single bad message must never take the process down.
-      console.error("[message] Error handling message (skipped):", err);
+      console.error("[message] Error handling push message (skipped):", err);
     }
   }, new NewMessage({}));
+
+  // Poll path: the reliable safety net. Seed with the current latest ids so we do
+  // not replay history, then every 15s fetch recent messages and process any new
+  // ones. This catches signals the push stream misses when the channel's update
+  // sequence desyncs (observed: account updates flowing but this channel went
+  // silent). Reading also nudges gramJS to resync the channel.
+  try {
+    const seed = await client.getMessages(channel, { limit: 25 });
+    for (const m of seed) seen.add(m.id);
+    console.log(`[poll] Seeded ${seed.length} recent message id(s); polling every 15s`);
+  } catch (err) {
+    console.warn(`[poll] Seed failed (will still poll): ${err instanceof Error ? err.message : err}`);
+  }
+
+  setInterval(async () => {
+    try {
+      const msgs = await client.getMessages(channel, { limit: 25 });
+      const fresh = msgs.filter((m) => !seen.has(m.id)).sort((a, b) => a.id - b.id);
+      for (const m of fresh) {
+        console.log(`[poll] Found a message the push stream missed (id ${m.id})`);
+        await handleMessage(m.id, m.message ?? "", "poll");
+      }
+      // Bound the dedupe set: keep only the most recent ids.
+      if (seen.size > 1000) {
+        const top = [...seen].sort((a, b) => b - a).slice(0, 500);
+        seen.clear();
+        for (const id of top) seen.add(id);
+      }
+    } catch (err) {
+      console.warn(`[poll] Fetch failed: ${err instanceof Error ? err.message : err}`);
+    }
+  }, 15_000);
 
   // VALIDATION INSTRUMENTATION (diagnosing missed signals after a gramJS
   // reconnect). Count EVERY raw update the client receives, regardless of chat.

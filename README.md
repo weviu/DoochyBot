@@ -1,8 +1,12 @@
 # DoochyBot
 
-Telegram-controlled cTrader auto-trader driven by an RSI signal feed. Trades a **demo** Spotware (cTrader Open API) account.
+Telegram-controlled cTrader auto-trader. It takes trade signals, runs them through a risk gate, and places orders on a **demo** Spotware (cTrader Open API) account.
 
-Flow: `signal feed → poller → parser → risk gate → order execution → SL/TP amend`
+**Signal sources (both feed into the same risk gate and order flow):**
+- An RSI signal feed, polled automatically.
+- A Telegram channel listener (runs as a separate process) that reads signals from the SureShot Gold channel and forwards them in.
+
+New here? Send `/guide` in Telegram for a step-by-step setup.
 
 ---
 
@@ -18,18 +22,38 @@ pnpm install
 
 ```bash
 pnpm dev      # tsx, live from src/ (local development)
-pnpm build    # tsc → dist/
+pnpm build    # tsc, builds to dist/
 pnpm start    # node dist/index.js
 ```
 
-### Deploy & gotchas (read me, future self)
+### Deploy and gotchas (read me, future self)
 
-- **pm2 runs the compiled `dist/`** (process id `0`). After any `src/` change you MUST:
+- **pm2 runs the compiled `dist/`.** After any code change you MUST rebuild before restarting:
   ```bash
-  pnpm build && pm2 restart 0
+  pnpm build && pm2 restart doochybot
   ```
-- **Demo account ⇒ demo host.** The configured account is demo (`isLive: false`, check via `node scripts/lookup-account-id.js`). If `CTRADER_HOST` is `live.ctraderapi.com`, app auth still succeeds but `ProtoOAAccountAuthReq` fails with `CANT_ROUTE_REQUEST` and the bot crash-loops. Keep it `demo.ctraderapi.com`. Going live needs real live credentials, not just a host change.
-- **Clean single boot trace** (the crash-loop spam hides errors): `pm2 stop 0` then `node dist/index.js`.
+- **The channel listener is a separate process** with its own folder and build:
+  ```bash
+  cd channel-listener && pnpm build && pm2 restart channel-listener
+  ```
+- **Demo account means demo host.** The configured account is demo. If `CTRADER_HOST` is `live.ctraderapi.com`, app auth still succeeds but account auth fails with `CANT_ROUTE_REQUEST` and the bot crash-loops. Keep it `demo.ctraderapi.com`. Going live needs real live credentials, not just a host change.
+
+---
+
+## Getting started
+
+The bot will not place any trade until you set a per-trade risk. The quickest path:
+
+```
+/risk pertrade 50      # max $ you lose if a trade's stop is hit
+/risk sl 0.5           # where the stop sits, as % from entry
+/risk tp 0.75          # where the target sits, as % from entry
+/symbols add XAUUSD    # choose what to trade
+/resume                # make sure trading is active
+/status                # confirm everything looks right
+```
+
+Send `/guide` any time for the full walkthrough.
 
 ---
 
@@ -41,6 +65,7 @@ Only `ALLOWED_USERS` may issue commands.
 
 | Command | Description |
 |---------|-------------|
+| `/guide` | Step-by-step setup walkthrough |
 | `/pause` | Stop executing signals |
 | `/resume` | Resume executing signals |
 | `/closeall` | Close all open positions immediately |
@@ -49,25 +74,23 @@ Only `ALLOWED_USERS` may issue commands.
 
 | Command | Description |
 |---------|-------------|
-| `/symbols` | List allowed symbols with per-symbol lot sizes |
+| `/symbols` | List allowed symbols |
 | `/symbols add <SYM>` | Add a symbol to the allowed list |
-| `/symbols add all` | Add all feed symbols with confidence ≥ 3 |
+| `/symbols add all` | Add all feed symbols with confidence at least 3 |
 | `/symbols remove <SYM>` | Remove a symbol |
 | `/symbols reset` | Restore default list (`BTCUSD, XAUUSD, XAGUSD`) |
-| `/symbols <SYM> <lots>` | Set per-symbol lot size override |
 
-### Risk settings
+### Risk and sizing
 
 | Command | Description |
 |---------|-------------|
-| `/risk lotsize <lots>` | Default lot size (default `0.01`) |
-| `/risk sl <pct>` | Stop loss % of entry (default `0.5`) |
-| `/risk tp <pct>` | Take profit % of entry (default `0.75`) |
-| `/risk maxpos <n>` | Max concurrent open positions (default `3`) |
-| `/risk daily <pct>` | Daily loss limit % (default `2`) |
-| `/risk maxloss <usd>` | Max daily loss $ (default `200`) |
-| `/risk cap <usd>` | **Daily profit cap:** force-closes all positions & blocks new signals once realized + floating P&L reaches this value. `0` = off. |
-| `/risk capbuffer <usd>` | Trigger force-close at `cap − buffer` so a sub-second price move can't carry realized over the cap. Recommended: 5–10% of cap. |
+| `/risk pertrade <usd>` | Max $ you lose if a trade's stop is hit. The bot sizes each trade to match. Required to trade (`0` = trading off). |
+| `/risk sl <pct>` | Where the stop sits, as % from entry (default `0.5`). Also drives trade size together with pertrade. |
+| `/risk tp <pct>` | Where the target sits, as % from entry (default `0.75`). |
+| `/risk maxpos <n>` | Max concurrent open positions (default `3`). |
+| `/risk maxloss <usd>` | Daily loss limit in $; force-closes everything and stops for the day (default `200`). |
+| `/risk cap <usd>` | Daily profit cap: force-closes all positions and blocks new signals once realized + floating P&L reaches this value. `0` = off. |
+| `/risk capbuffer <usd>` | Trigger the cap this many $ early so a sub-second price move cannot carry you past it. Recommended: 5 to 10% of the cap. |
 | `/risk losses <n>` | SL hits on one symbol within the window that trigger a cooldown. `0` = off (default `3`). |
 | `/risk losswindow <min>` | Rolling window for counting SL hits (default `60`). |
 | `/risk cooldown <min>` | How long a symbol is paused after the streak (default `120`). |
@@ -77,8 +100,7 @@ Only `ALLOWED_USERS` may issue commands.
 
 | Command | Description |
 |---------|-------------|
-| `/status` | Connection health, balance, trading state, realized + floating P&L, profit cap progress, trend filter, cooldowns |
-| `/balance` | Account balance |
+| `/status` | Connection health, balance, trading state, realized + floating P&L, profit cap progress, sizing, cooldowns |
 | `/positions` | Open positions: direction, symbol, lots, entry, mark price, SL, TP, P&L |
 | `/cooldown` | List symbols currently in cooldown with time remaining |
 | `/cooldown reset [sym]` | Clear a symbol's cooldown, or all cooldowns |
@@ -98,46 +120,25 @@ Only `ALLOWED_USERS` may issue commands.
 
 ---
 
-## Architecture
+## How it works
 
-### Signal flow
+### Sizing
 
-```
-HTTP poll (signals.route07.com)
-  → ParsedSignal
-  → risk/gate.ts
-      1. Paused?
-      2. Allowed symbol?
-      3. Consecutive-loss cooldown
-      5. Max positions
-      6. One position per symbol
-      7. Confidence flip check (opposite direction)
-      8. Daily limits (realized + floating)
-  → ctrader/orders.ts → ProtoOANewOrderReq
-  → ctrader/amend.ts  → ProtoOAAmendPositionSLTPReq (SL immediately, TP after minhold)
-```
+Trade size is risk-based. You set `pertrade` (the dollars you are willing to lose if the stop is hit) and `sl` (how far the stop sits from entry). The bot then picks the position size so that hitting the stop loses about that many dollars, whatever the symbol or price. A tighter stop means a bigger position; a wider stop means a smaller one. There is no fixed lot size: if `pertrade` is `0`, the bot does not trade.
 
-### Daily profit cap (prop-firm safe)
+### What happens to a signal
 
-The cap has three enforcement layers, in order of reaction speed:
+Every signal, from either source, goes through the same checks before an order is placed: trading not paused, symbol allowed, no active cooldown on it, under the max-positions limit, not a duplicate of a position already open, and within the daily limits. If it passes, the order goes in and the stop loss and take profit are attached (the take profit is set after the min-hold delay).
 
-1. **1s monitor** (`risk/capMonitor.ts`) — polls live realized + floating P&L. Force-closes all positions within ~1s of breach. Primary enforcement.
-2. **Broker-side cap TP** — each position gets a TP at `(remaining headroom ÷ open-position count) / units` above/below entry. Protects against the bot being down; the broker executes it instantly even on a spike.
-3. **Gate check** — blocks new signals once daily limits are breached.
+### Daily profit cap
 
-Set a `capbuffer` to absorb sub-second slippage. For a prop-firm 40% best-day rule on a $1000 target ($400 cap), recommended config:
+Optional, for prop-firm-style profit targets. Once your realized + floating profit reaches the cap, the bot force-closes all positions and stops taking new signals for the rest of the day. It reacts within about a second, and also places a backup target at the broker in case the bot itself is down. Set a small `capbuffer` so a sudden spike cannot carry you past the cap.
+
+Example for a $400 cap:
 ```
 /risk cap 400
 /risk capbuffer 20
 ```
-
-### Live price feed
-
-Floating P&L uses cTrader's `ProtoOASpotEvent` stream (persistent spot subscription per open symbol). This is the same price source the broker's "Net USD" column uses. The HTTP signal feed is **not** used for P&L — it only updates prices when an RSI alert fires for that specific symbol.
-
-### Position tracking
-
-All open positions are stored in `state.positions: Map<number, Position>` (keyed by numeric positionId). On restart, `reconcilePositions()` rehydrates from the broker so the bot can manage positions it didn't open this session.
 
 ---
 
