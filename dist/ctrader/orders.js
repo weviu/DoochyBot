@@ -10,6 +10,7 @@ const state_1 = require("../state");
 const amend_1 = require("./amend");
 const dailyLoss_1 = require("../risk/dailyLoss");
 const cooldown_1 = require("../risk/cooldown");
+const reentryCooldown_1 = require("../risk/reentryCooldown");
 const livePrices_1 = require("./livePrices");
 let connection = null;
 function getConnection() { return connection; }
@@ -42,6 +43,12 @@ function setConnection(conn) {
             const viaStopOrder = ord?.isStopOut || ord?.orderType === "STOP_LOSS_TAKE_PROFIT";
             if (tracked && viaStopOrder && net < 0) {
                 (0, cooldown_1.recordStopLoss)(tracked.symbol);
+            }
+            // Re-entry cooldown: ANY losing close (SL, stop-out, manual, forced) blocks
+            // reopening the same symbol+direction for the configured window. Wins
+            // (net >= 0) never trigger it.
+            if (tracked && net < 0) {
+                (0, reentryCooldown_1.recordLoss)(tracked.symbol, tracked.direction);
             }
             if (state_1.state.positions.delete(positionId)) {
                 console.log(`[POSITIONS] Closed #${positionId}. Open now: ${state_1.state.positions.size}`);

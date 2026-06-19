@@ -93,6 +93,32 @@ async function riskCmd(ctx) {
         await ctx.reply(`Per-symbol cooldown set to ${min} minutes.`);
         return;
     }
+    if (setting === "reentry" && parts[2] !== undefined) {
+        const min = parseInt(parts[2]);
+        if (isNaN(min) || min < 0 || min > 1440) {
+            await ctx.reply("Re-entry cooldown must be between 0 and 1440 minutes (0 = off).");
+            return;
+        }
+        state_1.state.settings.reentryCooldownMinutes = min;
+        (0, state_1.persistSettings)();
+        await ctx.reply(min === 0
+            ? "Re-entry cooldown disabled."
+            : `Re-entry cooldown set to ${min} minutes (blocks reopening the same symbol+direction after a loss).`);
+        return;
+    }
+    if (setting === "combined" && parts[2] !== undefined) {
+        const usd = parseFloat(parts[2]);
+        if (isNaN(usd) || usd < 0 || usd > 100000) {
+            await ctx.reply("Combined risk limit must be between 0 and 100000 USD (0 = off).");
+            return;
+        }
+        state_1.state.settings.maxCombinedRiskUSD = usd;
+        (0, state_1.persistSettings)();
+        await ctx.reply(usd === 0
+            ? "Combined risk limit disabled."
+            : `Combined risk limit set to $${usd} (max summed risk across all positions of the same symbol+direction).`);
+        return;
+    }
     // "pertrade" is the documented name; "risk" kept as a silent alias so older
     // muscle memory still works.
     if ((setting === "pertrade" || setting === "risk") && parts[2]) {
@@ -130,6 +156,6 @@ async function riskCmd(ctx) {
         await ctx.reply(`Take profit set to ${pct}% of entry.`);
         return;
     }
-    await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk sl <pct> | /risk tp <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min>");
+    await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk sl <pct> | /risk tp <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk reentry <min> | /risk combined <usd>");
 }
 //# sourceMappingURL=risk.js.map

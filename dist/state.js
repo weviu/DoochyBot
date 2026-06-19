@@ -17,6 +17,8 @@ exports.DEFAULT_SETTINGS = {
     maxConsecutiveLosses: 3,
     lossWindowMinutes: 60,
     cooldownMinutes: 120,
+    reentryCooldownMinutes: 10,
+    maxCombinedRiskUSD: 0,
 };
 exports.state = {
     paused: false,
@@ -29,6 +31,7 @@ exports.state = {
     lastSignalTime: new Map(),
     accountInfo: { balance: 0, equity: 0, currency: "USD" },
     symbolMap: new Map(),
+    lossReentry: new Map(),
 };
 function initSettings() {
     const saved = (0, storage_1.loadSettings)();
@@ -57,6 +60,10 @@ function initSettings() {
             exports.state.settings.lossWindowMinutes = saved.lossWindowMinutes;
         if (saved.cooldownMinutes !== undefined)
             exports.state.settings.cooldownMinutes = saved.cooldownMinutes;
+        if (saved.reentryCooldownMinutes !== undefined)
+            exports.state.settings.reentryCooldownMinutes = saved.reentryCooldownMinutes;
+        if (saved.maxCombinedRiskUSD !== undefined)
+            exports.state.settings.maxCombinedRiskUSD = saved.maxCombinedRiskUSD;
         console.log("[STATE] Loaded saved settings. Allowed symbols:", exports.state.settings.allowedSymbols.length);
     }
 }
@@ -74,6 +81,8 @@ function persistSettings() {
         maxConsecutiveLosses: exports.state.settings.maxConsecutiveLosses,
         lossWindowMinutes: exports.state.settings.lossWindowMinutes,
         cooldownMinutes: exports.state.settings.cooldownMinutes,
+        reentryCooldownMinutes: exports.state.settings.reentryCooldownMinutes,
+        maxCombinedRiskUSD: exports.state.settings.maxCombinedRiskUSD,
     });
 }
 //# sourceMappingURL=state.js.map

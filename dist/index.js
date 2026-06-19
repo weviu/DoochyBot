@@ -145,11 +145,13 @@ async function startBot() {
             "/risk cap <usd>: daily profit cap (0 = off)\n" +
             "/risk capbuffer <usd>: trigger cap this many $ early\n" +
             "/risk maxpos <n>: max concurrent positions\n" +
+            "/risk combined <usd>: max summed risk across same symbol+direction positions (0 = off)\n" +
             "\n" +
             "• COOLDOWN (per symbol loss streak)\n" +
             "/risk losses <n>: SL hits before cooldown (0 = off)\n" +
             "/risk losswindow <min>: window to count hits\n" +
             "/risk cooldown <min>: pause length\n" +
+            "/risk reentry <min>: after a losing close, block reopening the same symbol+direction this long (0 = off)\n" +
             "/cooldown: list cooled down symbols\n" +
             "/cooldown reset [sym]: clear a cooldown (or all)\n" +
             "\n" +

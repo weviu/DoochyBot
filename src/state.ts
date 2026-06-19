@@ -34,6 +34,8 @@ export interface BotSettings {
   maxConsecutiveLosses: number; // SL hits on one symbol within the window that trigger a cooldown; 0 = disabled
   lossWindowMinutes: number; // window over which SL hits are counted
   cooldownMinutes: number; // how long a symbol stays paused after the streak triggers
+  reentryCooldownMinutes: number; // after ANY losing close, block re-entry on the same symbol+direction for this long (prop-firm same-trade-idea rule); 0 = disabled
+  maxCombinedRiskUSD: number; // max summed potential loss across all open positions of the same symbol+direction (prop-firm per-trade-idea limit); 0 = disabled
 }
 
 export interface BotState {
@@ -47,6 +49,7 @@ export interface BotState {
   lastSignalTime: Map<string, number>;
   accountInfo: AccountInfo;
   symbolMap: Map<string, number>;
+  lossReentry: Map<string, number>; // "SYMBOL:DIRECTION" -> epoch ms of the losing close, for the re-entry cooldown
 }
 
 export const DEFAULT_SETTINGS: BotSettings = {
@@ -62,6 +65,8 @@ export const DEFAULT_SETTINGS: BotSettings = {
   maxConsecutiveLosses: 3,
   lossWindowMinutes: 60,
   cooldownMinutes: 120,
+  reentryCooldownMinutes: 10,
+  maxCombinedRiskUSD: 0,
 };
 
 export const state: BotState = {
@@ -75,6 +80,7 @@ export const state: BotState = {
   lastSignalTime: new Map(),
   accountInfo: { balance: 0, equity: 0, currency: "USD" },
   symbolMap: new Map(),
+  lossReentry: new Map(),
 };
 
 export interface AccountInfo {
@@ -98,6 +104,8 @@ export function initSettings(): void {
     if (saved.maxConsecutiveLosses !== undefined) state.settings.maxConsecutiveLosses = saved.maxConsecutiveLosses;
     if (saved.lossWindowMinutes !== undefined) state.settings.lossWindowMinutes = saved.lossWindowMinutes;
     if (saved.cooldownMinutes !== undefined) state.settings.cooldownMinutes = saved.cooldownMinutes;
+    if (saved.reentryCooldownMinutes !== undefined) state.settings.reentryCooldownMinutes = saved.reentryCooldownMinutes;
+    if (saved.maxCombinedRiskUSD !== undefined) state.settings.maxCombinedRiskUSD = saved.maxCombinedRiskUSD;
     console.log("[STATE] Loaded saved settings. Allowed symbols:", state.settings.allowedSymbols.length);
   }
 }
@@ -116,6 +124,8 @@ export function persistSettings(): void {
     maxConsecutiveLosses: state.settings.maxConsecutiveLosses,
     lossWindowMinutes: state.settings.lossWindowMinutes,
     cooldownMinutes: state.settings.cooldownMinutes,
+    reentryCooldownMinutes: state.settings.reentryCooldownMinutes,
+    maxCombinedRiskUSD: state.settings.maxCombinedRiskUSD,
   });
 }
 

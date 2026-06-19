@@ -4,6 +4,7 @@ import { ParsedSignal } from "../signals/types";
 import { amendPositionSLTP } from "./amend";
 import { updateDailyPnL } from "../risk/dailyLoss";
 import { recordStopLoss } from "../risk/cooldown";
+import { recordLoss } from "../risk/reentryCooldown";
 import { subscribeSpots, getMarkPrice } from "./livePrices";
 
 let connection: any = null;
@@ -40,6 +41,13 @@ export function setConnection(conn: any): void {
       const viaStopOrder = ord?.isStopOut || ord?.orderType === "STOP_LOSS_TAKE_PROFIT";
       if (tracked && viaStopOrder && net < 0) {
         recordStopLoss(tracked.symbol);
+      }
+
+      // Re-entry cooldown: ANY losing close (SL, stop-out, manual, forced) blocks
+      // reopening the same symbol+direction for the configured window. Wins
+      // (net >= 0) never trigger it.
+      if (tracked && net < 0) {
+        recordLoss(tracked.symbol, tracked.direction);
       }
 
       if (state.positions.delete(positionId)) {

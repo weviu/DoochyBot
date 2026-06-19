@@ -2,6 +2,8 @@ import { state, Position } from "../state";
 import { ParsedSignal } from "../signals/types";
 import { isLocked, evaluateDailyLimits } from "./dailyLoss";
 import { getCooldown } from "./cooldown";
+import { getReentryCooldown, formatRemaining } from "./reentryCooldown";
+import { existingCombinedRisk } from "./combinedRisk";
 import { executeSignal } from "../ctrader/orders";
 import { executeReversal } from "./reversal";
 
@@ -18,6 +20,36 @@ export function processSignal(signal: ParsedSignal): GateResult {
   if (state.paused) {
     console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - Trading paused`);
     return { accepted: false, reason: "Trading paused" };
+  }
+
+  // Check 1b: Re-entry cooldown after a loss (prop-firm same-trade-idea rule).
+  // A losing close blocks re-entry on the SAME symbol+direction for a window.
+  // Checked early so blocked signals are rejected quickly. Opposite direction
+  // and wins are unaffected.
+  const reentryMs = getReentryCooldown(signal.symbol, signal.direction);
+  if (reentryMs !== null) {
+    const reason = `Cooldown active: ${formatRemaining(reentryMs)} remaining`;
+    console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - ${reason}`);
+    return { accepted: false, reason };
+  }
+
+  // Check 1c: Combined per-trade-idea risk (prop-firm limit). Sum the potential
+  // loss of all open positions of the same symbol+direction; if adding this
+  // signal would push the total over the limit, reject. The new signal will be
+  // sized to ~riskPerTradeUSD, so that is its estimated risk. Opposite direction
+  // is a separate trade idea. Skipped when the limit is 0.
+  const maxCombined = state.settings.maxCombinedRiskUSD;
+  if (maxCombined > 0) {
+    const newRisk = state.settings.riskPerTradeUSD;
+    const { existingSum, positions } = existingCombinedRisk(signal.symbol, signal.direction, newRisk);
+    const wouldBe = existingSum + newRisk;
+    if (wouldBe > maxCombined) {
+      const reason = `Combined risk limit exceeded: existing $${existingSum.toFixed(2)} + new $${newRisk.toFixed(2)} = $${wouldBe.toFixed(2)} (max $${maxCombined})`;
+      console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - ${reason}`);
+      const perPos = positions.map((p, i) => `pos${i + 1} $${p.potentialLoss.toFixed(2)}${p.hasSL ? "" : " (no SL, est)"}`).join(", ") || "none";
+      console.log(`[GATE]   combined-risk breakdown: [${perPos}], total existing $${existingSum.toFixed(2)}, new $${newRisk.toFixed(2)}, would-be $${wouldBe.toFixed(2)} (max $${maxCombined})`);
+      return { accepted: false, reason };
+    }
   }
 
   // Check 2: Symbol on the allowed list?
