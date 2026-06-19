@@ -13,6 +13,7 @@ import { closeallCmd } from "./bot/commands/closeall";
 import { exportCmd, setExportConnection } from "./bot/commands/export";
 import { statusCmd, setStatusConnection } from "./bot/commands/status";
 import { settingsCmd } from "./bot/commands/settings";
+import { notificationsCmd } from "./bot/commands/notifications";
 import { cooldownCmd } from "./bot/commands/cooldown";
 import { positionsCmd } from "./bot/commands/positions";
 import { fetchAccountInfo, fetchTodayRealizedPnL } from "./ctrader/account";
@@ -172,6 +173,7 @@ bot.command("help", async (ctx) => {
     "• POSITIONS & INFO\n" +
     "/status: connection, P&L, limits, sizing, cooldowns\n" +
     "/settings: show all your configured settings\n" +
+    "/notifications on|off: message me when an order fills\n" +
     "/positions: open positions: entry, mark, SL, TP, P&L\n" +
     "/closeall: close all open positions\n" +
     "\n" +
@@ -190,6 +192,7 @@ bot.command("help", async (ctx) => {
   bot.command("export", exportCmd);
   bot.command("status", statusCmd);
   bot.command("settings", settingsCmd);
+  bot.command("notifications", notificationsCmd);
   bot.command("cooldown", cooldownCmd);
   bot.command("positions", positionsCmd);
   bot.start({

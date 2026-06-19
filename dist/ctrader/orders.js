@@ -12,6 +12,24 @@ const dailyLoss_1 = require("../risk/dailyLoss");
 const cooldown_1 = require("../risk/cooldown");
 const reentryCooldown_1 = require("../risk/reentryCooldown");
 const livePrices_1 = require("./livePrices");
+const notify_1 = require("../bot/notify");
+// Send a Telegram message when an order fills (toggled by /notifications). SL/TP
+// are the values being applied: explicit channel levels when supplied, otherwise
+// derived from the configured percentages, the same way the amend will set them.
+function notifyFill(kind, signal, lots, entry, positionId, sl, tp) {
+    if (!state_1.state.settings.notifyFills)
+        return;
+    const slPct = state_1.state.settings.stopLossPercent;
+    const tpPct = state_1.state.settings.takeProfitPercent;
+    const slP = sl ?? signal.sl ?? (signal.direction === "BUY" ? entry * (1 - slPct / 100) : entry * (1 + slPct / 100));
+    const tpP = tp ?? signal.tp ?? (signal.direction === "BUY" ? entry * (1 + tpPct / 100) : entry * (1 - tpPct / 100));
+    const digits = (entry.toString().split(".")[1] || "").length || 2;
+    const f = (n) => n.toFixed(digits);
+    (0, notify_1.notify)(`${kind}\n` +
+        `${signal.direction} ${signal.symbol} ${lots.toFixed(2)} lots @ ${entry}\n` +
+        `SL ${f(slP)}  TP ${f(tpP)}\n` +
+        `Risk ~$${state_1.state.settings.riskPerTradeUSD}  Position #${positionId}`);
+}
 let connection = null;
 function getConnection() { return connection; }
 function setConnection(conn) {
@@ -346,6 +364,7 @@ async function executeSignal(signal) {
                         confidence: signal.confidence,
                     });
                     console.log(`[ORDER] Filled: ${signal.direction} ${lots} lots ${signal.symbol} @ ${entryPrice} | Position #${positionId}`);
+                    notifyFill("Order filled", signal, lots, entryPrice, positionId);
                     // Stream live prices for this symbol so floating P&L / cap stay accurate.
                     (0, livePrices_1.subscribeSpots)([symbolId]);
                     (0, amend_1.amendPositionSLTP)(positionId, signal.symbol, entryPrice, signal.direction, {
@@ -471,6 +490,7 @@ async function placeLimitOrder(signal, symbolId, orderVolume, lots, label) {
                 connection.removeEventListener(fillListenerId);
                 state_1.state.pendingOrders.delete(label);
                 console.log(`[ORDER] Limit filled: ${signal.direction} ${lots} lots ${signal.symbol} @ ${entryPrice} | Position #${positionId}`);
+                notifyFill("Limit order filled", signal, lots, entryPrice, positionId, sl, tp);
                 // A limit through the market can fill instantly without a separate
                 // ORDER_ACCEPTED first — settle the placement wait here too.
                 if (!settled) {

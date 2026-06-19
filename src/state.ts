@@ -36,6 +36,7 @@ export interface BotSettings {
   cooldownMinutes: number; // how long a symbol stays paused after the streak triggers
   reentryCooldownMinutes: number; // after ANY losing close, block re-entry on the same symbol+direction for this long (prop-firm same-trade-idea rule); 0 = disabled
   maxCombinedRiskUSD: number; // max summed potential loss across all open positions of the same symbol+direction (prop-firm per-trade-idea limit); 0 = disabled
+  notifyFills: boolean; // send a Telegram message whenever an order fills
 }
 
 export interface BotState {
@@ -68,6 +69,7 @@ export const DEFAULT_SETTINGS: BotSettings = {
   cooldownMinutes: 120,
   reentryCooldownMinutes: 10,
   maxCombinedRiskUSD: 0,
+  notifyFills: true,
 };
 
 export const state: BotState = {
@@ -108,6 +110,7 @@ export function initSettings(): void {
     if (saved.cooldownMinutes !== undefined) state.settings.cooldownMinutes = saved.cooldownMinutes;
     if (saved.reentryCooldownMinutes !== undefined) state.settings.reentryCooldownMinutes = saved.reentryCooldownMinutes;
     if (saved.maxCombinedRiskUSD !== undefined) state.settings.maxCombinedRiskUSD = saved.maxCombinedRiskUSD;
+    if (saved.notifyFills !== undefined) state.settings.notifyFills = saved.notifyFills;
     console.log("[STATE] Loaded saved settings. Allowed symbols:", state.settings.allowedSymbols.length);
 
     // Restore runtime state (active cooldowns and the trading lock) so a restart
@@ -168,6 +171,7 @@ function persistAll(): void {
     cooldownMinutes: state.settings.cooldownMinutes,
     reentryCooldownMinutes: state.settings.reentryCooldownMinutes,
     maxCombinedRiskUSD: state.settings.maxCombinedRiskUSD,
+    notifyFills: state.settings.notifyFills,
     runtime: {
       tradingLocked: state.tradingLocked,
       lockDay: state.tradingLocked ? todayUTC() : null,

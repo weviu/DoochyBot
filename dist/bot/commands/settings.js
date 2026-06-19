@@ -28,6 +28,8 @@ async function settingsCmd(ctx) {
         "Cooldowns",
         `Consecutive-loss: ${s.maxConsecutiveLosses > 0 ? `${s.maxConsecutiveLosses} SL hits / ${s.lossWindowMinutes}m window -> ${s.cooldownMinutes}m pause` : off}`,
         `Re-entry after a loss: ${s.reentryCooldownMinutes > 0 ? `${s.reentryCooldownMinutes}m` : off}`,
+        "",
+        `Order notifications: ${s.notifyFills ? "on" : "off"}`,
     ];
     await ctx.reply(lines.join("\n"));
 }

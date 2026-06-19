@@ -21,6 +21,7 @@ exports.DEFAULT_SETTINGS = {
     cooldownMinutes: 120,
     reentryCooldownMinutes: 10,
     maxCombinedRiskUSD: 0,
+    notifyFills: true,
 };
 exports.state = {
     paused: false,
@@ -67,6 +68,8 @@ function initSettings() {
             exports.state.settings.reentryCooldownMinutes = saved.reentryCooldownMinutes;
         if (saved.maxCombinedRiskUSD !== undefined)
             exports.state.settings.maxCombinedRiskUSD = saved.maxCombinedRiskUSD;
+        if (saved.notifyFills !== undefined)
+            exports.state.settings.notifyFills = saved.notifyFills;
         console.log("[STATE] Loaded saved settings. Allowed symbols:", exports.state.settings.allowedSymbols.length);
         // Restore runtime state (active cooldowns and the trading lock) so a restart
         // does not silently clear a prop-rule cooldown or a daily-limit lock. Each is
@@ -119,6 +122,7 @@ function persistAll() {
         cooldownMinutes: exports.state.settings.cooldownMinutes,
         reentryCooldownMinutes: exports.state.settings.reentryCooldownMinutes,
         maxCombinedRiskUSD: exports.state.settings.maxCombinedRiskUSD,
+        notifyFills: exports.state.settings.notifyFills,
         runtime: {
             tradingLocked: exports.state.tradingLocked,
             lockDay: exports.state.tradingLocked ? todayUTC() : null,

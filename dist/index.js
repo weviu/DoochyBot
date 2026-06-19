@@ -18,6 +18,7 @@ const closeall_1 = require("./bot/commands/closeall");
 const export_1 = require("./bot/commands/export");
 const status_1 = require("./bot/commands/status");
 const settings_1 = require("./bot/commands/settings");
+const notifications_1 = require("./bot/commands/notifications");
 const cooldown_1 = require("./bot/commands/cooldown");
 const positions_1 = require("./bot/commands/positions");
 const account_1 = require("./ctrader/account");
@@ -160,6 +161,7 @@ async function startBot() {
             "• POSITIONS & INFO\n" +
             "/status: connection, P&L, limits, sizing, cooldowns\n" +
             "/settings: show all your configured settings\n" +
+            "/notifications on|off: message me when an order fills\n" +
             "/positions: open positions: entry, mark, SL, TP, P&L\n" +
             "/closeall: close all open positions\n" +
             "\n" +
@@ -176,6 +178,7 @@ async function startBot() {
     bot.command("export", export_1.exportCmd);
     bot.command("status", status_1.statusCmd);
     bot.command("settings", settings_1.settingsCmd);
+    bot.command("notifications", notifications_1.notificationsCmd);
     bot.command("cooldown", cooldown_1.cooldownCmd);
     bot.command("positions", positions_1.positionsCmd);
     bot.start({
