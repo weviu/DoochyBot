@@ -1,4 +1,4 @@
-import { state } from "../state";
+import { state, setTradingLock } from "../state";
 import { floatingPnL, maxLossUSD } from "./dailyLoss";
 import { closeAllPositions } from "./midnightClose";
 import { subscribeOpenPositions, hasLiveQuote } from "../ctrader/livePrices";
@@ -58,7 +58,7 @@ export function startLossMonitor(): void {
     // Lock BEFORE the closes land. The closing deals fire updateDailyPnL ->
     // evaluateDailyLimits(true), which would otherwise also announce the breach;
     // locking first makes that path see we're already locked and stay quiet.
-    state.tradingLocked = true;
+    setTradingLock(true);
     const count = state.positions.size;
     console.log(`[LOSS] Breach: realized ${state.dailyRealizedPnL.toFixed(2)} + floating ${floating.toFixed(2)} = ${total.toFixed(2)} <= -${limit.toFixed(2)}. Force-closing ${count} position(s).`);
     try {

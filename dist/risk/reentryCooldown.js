@@ -24,6 +24,7 @@ function key(symbol, direction) {
 // Record a losing close. Stores the close time, keyed by symbol+direction.
 function recordLoss(symbol, direction, time = Date.now()) {
     state_1.state.lossReentry.set(key(symbol, direction), time);
+    (0, state_1.persistRuntime)();
     const mins = state_1.state.settings.reentryCooldownMinutes;
     if (mins > 0) {
         console.log(`[REENTRY] ${direction} ${symbol} closed at a loss - re-entry blocked for ${mins}m`);

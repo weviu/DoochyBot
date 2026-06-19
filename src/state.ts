@@ -50,6 +50,7 @@ export interface BotState {
   accountInfo: AccountInfo;
   symbolMap: Map<string, number>;
   lossReentry: Map<string, number>; // "SYMBOL:DIRECTION" -> epoch ms of the losing close, for the re-entry cooldown
+  symbolCooldowns: Map<string, { until: number; triggerHits: number }>; // per-symbol consecutive-loss cooldowns (until = epoch ms)
 }
 
 export const DEFAULT_SETTINGS: BotSettings = {
@@ -81,6 +82,7 @@ export const state: BotState = {
   accountInfo: { balance: 0, equity: 0, currency: "USD" },
   symbolMap: new Map(),
   lossReentry: new Map(),
+  symbolCooldowns: new Map(),
 };
 
 export interface AccountInfo {
@@ -107,10 +109,50 @@ export function initSettings(): void {
     if (saved.reentryCooldownMinutes !== undefined) state.settings.reentryCooldownMinutes = saved.reentryCooldownMinutes;
     if (saved.maxCombinedRiskUSD !== undefined) state.settings.maxCombinedRiskUSD = saved.maxCombinedRiskUSD;
     console.log("[STATE] Loaded saved settings. Allowed symbols:", state.settings.allowedSymbols.length);
+
+    // Restore runtime state (active cooldowns and the trading lock) so a restart
+    // does not silently clear a prop-rule cooldown or a daily-limit lock. Each is
+    // re-validated: time-based cooldowns are kept only if still in the future, and
+    // the lock is restored only if it was set earlier the same UTC day.
+    const rt = saved.runtime;
+    if (rt) {
+      const now = Date.now();
+
+      const reDur = state.settings.reentryCooldownMinutes * 60_000;
+      if (rt.lossReentry && reDur > 0) {
+        for (const [k, t] of Object.entries(rt.lossReentry)) {
+          if (typeof t === "number" && t + reDur > now) state.lossReentry.set(k, t);
+        }
+      }
+
+      if (rt.symbolCooldowns) {
+        for (const [sym, cd] of Object.entries<any>(rt.symbolCooldowns)) {
+          if (cd && typeof cd.until === "number" && cd.until > now) {
+            state.symbolCooldowns.set(sym, { until: cd.until, triggerHits: Number(cd.triggerHits) || 0 });
+          }
+        }
+      }
+
+      if (rt.tradingLocked && rt.lockDay === todayUTC()) {
+        state.tradingLocked = true;
+      }
+
+      console.log(
+        `[STATE] Restored runtime: lock=${state.tradingLocked}, ` +
+        `${state.lossReentry.size} re-entry cooldown(s), ${state.symbolCooldowns.size} symbol cooldown(s)`
+      );
+    }
   }
 }
 
-export function persistSettings(): void {
+function todayUTC(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// One snapshot writer for the whole file: config settings plus runtime state.
+// Both persistSettings (settings changed) and persistRuntime (a cooldown or the
+// lock changed) write the full, consistent snapshot so neither wipes the other.
+function persistAll(): void {
   saveSettings({
     allowedSymbols: state.settings.allowedSymbols,
     maxPositions: state.settings.maxPositions,
@@ -126,6 +168,29 @@ export function persistSettings(): void {
     cooldownMinutes: state.settings.cooldownMinutes,
     reentryCooldownMinutes: state.settings.reentryCooldownMinutes,
     maxCombinedRiskUSD: state.settings.maxCombinedRiskUSD,
+    runtime: {
+      tradingLocked: state.tradingLocked,
+      lockDay: state.tradingLocked ? todayUTC() : null,
+      lossReentry: Object.fromEntries(state.lossReentry),
+      symbolCooldowns: Object.fromEntries(state.symbolCooldowns),
+    },
   });
+}
+
+export function persistSettings(): void {
+  persistAll();
+}
+
+// Persist runtime state (cooldowns, lock). Call after any change to them.
+export function persistRuntime(): void {
+  persistAll();
+}
+
+// Set the daily-limit trading lock and persist it, so the lock survives a
+// restart within the same UTC day. No-op (and no write) if already in that state.
+export function setTradingLock(locked: boolean): void {
+  if (state.tradingLocked === locked) return;
+  state.tradingLocked = locked;
+  persistRuntime();
 }
 

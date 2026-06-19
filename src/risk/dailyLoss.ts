@@ -1,4 +1,4 @@
-import { state } from "../state";
+import { state, setTradingLock } from "../state";
 import { notify } from "../bot/notify";
 import { getMarkPrice } from "../ctrader/livePrices";
 
@@ -58,8 +58,8 @@ export function evaluateDailyLimits(announce: boolean): void {
   const reason = breachedLimit();
   if (!reason) return;
   const wasLocked = state.tradingLocked;
-  state.tradingLocked = true;
-  console.log(`[PNL] Trading locked — ${reason}`);
+  setTradingLock(true);
+  console.log(`[PNL] Trading locked - ${reason}`);
   if (announce && !wasLocked) {
     notify(`${reason}. New signals are blocked until midnight UTC or /resume.`);
   }
@@ -92,9 +92,9 @@ export function startDailyReset(): void {
     if (now.getUTCHours() === 0 && now.getUTCMinutes() === 0 && !resetToday) {
       resetToday = true;
       state.dailyRealizedPnL = 0;
-      state.dailyPnLSeeded = true; // we just set it to 0 — that is the correct value
-      state.tradingLocked = false;
-      console.log("[PNL] New trading day — P&L and lock reset");
+      state.dailyPnLSeeded = true; // we just set it to 0 - that is the correct value
+      setTradingLock(false);
+      console.log("[PNL] New trading day - P&L and lock reset");
     }
   }, 60_000);
 }

@@ -1,4 +1,4 @@
-import { state } from "../state";
+import { state, setTradingLock } from "../state";
 import { floatingPnL } from "./dailyLoss";
 import { closeAllPositions } from "./midnightClose";
 import { subscribeOpenPositions } from "../ctrader/livePrices";
@@ -49,7 +49,7 @@ export function startCapMonitor(): void {
     console.log(`[CAP] Breach: realized ${state.dailyRealizedPnL.toFixed(2)} + floating ${floating.toFixed(2)} = ${total.toFixed(2)} >= trigger ${trigger.toFixed(2)} (cap ${cap.toFixed(2)}). Force-closing ${count} position(s).`);
     try {
       const { closed, failed } = await closeAllPositions();
-      state.tradingLocked = true;
+      setTradingLock(true);
       notify(
         `Daily profit cap hit: +${total.toFixed(2)} USD (cap ${cap.toFixed(2)}). ` +
         `Force-closed ${closed}/${count} position(s)${failed ? ` — ${failed} FAILED, check manually` : ""}. ` +

@@ -1,4 +1,4 @@
-import { state } from "../state";
+import { state, persistRuntime } from "../state";
 
 // Re-entry cooldown after a loss (InstantFunding prop-firm "same trade idea"
 // rule). When a position closes at a loss, reopening the SAME symbol AND
@@ -23,6 +23,7 @@ function key(symbol: string, direction: "BUY" | "SELL"): string {
 // Record a losing close. Stores the close time, keyed by symbol+direction.
 export function recordLoss(symbol: string, direction: "BUY" | "SELL", time = Date.now()): void {
   state.lossReentry.set(key(symbol, direction), time);
+  persistRuntime();
   const mins = state.settings.reentryCooldownMinutes;
   if (mins > 0) {
     console.log(`[REENTRY] ${direction} ${symbol} closed at a loss - re-entry blocked for ${mins}m`);

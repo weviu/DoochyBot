@@ -64,8 +64,8 @@ function evaluateDailyLimits(announce) {
     if (!reason)
         return;
     const wasLocked = state_1.state.tradingLocked;
-    state_1.state.tradingLocked = true;
-    console.log(`[PNL] Trading locked — ${reason}`);
+    (0, state_1.setTradingLock)(true);
+    console.log(`[PNL] Trading locked - ${reason}`);
     if (announce && !wasLocked) {
         (0, notify_1.notify)(`${reason}. New signals are blocked until midnight UTC or /resume.`);
     }
@@ -93,9 +93,9 @@ function startDailyReset() {
         if (now.getUTCHours() === 0 && now.getUTCMinutes() === 0 && !resetToday) {
             resetToday = true;
             state_1.state.dailyRealizedPnL = 0;
-            state_1.state.dailyPnLSeeded = true; // we just set it to 0 — that is the correct value
-            state_1.state.tradingLocked = false;
-            console.log("[PNL] New trading day — P&L and lock reset");
+            state_1.state.dailyPnLSeeded = true; // we just set it to 0 - that is the correct value
+            (0, state_1.setTradingLock)(false);
+            console.log("[PNL] New trading day - P&L and lock reset");
         }
     }, 60_000);
 }

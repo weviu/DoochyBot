@@ -17,6 +17,7 @@ const minhold_1 = require("./bot/commands/minhold");
 const closeall_1 = require("./bot/commands/closeall");
 const export_1 = require("./bot/commands/export");
 const status_1 = require("./bot/commands/status");
+const settings_1 = require("./bot/commands/settings");
 const cooldown_1 = require("./bot/commands/cooldown");
 const positions_1 = require("./bot/commands/positions");
 const account_1 = require("./ctrader/account");
@@ -29,6 +30,7 @@ const midnightClose_1 = require("./risk/midnightClose");
 const dailyLoss_2 = require("./risk/dailyLoss");
 const capMonitor_1 = require("./risk/capMonitor");
 const lossMonitor_1 = require("./risk/lossMonitor");
+const slWatchdog_1 = require("./risk/slWatchdog");
 const notify_1 = require("./bot/notify");
 const webhook_1 = require("./webhook");
 dotenv_1.default.config();
@@ -157,6 +159,7 @@ async function startBot() {
             "\n" +
             "• POSITIONS & INFO\n" +
             "/status: connection, P&L, limits, sizing, cooldowns\n" +
+            "/settings: show all your configured settings\n" +
             "/positions: open positions: entry, mark, SL, TP, P&L\n" +
             "/closeall: close all open positions\n" +
             "\n" +
@@ -172,6 +175,7 @@ async function startBot() {
     bot.command("closeall", closeall_1.closeallCmd);
     bot.command("export", export_1.exportCmd);
     bot.command("status", status_1.statusCmd);
+    bot.command("settings", settings_1.settingsCmd);
     bot.command("cooldown", cooldown_1.cooldownCmd);
     bot.command("positions", positions_1.positionsCmd);
     bot.start({
@@ -193,7 +197,8 @@ async function main() {
     (0, dailyLoss_2.startDailyReset)();
     (0, capMonitor_1.startCapMonitor)();
     (0, lossMonitor_1.startLossMonitor)();
-    console.log("[SAFETY] Midnight closer, daily reset, and loss monitor active");
+    (0, slWatchdog_1.startStopLossWatchdog)();
+    console.log("[SAFETY] Midnight closer, daily reset, loss monitor, and SL watchdog active");
     await (0, account_1.fetchAccountInfo)(ctrader);
     await (0, symbols_2.fetchSymbols)(ctrader);
     // Pre-subscribe spot streams for every allowed symbol so a live quote is already

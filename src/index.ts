@@ -12,6 +12,7 @@ import { minholdCmd } from "./bot/commands/minhold";
 import { closeallCmd } from "./bot/commands/closeall";
 import { exportCmd, setExportConnection } from "./bot/commands/export";
 import { statusCmd, setStatusConnection } from "./bot/commands/status";
+import { settingsCmd } from "./bot/commands/settings";
 import { cooldownCmd } from "./bot/commands/cooldown";
 import { positionsCmd } from "./bot/commands/positions";
 import { fetchAccountInfo, fetchTodayRealizedPnL } from "./ctrader/account";
@@ -24,6 +25,7 @@ import { setMidnightConnection, startMidnightCheck } from "./risk/midnightClose"
 import { startDailyReset } from "./risk/dailyLoss";
 import { startCapMonitor } from "./risk/capMonitor";
 import { startLossMonitor } from "./risk/lossMonitor";
+import { startStopLossWatchdog } from "./risk/slWatchdog";
 import { setNotifier } from "./bot/notify";
 import { startWebhookServer } from "./webhook";
 
@@ -169,6 +171,7 @@ bot.command("help", async (ctx) => {
     "\n" +
     "• POSITIONS & INFO\n" +
     "/status: connection, P&L, limits, sizing, cooldowns\n" +
+    "/settings: show all your configured settings\n" +
     "/positions: open positions: entry, mark, SL, TP, P&L\n" +
     "/closeall: close all open positions\n" +
     "\n" +
@@ -186,6 +189,7 @@ bot.command("help", async (ctx) => {
   bot.command("closeall", closeallCmd);
   bot.command("export", exportCmd);
   bot.command("status", statusCmd);
+  bot.command("settings", settingsCmd);
   bot.command("cooldown", cooldownCmd);
   bot.command("positions", positionsCmd);
   bot.start({
@@ -208,7 +212,8 @@ startMidnightCheck();
 startDailyReset();
 startCapMonitor();
 startLossMonitor();
-console.log("[SAFETY] Midnight closer, daily reset, and loss monitor active");
+startStopLossWatchdog();
+console.log("[SAFETY] Midnight closer, daily reset, loss monitor, and SL watchdog active");
 await fetchAccountInfo(ctrader);
 await fetchSymbols(ctrader);
 
