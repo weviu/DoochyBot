@@ -6,6 +6,7 @@ import { StringSession } from "telegram/sessions";
 import { NewMessage, NewMessageEvent, Raw } from "telegram/events";
 
 import { SignalParser } from "./parser";
+import { parseFxoroSignal } from "./parsers/fxoro";
 import { sendSignal } from "./webhook";
 
 /**
@@ -37,31 +38,65 @@ loadEnv();
 const SESSION_DIR = path.join(__dirname, "..", "session");
 const SESSION_FILE = path.join(SESSION_DIR, "session.txt");
 
+type ParserName = "sureshot" | "fxoro";
+
+interface ChannelConfig {
+  username: string;
+  parser: ParserName;
+}
+
 interface Config {
   apiId: number;
   apiHash: string;
   phoneNumber: string;
-  channelUsername: string;
   webhookUrl: string;
+  channels: ChannelConfig[];
+}
+
+// Per-channel runtime state. SureShot is stateful (it buffers a multi-message
+// signal) so each such channel gets its own parser instance; fxoro is stateless.
+// Each channel has its own dedupe set because message ids are only unique within
+// a channel.
+interface ChannelRuntime {
+  cfg: ChannelConfig;
+  entity: Api.TypeEntityLike;
+  peerId: string;
+  sureshot: SignalParser | null;
+  seen: Set<number>;
 }
 
 function loadConfig(): Config {
   const apiId = parseInt(process.env.API_ID || "", 10);
   const apiHash = process.env.API_HASH || "";
   const phoneNumber = process.env.PHONE_NUMBER || "";
-  const channelUsername = process.env.CHANNEL_USERNAME || "";
   const webhookUrl = process.env.WEBHOOK_URL || "http://localhost:9009/webhook";
+
+  // Read CHANNEL_1..CHANNEL_5 (USERNAME + PARSER) pairs.
+  const channels: ChannelConfig[] = [];
+  for (let i = 1; i <= 5; i++) {
+    const username = (process.env[`CHANNEL_${i}_USERNAME`] || "").trim();
+    if (!username) continue;
+    const raw = (process.env[`CHANNEL_${i}_PARSER`] || "sureshot").trim().toLowerCase();
+    if (raw !== "sureshot" && raw !== "fxoro") {
+      console.warn(`[config] CHANNEL_${i}_PARSER="${raw}" not recognized; defaulting to sureshot`);
+    }
+    channels.push({ username, parser: raw === "fxoro" ? "fxoro" : "sureshot" });
+  }
+  // Backward compatibility with the original single-channel variable.
+  if (channels.length === 0 && process.env.CHANNEL_USERNAME) {
+    channels.push({ username: process.env.CHANNEL_USERNAME.trim(), parser: "sureshot" });
+  }
 
   const missing: string[] = [];
   if (!apiId) missing.push("API_ID");
   if (!apiHash) missing.push("API_HASH");
   if (!phoneNumber) missing.push("PHONE_NUMBER");
-  if (!channelUsername) missing.push("CHANNEL_USERNAME");
+  if (channels.length === 0) missing.push("CHANNEL_1_USERNAME");
   if (missing.length) {
     throw new Error(`Missing required .env values: ${missing.join(", ")}`);
   }
 
-  return { apiId, apiHash, phoneNumber, channelUsername, webhookUrl };
+  return { apiId, apiHash, phoneNumber, webhookUrl, channels };
 }
 
 function loadSession(): StringSession {
@@ -134,7 +169,6 @@ async function resolveChannel(client: TelegramClient, raw: string): Promise<Api.
 
 async function main(): Promise<void> {
   const config = loadConfig();
-  const parser = new SignalParser();
   const session = loadSession();
 
   // gramJS handles low-level reconnects itself; the outer backoff loop below
@@ -159,80 +193,97 @@ async function main(): Promise<void> {
   saveSession(session);
   console.log("[telegram] Connected and authenticated");
 
-  // Resolve the channel once. We keep both the entity (for direct polling) and
-  // its marked peer id (to match incoming push updates). We match messages
-  // manually rather than via NewMessage({ chats }), which gramJS resolves lazily
-  // and mishandles (it stringifies the entity to "[object Object]").
-  let channel: Api.TypeEntityLike;
-  let targetPeerId: string;
-  try {
-    channel = await resolveChannel(client, config.channelUsername);
-    targetPeerId = utils.getPeerId(channel);
-    const title = (channel as { title?: string }).title || config.channelUsername;
-    console.log(`[telegram] Listening to channel: ${title} (peer ${targetPeerId})`);
-  } catch (err) {
-    console.error(`[telegram] Could not resolve channel "${config.channelUsername}":`, err);
-    throw err;
+  // Resolve every configured channel. Each keeps its entity (for direct polling)
+  // and its marked peer id (to route incoming push updates). A channel that fails
+  // to resolve is skipped rather than fatal, unless none resolve. We match
+  // messages manually rather than via NewMessage({ chats }), which gramJS
+  // resolves lazily and mishandles.
+  const runtimes: ChannelRuntime[] = [];
+  for (const cfg of config.channels) {
+    try {
+      const entity = await resolveChannel(client, cfg.username);
+      const peerId = utils.getPeerId(entity);
+      const title = (entity as { title?: string }).title || cfg.username;
+      runtimes.push({
+        cfg,
+        entity,
+        peerId,
+        sureshot: cfg.parser === "sureshot" ? new SignalParser() : null,
+        seen: new Set<number>(),
+      });
+      console.log(`[telegram] Listening to ${title} (peer ${peerId}, parser ${cfg.parser})`);
+    } catch (err) {
+      console.error(`[telegram] Could not resolve channel "${cfg.username}" (parser ${cfg.parser}): ${err instanceof Error ? err.message : err}`);
+    }
   }
+  if (runtimes.length === 0) {
+    throw new Error("No channels could be resolved; nothing to listen to");
+  }
+  const byPeer = new Map<string, ChannelRuntime>();
+  for (const rt of runtimes) byPeer.set(rt.peerId, rt);
 
-  // Messages reach us two ways, both feeding this one handler (deduped by message
-  // id so nothing is processed twice):
-  //  - push updates: instant, but a single channel's push stream can silently
-  //    desync and stop while the rest of the account keeps flowing.
-  //  - polling: slower but reliable; the safety net for the above.
-  const seen = new Set<number>();
-  const handleMessage = async (id: number, text: string, source: string): Promise<void> => {
-    if (id && seen.has(id)) return;
-    if (id) seen.add(id);
-    console.log(`[channel] Message (${source}, id ${id}): ${JSON.stringify(text)}`);
-    const signal = parser.processMessage(text);
+  // Route a message to its channel's parser and forward any complete signal.
+  // Messages reach us two ways (push updates, instant but can silently desync;
+  // and polling, slower but reliable). Both feed this handler, deduped per
+  // channel by message id so nothing is processed twice.
+  const handleMessage = async (rt: ChannelRuntime, id: number, text: string, source: string): Promise<void> => {
+    if (id && rt.seen.has(id)) return;
+    if (id) rt.seen.add(id);
+    console.log(`[channel:${rt.cfg.parser}] Message (${source}, id ${id}): ${JSON.stringify(text)}`);
+    const signal = rt.sureshot ? rt.sureshot.processMessage(text) : parseFxoroSignal(text);
     if (signal) {
       console.log("[signal] Complete signal extracted:", signal);
       await sendSignal(signal, config.webhookUrl);
     }
   };
 
-  // Push path: instant delivery while the channel's update stream is healthy.
+  // Push path: one catch-all handler routes each message to its channel by id.
   client.addEventHandler(async (event: NewMessageEvent) => {
     try {
       const chatId = event.message?.chatId?.toString();
-      if (!chatId || chatId !== targetPeerId) return;
-      await handleMessage(event.message!.id, event.message!.message ?? "", "push");
+      if (!chatId) return;
+      const rt = byPeer.get(chatId);
+      if (!rt) return; // not one of our channels
+      await handleMessage(rt, event.message!.id, event.message!.message ?? "", "push");
     } catch (err) {
       // A single bad message must never take the process down.
       console.error("[message] Error handling push message (skipped):", err);
     }
   }, new NewMessage({}));
 
-  // Poll path: the reliable safety net. Seed with the current latest ids so we do
-  // not replay history, then every 15s fetch recent messages and process any new
-  // ones. This catches signals the push stream misses when the channel's update
-  // sequence desyncs (observed: account updates flowing but this channel went
-  // silent). Reading also nudges gramJS to resync the channel.
-  try {
-    const seed = await client.getMessages(channel, { limit: 25 });
-    for (const m of seed) seen.add(m.id);
-    console.log(`[poll] Seeded ${seed.length} recent message id(s); polling every 15s`);
-  } catch (err) {
-    console.warn(`[poll] Seed failed (will still poll): ${err instanceof Error ? err.message : err}`);
+  // Poll path: the reliable safety net, per channel. Seed each with its current
+  // latest ids so we do not replay history, then every 15s fetch recent messages
+  // for each channel and process any new ones. Catches signals the push stream
+  // misses when a channel's update sequence desyncs.
+  for (const rt of runtimes) {
+    try {
+      const seed = await client.getMessages(rt.entity, { limit: 25 });
+      for (const m of seed) rt.seen.add(m.id);
+      console.log(`[poll] Seeded ${seed.length} id(s) for the ${rt.cfg.parser} channel`);
+    } catch (err) {
+      console.warn(`[poll] Seed failed for the ${rt.cfg.parser} channel: ${err instanceof Error ? err.message : err}`);
+    }
   }
+  console.log("[poll] Polling every 15s");
 
   setInterval(async () => {
-    try {
-      const msgs = await client.getMessages(channel, { limit: 25 });
-      const fresh = msgs.filter((m) => !seen.has(m.id)).sort((a, b) => a.id - b.id);
-      for (const m of fresh) {
-        console.log(`[poll] Found a message the push stream missed (id ${m.id})`);
-        await handleMessage(m.id, m.message ?? "", "poll");
+    for (const rt of runtimes) {
+      try {
+        const msgs = await client.getMessages(rt.entity, { limit: 25 });
+        const fresh = msgs.filter((m) => !rt.seen.has(m.id)).sort((a, b) => a.id - b.id);
+        for (const m of fresh) {
+          console.log(`[poll] ${rt.cfg.parser} channel: found a message the push stream missed (id ${m.id})`);
+          await handleMessage(rt, m.id, m.message ?? "", "poll");
+        }
+        // Bound the dedupe set: keep only the most recent ids.
+        if (rt.seen.size > 1000) {
+          const top = [...rt.seen].sort((a, b) => b - a).slice(0, 500);
+          rt.seen.clear();
+          for (const id of top) rt.seen.add(id);
+        }
+      } catch (err) {
+        console.warn(`[poll] Fetch failed for the ${rt.cfg.parser} channel: ${err instanceof Error ? err.message : err}`);
       }
-      // Bound the dedupe set: keep only the most recent ids.
-      if (seen.size > 1000) {
-        const top = [...seen].sort((a, b) => b - a).slice(0, 500);
-        seen.clear();
-        for (const id of top) seen.add(id);
-      }
-    } catch (err) {
-      console.warn(`[poll] Fetch failed: ${err instanceof Error ? err.message : err}`);
     }
   }, 15_000);
 

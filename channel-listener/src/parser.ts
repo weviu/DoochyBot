@@ -19,10 +19,11 @@
 export interface Signal {
   symbol: string;
   direction: "BUY" | "SELL";
-  // "LIMIT" → a pending entry the bot should place as a resting limit order at
-  // `entry`. "MARKET" → fill immediately (entry is informational only).
+  // "LIMIT" -> a pending entry the bot should place as a resting limit order at
+  // `entry`. "MARKET" -> fill immediately (entry is informational only, and may
+  // be null for channels that do not provide one, e.g. fxoro).
   orderType: "MARKET" | "LIMIT";
-  entry: number;
+  entry: number | null;
   sl: number;
   tp: number;
 }
