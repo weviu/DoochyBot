@@ -121,8 +121,8 @@ async function riskCmd(ctx) {
     }
     if (setting === "confidence" && parts[2] !== undefined) {
         const n = parseInt(parts[2]);
-        if (isNaN(n) || n < 0 || n > 100) {
-            await ctx.reply("Channel confidence must be between 0 and 100.");
+        if (isNaN(n) || n < 0 || n > 4) {
+            await ctx.reply("Channel confidence must be between 0 and 4 (default 4).");
             return;
         }
         state_1.state.settings.webhookConfidence = n;
