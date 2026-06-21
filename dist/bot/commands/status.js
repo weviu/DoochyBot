@@ -47,7 +47,7 @@ async function statusCmd(ctx) {
         `Floating P&L: ${liveFloating >= 0 ? "+" : ""}${liveFloating.toFixed(2)} ${info.currency}`,
         `Profit cap: ${cap > 0 ? `$${cap.toFixed(2)} (total ${(dailyPnL + liveFloating).toFixed(2)} used)` : "off"}`,
         `Daily loss limit: -$${(0, dailyLoss_1.maxLossUSD)().toFixed(2)} (force-close all)`,
-        `Sizing: ${state_1.state.settings.riskPerTradeUSD > 0 ? `$${state_1.state.settings.riskPerTradeUSD.toFixed(2)} risk/trade @ ${state_1.state.settings.stopLossPercent}% SL` : "not set - /risk pertrade required to trade"}`,
+        `Sizing: ${state_1.state.settings.riskPerTradeUSD > 0 ? `$${state_1.state.settings.riskPerTradeUSD.toFixed(2)} risk/trade @ ${state_1.state.settings.stopLossPercent}% SL / ${state_1.state.settings.takeProfitPercent}% TP` : "not set - /risk pertrade required to trade"}`,
         `Cooldowns: ${cooldowns.length === 0 ? "none" : cooldowns.map((c) => `${c.symbol} ${Math.ceil(c.remainingMs / 60_000)}m`).join(", ")}`,
         `Allowed symbols: ${state_1.state.settings.allowedSymbols.length}`,
     ];
