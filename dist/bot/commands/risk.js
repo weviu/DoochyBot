@@ -119,6 +119,17 @@ async function riskCmd(ctx) {
             : `Combined risk limit set to $${usd} (max summed risk across all positions of the same symbol+direction).`);
         return;
     }
+    if (setting === "confidence" && parts[2] !== undefined) {
+        const n = parseInt(parts[2]);
+        if (isNaN(n) || n < 0 || n > 100) {
+            await ctx.reply("Channel confidence must be between 0 and 100.");
+            return;
+        }
+        state_1.state.settings.webhookConfidence = n;
+        (0, state_1.persistSettings)();
+        await ctx.reply(`Channel signal confidence set to ${n}. Channel signals can now flip an open position with lower confidence; feed signals need a higher score to flip a channel position.`);
+        return;
+    }
     // "pertrade" is the documented name; "risk" kept as a silent alias so older
     // muscle memory still works.
     if ((setting === "pertrade" || setting === "risk") && parts[2]) {
@@ -156,6 +167,6 @@ async function riskCmd(ctx) {
         await ctx.reply(`Take profit set to ${pct}% of entry.`);
         return;
     }
-    await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk sl <pct> | /risk tp <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk reentry <min> | /risk combined <usd>");
+    await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk sl <pct> | /risk tp <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk reentry <min> | /risk combined <usd> | /risk confidence <n>");
 }
 //# sourceMappingURL=risk.js.map

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.startWebhookServer = startWebhookServer;
 const express_1 = __importDefault(require("express"));
 const gate_1 = require("./risk/gate");
+const state_1 = require("./state");
 const PORT = 9009;
 /**
  * Parse DoochyBot's plain-text signal format into a ParsedSignal:
@@ -37,7 +38,10 @@ function parseTextSignal(text) {
         price: 0,
         pivotLevel: null,
         pivotDistance: null,
-        confidence: 0,
+        // Channel/webhook signals carry no confidence of their own. They are
+        // analyst-curated, so assign a configurable default (/risk confidence) rather
+        // than 0, which would lose every reversal tie-break against an open position.
+        confidence: state_1.state.settings.webhookConfidence,
         timeframe: "",
         timestamp: new Date().toISOString(),
         sl,

@@ -1,6 +1,7 @@
 import express from "express";
 import { ParsedSignal } from "./signals/types";
 import { processSignal } from "./risk/gate";
+import { state } from "./state";
 
 const PORT = 9009;
 
@@ -33,7 +34,10 @@ function parseTextSignal(text: string): ParsedSignal | null {
     price: 0,
     pivotLevel: null,
     pivotDistance: null,
-    confidence: 0,
+    // Channel/webhook signals carry no confidence of their own. They are
+    // analyst-curated, so assign a configurable default (/risk confidence) rather
+    // than 0, which would lose every reversal tie-break against an open position.
+    confidence: state.settings.webhookConfidence,
     timeframe: "",
     timestamp: new Date().toISOString(),
     sl,

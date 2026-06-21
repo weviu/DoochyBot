@@ -37,6 +37,7 @@ export interface BotSettings {
   reentryCooldownMinutes: number; // after ANY losing close, block re-entry on the same symbol+direction for this long (prop-firm same-trade-idea rule); 0 = disabled
   maxCombinedRiskUSD: number; // max summed potential loss across all open positions of the same symbol+direction (prop-firm per-trade-idea limit); 0 = disabled
   notifyFills: boolean; // send a Telegram message whenever an order fills
+  webhookConfidence: number; // confidence assigned to channel/webhook signals (which carry none); drives reversal gating against feed signals
 }
 
 export interface BotState {
@@ -70,6 +71,7 @@ export const DEFAULT_SETTINGS: BotSettings = {
   reentryCooldownMinutes: 10,
   maxCombinedRiskUSD: 0,
   notifyFills: true,
+  webhookConfidence: 4,
 };
 
 export const state: BotState = {
@@ -111,6 +113,7 @@ export function initSettings(): void {
     if (saved.reentryCooldownMinutes !== undefined) state.settings.reentryCooldownMinutes = saved.reentryCooldownMinutes;
     if (saved.maxCombinedRiskUSD !== undefined) state.settings.maxCombinedRiskUSD = saved.maxCombinedRiskUSD;
     if (saved.notifyFills !== undefined) state.settings.notifyFills = saved.notifyFills;
+    if (saved.webhookConfidence !== undefined) state.settings.webhookConfidence = saved.webhookConfidence;
     console.log("[STATE] Loaded saved settings. Allowed symbols:", state.settings.allowedSymbols.length);
 
     // Restore runtime state (active cooldowns and the trading lock) so a restart
@@ -172,6 +175,7 @@ function persistAll(): void {
     reentryCooldownMinutes: state.settings.reentryCooldownMinutes,
     maxCombinedRiskUSD: state.settings.maxCombinedRiskUSD,
     notifyFills: state.settings.notifyFills,
+    webhookConfidence: state.settings.webhookConfidence,
     runtime: {
       tradingLocked: state.tradingLocked,
       lockDay: state.tradingLocked ? todayUTC() : null,

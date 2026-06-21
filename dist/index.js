@@ -149,6 +149,7 @@ async function startBot() {
             "/risk capbuffer <usd>: trigger cap this many $ early\n" +
             "/risk maxpos <n>: max concurrent positions\n" +
             "/risk combined <usd>: max summed risk across same symbol+direction positions (0 = off)\n" +
+            "/risk confidence <n>: confidence given to channel signals, for reversal flips (default 4)\n" +
             "\n" +
             "• COOLDOWN (per symbol loss streak)\n" +
             "/risk losses <n>: SL hits before cooldown (0 = off)\n" +

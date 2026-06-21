@@ -139,6 +139,18 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
+  if (setting === "confidence" && parts[2] !== undefined) {
+    const n = parseInt(parts[2]);
+    if (isNaN(n) || n < 0 || n > 4) {
+      await ctx.reply("Channel confidence must be between 0 and 4 (default 4).");
+      return;
+    }
+    state.settings.webhookConfidence = n;
+    persistSettings();
+    await ctx.reply(`Channel signal confidence set to ${n}. Channel signals can now flip an open position with lower confidence; feed signals need a higher score to flip a channel position.`);
+    return;
+  }
+
 
   // "pertrade" is the documented name; "risk" kept as a silent alias so older
   // muscle memory still works.
@@ -182,5 +194,5 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
-  await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk sl <pct> | /risk tp <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk reentry <min> | /risk combined <usd>");
+  await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk sl <pct> | /risk tp <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk reentry <min> | /risk combined <usd> | /risk confidence <n>");
 }
