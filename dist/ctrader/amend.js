@@ -77,8 +77,10 @@ async function amendPositionSLTP(positionId, symbol, entryPrice, direction, sign
     }
     // Percentage-of-entry SL/TP. Works uniformly across BTC/ETH/XAU/FX without
     // any contract-size math. Explicit signal values (if ever provided) win.
-    const slPct = state_1.state.settings.stopLossPercent;
-    const tpPct = state_1.state.settings.takeProfitPercent;
+    // A per-symbol override (e.g. a wider stop for silver) takes precedence over
+    // the global percentage; symbols without an override are unchanged.
+    const slPct = (0, state_1.slPctFor)(symbol);
+    const tpPct = (0, state_1.tpPctFor)(symbol);
     let sl = signal.sl ?? null;
     let tp = signal.tp ?? null;
     if (sl === null && slPct > 0) {

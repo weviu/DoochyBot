@@ -140,6 +140,7 @@ async function startBot() {
             "• STOP / TARGET\n" +
             "/risk sl <pct>: where the stop sits, as % from entry. Also drives size (with pertrade): tighter stop = bigger trade.\n" +
             "/risk tp <pct>: where the target sits, as % from entry.\n" +
+            "/risk sl <SYM> <pct> | /risk tp <SYM> <pct>: per-symbol override (0 = remove, fall back to global)\n" +
             "Note: channel signals carry their own SL/TP, which override these %s.\n" +
             "/minhold <secs>: min hold before TP arms\n" +
             "\n" +
@@ -150,6 +151,7 @@ async function startBot() {
             "/risk maxpos <n>: max concurrent positions\n" +
             "/risk combined <usd>: max summed risk across same symbol+direction positions (0 = off)\n" +
             "/risk confidence <n>: confidence given to channel signals, for reversal flips (default 4)\n" +
+            "/risk minconfidence <n>: reject feed signals below this score; channel signals bypass (0 = off, default 3)\n" +
             "\n" +
             "• COOLDOWN (per symbol loss streak)\n" +
             "/risk losses <n>: SL hits before cooldown (0 = off)\n" +

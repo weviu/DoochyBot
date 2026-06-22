@@ -29,6 +29,7 @@ export async function settingsCmd(ctx: any) {
     `Re-entry after a loss: ${s.reentryCooldownMinutes > 0 ? `${s.reentryCooldownMinutes}m` : off}`,
     "",
     `Channel signal confidence: ${s.webhookConfidence}`,
+    `Min confidence to open (feed): ${s.minConfidence > 0 ? s.minConfidence : off}`,
     `Order notifications: ${s.notifyFills ? "on" : "off"}`,
   ];
 

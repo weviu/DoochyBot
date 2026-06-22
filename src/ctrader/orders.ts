@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { state } from "../state";
+import { state, slPctFor, tpPctFor } from "../state";
 import { ParsedSignal } from "../signals/types";
 import { amendPositionSLTP } from "./amend";
 import { updateDailyPnL, floatingPnL } from "../risk/dailyLoss";
@@ -23,8 +23,8 @@ function notifyFill(
   tp?: number | null
 ): void {
   if (!state.settings.notifyFills) return;
-  const slPct = state.settings.stopLossPercent;
-  const tpPct = state.settings.takeProfitPercent;
+  const slPct = slPctFor(signal.symbol);
+  const tpPct = tpPctFor(signal.symbol);
   const slP = sl ?? signal.sl ?? (signal.direction === "BUY" ? entry * (1 - slPct / 100) : entry * (1 + slPct / 100));
   const tpP = tp ?? signal.tp ?? (signal.direction === "BUY" ? entry * (1 + tpPct / 100) : entry * (1 - tpPct / 100));
   const digits = (entry.toString().split(".")[1] || "").length || 2;
@@ -205,10 +205,11 @@ export async function reconcilePositions(): Promise<void> {
 
       // If the position has no TP (e.g. bot restarted during minhold window),
       // re-arm it immediately — the hold period has already passed.
-      if (!p.takeProfit && entry && state.settings.takeProfitPercent > 0) {
+      const reTpPct = tpPctFor(posSlot.symbol);
+      if (!p.takeProfit && entry && reTpPct > 0) {
         const tp = direction === "BUY"
-          ? entry * (1 + state.settings.takeProfitPercent / 100)
-          : entry * (1 - state.settings.takeProfitPercent / 100);
+          ? entry * (1 + reTpPct / 100)
+          : entry * (1 - reTpPct / 100);
         const sl = p.stopLoss ?? undefined;
         console.log(`[RECONCILE] Re-arming TP ${tp.toFixed(2)} for position #${pid} (${posSlot.symbol})`);
         amendPositionSLTP(pid, posSlot.symbol, entry, direction, { sl, tp });
@@ -285,7 +286,7 @@ export async function executeSignal(signal: ParsedSignal): Promise<void> {
   // There is no fixed-lot mode — if risk sizing isn't configured we refuse to
   // trade rather than guess a size (an unsized order is how the -$350 happened).
   const riskUSD = state.settings.riskPerTradeUSD ?? 0;
-  const slPct = state.settings.stopLossPercent;
+  const slPct = slPctFor(signal.symbol);
   if (riskUSD <= 0 || slPct <= 0) {
     console.log(`[ORDER] Risk sizing not configured (pertrade=$${riskUSD}, SL=${slPct}%) — skipping ${signal.symbol}. Set /risk pertrade and /risk sl.`);
     return;
@@ -530,7 +531,7 @@ async function placeLimitOrder(
 
   // Actual dollar risk of this order: stop distance (absolute SL, or the SL %)
   // times the volume, for the fill notification.
-  const slPct = state.settings.stopLossPercent;
+  const slPct = slPctFor(signal.symbol);
   const limitRisk = (sl !== null ? Math.abs(limitPrice - sl) : limitPrice * (slPct / 100)) * (orderVolume / 100);
 
   let fillListenerId = "";

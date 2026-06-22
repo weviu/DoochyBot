@@ -37,6 +37,21 @@ async function statusCmd(ctx) {
     const liveFloating = (0, dailyLoss_1.floatingPnL)();
     const cap = state_1.state.settings.dailyProfitCapUSD;
     const cooldowns = (0, cooldown_1.activeCooldowns)();
+    // Per-symbol SL/TP overrides (only shown when at least one is set).
+    const ovSyms = [...new Set([
+            ...Object.keys(state_1.state.settings.symbolStopLossPercent),
+            ...Object.keys(state_1.state.settings.symbolTakeProfitPercent),
+        ])];
+    const overrides = ovSyms.map((s) => {
+        const parts = [];
+        const sl = state_1.state.settings.symbolStopLossPercent[s];
+        const tp = state_1.state.settings.symbolTakeProfitPercent[s];
+        if (sl !== undefined)
+            parts.push(`SL ${sl}%`);
+        if (tp !== undefined)
+            parts.push(`TP ${tp}%`);
+        return `${s} ${parts.join(" / ")}`;
+    }).join(", ");
     const lines = [
         `cTrader: ${connOk ? "connected" : "not connected"}`,
         `Account: ${process.env.ACCOUNT_ID || "?"}`,
@@ -47,7 +62,9 @@ async function statusCmd(ctx) {
         `Floating P&L: ${liveFloating >= 0 ? "+" : ""}${liveFloating.toFixed(2)} ${info.currency}`,
         `Profit cap: ${cap > 0 ? `$${cap.toFixed(2)} (total ${(dailyPnL + liveFloating).toFixed(2)} used)` : "off"}`,
         `Daily loss limit: -$${(0, dailyLoss_1.maxLossUSD)().toFixed(2)} (force-close all)`,
+        `Min confidence: ${state_1.state.settings.minConfidence > 0 ? `${state_1.state.settings.minConfidence} (feed signals; channel bypasses)` : "off"}`,
         `Sizing: ${state_1.state.settings.riskPerTradeUSD > 0 ? `$${state_1.state.settings.riskPerTradeUSD.toFixed(2)} risk/trade @ ${state_1.state.settings.stopLossPercent}% SL / ${state_1.state.settings.takeProfitPercent}% TP` : "not set - /risk pertrade required to trade"}`,
+        ...(overrides ? [`Per-symbol overrides: ${overrides}`] : []),
         `Cooldowns: ${cooldowns.length === 0 ? "none" : cooldowns.map((c) => `${c.symbol} ${Math.ceil(c.remainingMs / 60_000)}m`).join(", ")}`,
         `Allowed symbols: ${state_1.state.settings.allowedSymbols.length}`,
     ];

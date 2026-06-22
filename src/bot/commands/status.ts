@@ -37,6 +37,21 @@ export async function statusCmd(ctx: any) {
 
   const cap = state.settings.dailyProfitCapUSD;
   const cooldowns = activeCooldowns();
+
+  // Per-symbol SL/TP overrides (only shown when at least one is set).
+  const ovSyms = [...new Set([
+    ...Object.keys(state.settings.symbolStopLossPercent),
+    ...Object.keys(state.settings.symbolTakeProfitPercent),
+  ])];
+  const overrides = ovSyms.map((s) => {
+    const parts: string[] = [];
+    const sl = state.settings.symbolStopLossPercent[s];
+    const tp = state.settings.symbolTakeProfitPercent[s];
+    if (sl !== undefined) parts.push(`SL ${sl}%`);
+    if (tp !== undefined) parts.push(`TP ${tp}%`);
+    return `${s} ${parts.join(" / ")}`;
+  }).join(", ");
+
   const lines = [
     `cTrader: ${connOk ? "connected" : "not connected"}`,
     `Account: ${process.env.ACCOUNT_ID || "?"}`,
@@ -47,7 +62,9 @@ export async function statusCmd(ctx: any) {
     `Floating P&L: ${liveFloating >= 0 ? "+" : ""}${liveFloating.toFixed(2)} ${info.currency}`,
     `Profit cap: ${cap > 0 ? `$${cap.toFixed(2)} (total ${(dailyPnL + liveFloating).toFixed(2)} used)` : "off"}`,
     `Daily loss limit: -$${maxLossUSD().toFixed(2)} (force-close all)`,
+    `Min confidence: ${state.settings.minConfidence > 0 ? `${state.settings.minConfidence} (feed signals; channel bypasses)` : "off"}`,
     `Sizing: ${state.settings.riskPerTradeUSD > 0 ? `$${state.settings.riskPerTradeUSD.toFixed(2)} risk/trade @ ${state.settings.stopLossPercent}% SL / ${state.settings.takeProfitPercent}% TP` : "not set - /risk pertrade required to trade"}`,
+    ...(overrides ? [`Per-symbol overrides: ${overrides}`] : []),
     `Cooldowns: ${cooldowns.length === 0 ? "none" : cooldowns.map((c) => `${c.symbol} ${Math.ceil(c.remainingMs / 60_000)}m`).join(", ")}`,
     `Allowed symbols: ${state.settings.allowedSymbols.length}`,
   ];

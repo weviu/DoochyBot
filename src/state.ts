@@ -27,6 +27,8 @@ export interface BotSettings {
   maxDailyLossUSD: number;
   stopLossPercent: number;
   takeProfitPercent: number;
+  symbolStopLossPercent: Record<string, number>; // per-symbol SL % overrides; falls back to stopLossPercent
+  symbolTakeProfitPercent: Record<string, number>; // per-symbol TP % overrides; falls back to takeProfitPercent
   minHoldSeconds: number;
   riskPerTradeUSD: number; // size each position so a stopLossPercent stop loses ~this many $. Required to trade (0 = trading disabled; there is no fixed-lot fallback).
   dailyProfitCapUSD: number; // lock trading once daily realized profit hits this; 0 = disabled
@@ -38,6 +40,7 @@ export interface BotSettings {
   maxCombinedRiskUSD: number; // max summed potential loss across all open positions of the same symbol+direction (prop-firm per-trade-idea limit); 0 = disabled
   notifyFills: boolean; // send a Telegram message whenever an order fills
   webhookConfidence: number; // confidence assigned to channel/webhook signals (which carry none); drives reversal gating against feed signals
+  minConfidence: number; // reject feed signals scoring below this as an entry gate; channel signals bypass it; 0 = off
 }
 
 export interface BotState {
@@ -61,6 +64,8 @@ export const DEFAULT_SETTINGS: BotSettings = {
   maxDailyLossUSD: 200,
   stopLossPercent: 0.5,
   takeProfitPercent: 0.75,
+  symbolStopLossPercent: {},
+  symbolTakeProfitPercent: {},
   minHoldSeconds: 60,
   riskPerTradeUSD: 0,
   dailyProfitCapUSD: 0,
@@ -72,6 +77,7 @@ export const DEFAULT_SETTINGS: BotSettings = {
   maxCombinedRiskUSD: 0,
   notifyFills: true,
   webhookConfidence: 4,
+  minConfidence: 3,
 };
 
 export const state: BotState = {
@@ -89,6 +95,16 @@ export const state: BotState = {
   symbolCooldowns: new Map(),
 };
 
+// Effective SL/TP percentage for a symbol: the per-symbol override if one is set,
+// otherwise the global value. Used everywhere a percentage drives sizing, SL/TP
+// placement, or display, so an override stays consistent across all of them.
+export function slPctFor(symbol: string): number {
+  return state.settings.symbolStopLossPercent[symbol] ?? state.settings.stopLossPercent;
+}
+export function tpPctFor(symbol: string): number {
+  return state.settings.symbolTakeProfitPercent[symbol] ?? state.settings.takeProfitPercent;
+}
+
 export interface AccountInfo {
   balance: number;
   equity: number;
@@ -103,6 +119,8 @@ export function initSettings(): void {
     if (saved.maxDailyLossUSD !== undefined) state.settings.maxDailyLossUSD = saved.maxDailyLossUSD;
     if (saved.stopLossPercent !== undefined) state.settings.stopLossPercent = saved.stopLossPercent;
     if (saved.takeProfitPercent !== undefined) state.settings.takeProfitPercent = saved.takeProfitPercent;
+    if (saved.symbolStopLossPercent) state.settings.symbolStopLossPercent = saved.symbolStopLossPercent;
+    if (saved.symbolTakeProfitPercent) state.settings.symbolTakeProfitPercent = saved.symbolTakeProfitPercent;
     if (saved.minHoldSeconds !== undefined) state.settings.minHoldSeconds = saved.minHoldSeconds;
     if (saved.riskPerTradeUSD !== undefined) state.settings.riskPerTradeUSD = saved.riskPerTradeUSD;
     if (saved.dailyProfitCapUSD !== undefined) state.settings.dailyProfitCapUSD = saved.dailyProfitCapUSD;
@@ -114,6 +132,7 @@ export function initSettings(): void {
     if (saved.maxCombinedRiskUSD !== undefined) state.settings.maxCombinedRiskUSD = saved.maxCombinedRiskUSD;
     if (saved.notifyFills !== undefined) state.settings.notifyFills = saved.notifyFills;
     if (saved.webhookConfidence !== undefined) state.settings.webhookConfidence = saved.webhookConfidence;
+    if (saved.minConfidence !== undefined) state.settings.minConfidence = saved.minConfidence;
     console.log("[STATE] Loaded saved settings. Allowed symbols:", state.settings.allowedSymbols.length);
 
     // Restore runtime state (active cooldowns and the trading lock) so a restart
@@ -165,6 +184,8 @@ function persistAll(): void {
     maxDailyLossUSD: state.settings.maxDailyLossUSD,
     stopLossPercent: state.settings.stopLossPercent,
     takeProfitPercent: state.settings.takeProfitPercent,
+    symbolStopLossPercent: state.settings.symbolStopLossPercent,
+    symbolTakeProfitPercent: state.settings.symbolTakeProfitPercent,
     minHoldSeconds: state.settings.minHoldSeconds,
     riskPerTradeUSD: state.settings.riskPerTradeUSD,
     dailyProfitCapUSD: state.settings.dailyProfitCapUSD,
@@ -176,6 +197,7 @@ function persistAll(): void {
     maxCombinedRiskUSD: state.settings.maxCombinedRiskUSD,
     notifyFills: state.settings.notifyFills,
     webhookConfidence: state.settings.webhookConfidence,
+    minConfidence: state.settings.minConfidence,
     runtime: {
       tradingLocked: state.tradingLocked,
       lockDay: state.tradingLocked ? todayUTC() : null,

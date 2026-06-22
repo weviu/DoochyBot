@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.state = exports.DEFAULT_SETTINGS = void 0;
+exports.slPctFor = slPctFor;
+exports.tpPctFor = tpPctFor;
 exports.initSettings = initSettings;
 exports.persistSettings = persistSettings;
 exports.persistRuntime = persistRuntime;
@@ -12,6 +14,8 @@ exports.DEFAULT_SETTINGS = {
     maxDailyLossUSD: 200,
     stopLossPercent: 0.5,
     takeProfitPercent: 0.75,
+    symbolStopLossPercent: {},
+    symbolTakeProfitPercent: {},
     minHoldSeconds: 60,
     riskPerTradeUSD: 0,
     dailyProfitCapUSD: 0,
@@ -23,6 +27,7 @@ exports.DEFAULT_SETTINGS = {
     maxCombinedRiskUSD: 0,
     notifyFills: true,
     webhookConfidence: 4,
+    minConfidence: 3,
 };
 exports.state = {
     paused: false,
@@ -38,6 +43,15 @@ exports.state = {
     lossReentry: new Map(),
     symbolCooldowns: new Map(),
 };
+// Effective SL/TP percentage for a symbol: the per-symbol override if one is set,
+// otherwise the global value. Used everywhere a percentage drives sizing, SL/TP
+// placement, or display, so an override stays consistent across all of them.
+function slPctFor(symbol) {
+    return exports.state.settings.symbolStopLossPercent[symbol] ?? exports.state.settings.stopLossPercent;
+}
+function tpPctFor(symbol) {
+    return exports.state.settings.symbolTakeProfitPercent[symbol] ?? exports.state.settings.takeProfitPercent;
+}
 function initSettings() {
     const saved = (0, storage_1.loadSettings)();
     if (saved) {
@@ -51,6 +65,10 @@ function initSettings() {
             exports.state.settings.stopLossPercent = saved.stopLossPercent;
         if (saved.takeProfitPercent !== undefined)
             exports.state.settings.takeProfitPercent = saved.takeProfitPercent;
+        if (saved.symbolStopLossPercent)
+            exports.state.settings.symbolStopLossPercent = saved.symbolStopLossPercent;
+        if (saved.symbolTakeProfitPercent)
+            exports.state.settings.symbolTakeProfitPercent = saved.symbolTakeProfitPercent;
         if (saved.minHoldSeconds !== undefined)
             exports.state.settings.minHoldSeconds = saved.minHoldSeconds;
         if (saved.riskPerTradeUSD !== undefined)
@@ -73,6 +91,8 @@ function initSettings() {
             exports.state.settings.notifyFills = saved.notifyFills;
         if (saved.webhookConfidence !== undefined)
             exports.state.settings.webhookConfidence = saved.webhookConfidence;
+        if (saved.minConfidence !== undefined)
+            exports.state.settings.minConfidence = saved.minConfidence;
         console.log("[STATE] Loaded saved settings. Allowed symbols:", exports.state.settings.allowedSymbols.length);
         // Restore runtime state (active cooldowns and the trading lock) so a restart
         // does not silently clear a prop-rule cooldown or a daily-limit lock. Each is
@@ -116,6 +136,8 @@ function persistAll() {
         maxDailyLossUSD: exports.state.settings.maxDailyLossUSD,
         stopLossPercent: exports.state.settings.stopLossPercent,
         takeProfitPercent: exports.state.settings.takeProfitPercent,
+        symbolStopLossPercent: exports.state.settings.symbolStopLossPercent,
+        symbolTakeProfitPercent: exports.state.settings.symbolTakeProfitPercent,
         minHoldSeconds: exports.state.settings.minHoldSeconds,
         riskPerTradeUSD: exports.state.settings.riskPerTradeUSD,
         dailyProfitCapUSD: exports.state.settings.dailyProfitCapUSD,
@@ -127,6 +149,7 @@ function persistAll() {
         maxCombinedRiskUSD: exports.state.settings.maxCombinedRiskUSD,
         notifyFills: exports.state.settings.notifyFills,
         webhookConfidence: exports.state.settings.webhookConfidence,
+        minConfidence: exports.state.settings.minConfidence,
         runtime: {
             tradingLocked: exports.state.tradingLocked,
             lockDay: exports.state.tradingLocked ? todayUTC() : null,

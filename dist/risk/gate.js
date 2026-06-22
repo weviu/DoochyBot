@@ -53,6 +53,17 @@ function processSignal(signal) {
         console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - Not available on broker`);
         return { accepted: false, reason: "Not available on broker" };
     }
+    // Check 2c: Minimum confidence (entry gate). Reject feed signals scoring below
+    // the threshold (RSI alone, no confirmation). Channel signals carry the channel
+    // confidence and bypass this entirely - they are analyst-curated, not
+    // algorithmic scores. 0 disables the gate.
+    const minConf = state_1.state.settings.minConfidence;
+    const conf = signal.confidence ?? 0;
+    if (minConf > 0 && conf < minConf && conf < state_1.state.settings.webhookConfidence) {
+        const reason = `Confidence too low (${conf}, minimum ${minConf})`;
+        console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - ${reason}`);
+        return { accepted: false, reason };
+    }
     // Check 3: Per-symbol consecutive-loss cooldown.
     const cooldown = (0, cooldown_1.getCooldown)(signal.symbol);
     if (cooldown) {

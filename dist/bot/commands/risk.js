@@ -130,6 +130,19 @@ async function riskCmd(ctx) {
         await ctx.reply(`Channel signal confidence set to ${n}. Channel signals can now flip an open position with lower confidence; feed signals need a higher score to flip a channel position.`);
         return;
     }
+    if (setting === "minconfidence" && parts[2] !== undefined) {
+        const n = parseInt(parts[2]);
+        if (isNaN(n) || n < 0 || n > 6) {
+            await ctx.reply("Minimum confidence must be between 0 and 6 (0 = off).");
+            return;
+        }
+        state_1.state.settings.minConfidence = n;
+        (0, state_1.persistSettings)();
+        await ctx.reply(n === 0
+            ? "Minimum confidence gate disabled. All feed signals may open positions."
+            : `Minimum confidence set to ${n}. Feed signals scoring below ${n} are rejected; channel signals bypass this.`);
+        return;
+    }
     // "pertrade" is the documented name; "risk" kept as a silent alias so older
     // muscle memory still works.
     if ((setting === "pertrade" || setting === "risk") && parts[2]) {
@@ -145,7 +158,27 @@ async function riskCmd(ctx) {
             : `Per-trade risk set to $${usd}. Position size is now derived so a ${state_1.state.settings.stopLossPercent}% stop loses ~$${usd}, regardless of symbol. Overrides fixed lot size (used as fallback when no live price yet).`);
         return;
     }
-    if (setting === "sl" && parts[2]) {
+    if (setting === "sl" && parts[2] !== undefined) {
+        // Per-symbol override form: /risk sl <SYM> <pct>  (pct 0 removes it)
+        if (parts[3] !== undefined) {
+            const sym = parts[2].toUpperCase();
+            const pct = parseFloat(parts[3]);
+            if (pct === 0) {
+                delete state_1.state.settings.symbolStopLossPercent[sym];
+                (0, state_1.persistSettings)();
+                await ctx.reply(`Removed ${sym} stop loss override. Using the global ${state_1.state.settings.stopLossPercent}%.`);
+                return;
+            }
+            if (isNaN(pct) || pct < 0.05 || pct > 50) {
+                await ctx.reply("Stop loss % must be 0 (remove override) or between 0.05 and 50.");
+                return;
+            }
+            state_1.state.settings.symbolStopLossPercent[sym] = pct;
+            (0, state_1.persistSettings)();
+            await ctx.reply(`${sym} stop loss set to ${pct}% (overrides the global ${state_1.state.settings.stopLossPercent}%).`);
+            return;
+        }
+        // Global form: /risk sl <pct>
         const pct = parseFloat(parts[2]);
         if (isNaN(pct) || pct < 0.05 || pct > 50) {
             await ctx.reply("Stop loss % must be between 0.05 and 50.");
@@ -156,7 +189,27 @@ async function riskCmd(ctx) {
         await ctx.reply(`Stop loss set to ${pct}% of entry.`);
         return;
     }
-    if (setting === "tp" && parts[2]) {
+    if (setting === "tp" && parts[2] !== undefined) {
+        // Per-symbol override form: /risk tp <SYM> <pct>  (pct 0 removes it)
+        if (parts[3] !== undefined) {
+            const sym = parts[2].toUpperCase();
+            const pct = parseFloat(parts[3]);
+            if (pct === 0) {
+                delete state_1.state.settings.symbolTakeProfitPercent[sym];
+                (0, state_1.persistSettings)();
+                await ctx.reply(`Removed ${sym} take profit override. Using the global ${state_1.state.settings.takeProfitPercent}%.`);
+                return;
+            }
+            if (isNaN(pct) || pct < 0.05 || pct > 50) {
+                await ctx.reply("Take profit % must be 0 (remove override) or between 0.05 and 50.");
+                return;
+            }
+            state_1.state.settings.symbolTakeProfitPercent[sym] = pct;
+            (0, state_1.persistSettings)();
+            await ctx.reply(`${sym} take profit set to ${pct}% (overrides the global ${state_1.state.settings.takeProfitPercent}%).`);
+            return;
+        }
+        // Global form: /risk tp <pct>
         const pct = parseFloat(parts[2]);
         if (isNaN(pct) || pct < 0.05 || pct > 50) {
             await ctx.reply("Take profit % must be between 0.05 and 50.");
@@ -167,6 +220,6 @@ async function riskCmd(ctx) {
         await ctx.reply(`Take profit set to ${pct}% of entry.`);
         return;
     }
-    await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk sl <pct> | /risk tp <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk reentry <min> | /risk combined <usd> | /risk confidence <n>");
+    await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk sl <pct> | /risk tp <pct> | /risk sl <SYM> <pct> | /risk tp <SYM> <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk reentry <min> | /risk combined <usd> | /risk confidence <n> | /risk minconfidence <n>");
 }
 //# sourceMappingURL=risk.js.map

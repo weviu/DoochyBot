@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { state } from "../state";
+import { state, slPctFor, tpPctFor } from "../state";
 
 let connection: any = null;
 
@@ -88,8 +88,10 @@ export async function amendPositionSLTP(
 
   // Percentage-of-entry SL/TP. Works uniformly across BTC/ETH/XAU/FX without
   // any contract-size math. Explicit signal values (if ever provided) win.
-  const slPct = state.settings.stopLossPercent;
-  const tpPct = state.settings.takeProfitPercent;
+  // A per-symbol override (e.g. a wider stop for silver) takes precedence over
+  // the global percentage; symbols without an override are unchanged.
+  const slPct = slPctFor(symbol);
+  const tpPct = tpPctFor(symbol);
   let sl: number | null = signal.sl ?? null;
   let tp: number | null = signal.tp ?? null;
 
