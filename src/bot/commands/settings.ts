@@ -30,6 +30,7 @@ export async function settingsCmd(ctx: any) {
     "",
     `Channel signal confidence: ${s.webhookConfidence}`,
     `Min confidence to open (feed): ${s.minConfidence > 0 ? s.minConfidence : off}`,
+    `Margin-aware sizing: ${s.marginAware ? "on" : off}`,
     `Order notifications: ${s.notifyFills ? "on" : "off"}`,
   ];
 

@@ -12,7 +12,12 @@ const SYMBOL_ALIASES = {
     US100: "US TECH 100",
 };
 function resolveSymbol(raw) {
-    const base = raw.split("/")[0].toUpperCase();
+    const upper = raw.toUpperCase();
+    if (!upper.includes("/")) {
+        // Already normalized (scanner output) — alias-check only, no USD append
+        return SYMBOL_ALIASES[upper] ?? (upper || null);
+    }
+    const base = upper.split("/")[0];
     if (!base)
         return null;
     return SYMBOL_ALIASES[base] || `${base}USD`;

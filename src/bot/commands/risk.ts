@@ -167,6 +167,22 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
+  if (setting === "marginaware" && parts[2] !== undefined) {
+    const arg = parts[2].toLowerCase();
+    if (arg !== "on" && arg !== "off") {
+      await ctx.reply("Usage: /risk marginaware on | off");
+      return;
+    }
+    state.settings.marginAware = arg === "on";
+    persistSettings();
+    await ctx.reply(
+      state.settings.marginAware
+        ? "Margin-aware sizing on. Each order is capped to fit the account's free margin."
+        : "Margin-aware sizing off. Orders use the full risk-based size; manage margin via /risk pertrade, /risk sl, and /risk maxpos."
+    );
+    return;
+  }
+
 
   // "pertrade" is the documented name; "risk" kept as a silent alias so older
   // muscle memory still works.
@@ -250,5 +266,5 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
-  await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk sl <pct> | /risk tp <pct> | /risk sl <SYM> <pct> | /risk tp <SYM> <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk reentry <min> | /risk combined <usd> | /risk confidence <n> | /risk minconfidence <n>");
+  await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk sl <pct> | /risk tp <pct> | /risk sl <SYM> <pct> | /risk tp <SYM> <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk reentry <min> | /risk combined <usd> | /risk confidence <n> | /risk minconfidence <n> | /risk marginaware on|off");
 }

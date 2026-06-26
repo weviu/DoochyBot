@@ -152,6 +152,7 @@ async function startBot() {
             "/risk combined <usd>: max summed risk across same symbol+direction positions (0 = off)\n" +
             "/risk confidence <n>: confidence given to channel signals, for reversal flips (default 4)\n" +
             "/risk minconfidence <n>: reject feed signals below this score; channel signals bypass (0 = off, default 3)\n" +
+            "/risk marginaware on|off: cap order size to fit free margin (default off)\n" +
             "\n" +
             "• COOLDOWN (per symbol loss streak)\n" +
             "/risk losses <n>: SL hits before cooldown (0 = off)\n" +

@@ -63,6 +63,7 @@ async function statusCmd(ctx) {
         `Profit cap: ${cap > 0 ? `$${cap.toFixed(2)} (total ${(dailyPnL + liveFloating).toFixed(2)} used)` : "off"}`,
         `Daily loss limit: -$${(0, dailyLoss_1.maxLossUSD)().toFixed(2)} (force-close all)`,
         `Min confidence: ${state_1.state.settings.minConfidence > 0 ? `${state_1.state.settings.minConfidence} (feed signals; channel bypasses)` : "off"}`,
+        `Margin-aware sizing: ${state_1.state.settings.marginAware ? "on" : "off"}`,
         `Sizing: ${state_1.state.settings.riskPerTradeUSD > 0 ? `$${state_1.state.settings.riskPerTradeUSD.toFixed(2)} risk/trade @ ${state_1.state.settings.stopLossPercent}% SL / ${state_1.state.settings.takeProfitPercent}% TP` : "not set - /risk pertrade required to trade"}`,
         ...(overrides ? [`Per-symbol overrides: ${overrides}`] : []),
         `Cooldowns: ${cooldowns.length === 0 ? "none" : cooldowns.map((c) => `${c.symbol} ${Math.ceil(c.remainingMs / 60_000)}m`).join(", ")}`,

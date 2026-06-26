@@ -316,30 +316,33 @@ export async function executeSignal(signal: ParsedSignal): Promise<void> {
     return;
   }
 
-  // Margin-aware cap. Risk-based sizing bounds the dollar risk at the stop but
-  // ignores margin, so a tight stop on a low-leverage symbol (alts) can need far
-  // more margin than the account can post, which the broker rejects as
-  // NOT_ENOUGH_MONEY. Cap each position to an equal share of equity so up to
-  // maxPositions positions always fit. Fail-safe: if the margin figure is
-  // unavailable we keep the risk-based size (the broker still rejects if short).
-  const expMargin = await getExpectedMargin(symbolId, orderVolume, signal.direction);
-  if (expMargin !== null) {
-    let balance = state.accountInfo.balance;
-    try { balance = (await fetchTrader(connection)).balance; } catch { /* keep cached balance */ }
-    const equity = balance + floatingPnL();
-    const budget = (equity * MARGIN_CAP_FRACTION) / Math.max(1, state.settings.maxPositions);
-    if (expMargin > budget) {
-      const step = spec.stepVolume || 1;
-      const scaled = Math.floor((orderVolume * budget) / expMargin / step) * step;
-      if (!scaled || (spec.minVolume && scaled < spec.minVolume)) {
-        console.log(`[MARGIN] ${signal.direction} ${signal.symbol}: needs ~$${expMargin.toFixed(2)} margin but per-trade budget is ~$${budget.toFixed(2)} (equity ~$${equity.toFixed(2)} / ${state.settings.maxPositions}); even the minimum size will not fit, skipping`);
-        if (state.settings.notifyFills) {
-          notify(`Skipped ${signal.direction} ${signal.symbol}: needs ~$${expMargin.toFixed(2)} margin, only ~$${budget.toFixed(2)} budget per trade. Lower /risk pertrade, widen /risk sl, or reduce /risk maxpos.`);
+  // Margin-aware cap (toggled by /risk marginaware). Risk-based sizing bounds the
+  // dollar risk at the stop but ignores margin, so a tight stop on a low-leverage
+  // symbol (alts) can need far more margin than the account can post, which the
+  // broker rejects as NOT_ENOUGH_MONEY. When enabled, cap each position to an
+  // equal share of equity so up to maxPositions positions always fit. When
+  // disabled, place the full risk-based size (and skip the extra broker calls).
+  // Fail-safe: if the margin figure is unavailable we keep the risk-based size.
+  if (state.settings.marginAware) {
+    const expMargin = await getExpectedMargin(symbolId, orderVolume, signal.direction);
+    if (expMargin !== null) {
+      let balance = state.accountInfo.balance;
+      try { balance = (await fetchTrader(connection)).balance; } catch { /* keep cached balance */ }
+      const equity = balance + floatingPnL();
+      const budget = (equity * MARGIN_CAP_FRACTION) / Math.max(1, state.settings.maxPositions);
+      if (expMargin > budget) {
+        const step = spec.stepVolume || 1;
+        const scaled = Math.floor((orderVolume * budget) / expMargin / step) * step;
+        if (!scaled || (spec.minVolume && scaled < spec.minVolume)) {
+          console.log(`[MARGIN] ${signal.direction} ${signal.symbol}: needs ~$${expMargin.toFixed(2)} margin but per-trade budget is ~$${budget.toFixed(2)} (equity ~$${equity.toFixed(2)} / ${state.settings.maxPositions}); even the minimum size will not fit, skipping`);
+          if (state.settings.notifyFills) {
+            notify(`Skipped ${signal.direction} ${signal.symbol}: needs ~$${expMargin.toFixed(2)} margin, only ~$${budget.toFixed(2)} budget per trade. Lower /risk pertrade, widen /risk sl, or reduce /risk maxpos.`);
+          }
+          return;
         }
-        return;
+        console.log(`[MARGIN] ${signal.direction} ${signal.symbol}: margin-capped ${orderVolume} -> ${scaled} vol (needs ~$${expMargin.toFixed(2)} > budget ~$${budget.toFixed(2)}, equity ~$${equity.toFixed(2)})`);
+        orderVolume = scaled;
       }
-      console.log(`[MARGIN] ${signal.direction} ${signal.symbol}: margin-capped ${orderVolume} -> ${scaled} vol (needs ~$${expMargin.toFixed(2)} > budget ~$${budget.toFixed(2)}, equity ~$${equity.toFixed(2)})`);
-      orderVolume = scaled;
     }
   }
 

@@ -28,6 +28,7 @@ exports.DEFAULT_SETTINGS = {
     notifyFills: true,
     webhookConfidence: 4,
     minConfidence: 3,
+    marginAware: false,
 };
 exports.state = {
     paused: false,
@@ -93,6 +94,8 @@ function initSettings() {
             exports.state.settings.webhookConfidence = saved.webhookConfidence;
         if (saved.minConfidence !== undefined)
             exports.state.settings.minConfidence = saved.minConfidence;
+        if (saved.marginAware !== undefined)
+            exports.state.settings.marginAware = saved.marginAware;
         console.log("[STATE] Loaded saved settings. Allowed symbols:", exports.state.settings.allowedSymbols.length);
         // Restore runtime state (active cooldowns and the trading lock) so a restart
         // does not silently clear a prop-rule cooldown or a daily-limit lock. Each is
@@ -150,6 +153,7 @@ function persistAll() {
         notifyFills: exports.state.settings.notifyFills,
         webhookConfidence: exports.state.settings.webhookConfidence,
         minConfidence: exports.state.settings.minConfidence,
+        marginAware: exports.state.settings.marginAware,
         runtime: {
             tradingLocked: exports.state.tradingLocked,
             lockDay: exports.state.tradingLocked ? todayUTC() : null,

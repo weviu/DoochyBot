@@ -41,6 +41,7 @@ export interface BotSettings {
   notifyFills: boolean; // send a Telegram message whenever an order fills
   webhookConfidence: number; // confidence assigned to channel/webhook signals (which carry none); drives reversal gating against feed signals
   minConfidence: number; // reject feed signals scoring below this as an entry gate; channel signals bypass it; 0 = off
+  marginAware: boolean; // when true, cap each order's size to fit free margin (ProtoOAExpectedMarginReq); when false, place the full risk-based size
 }
 
 export interface BotState {
@@ -78,6 +79,7 @@ export const DEFAULT_SETTINGS: BotSettings = {
   notifyFills: true,
   webhookConfidence: 4,
   minConfidence: 3,
+  marginAware: false,
 };
 
 export const state: BotState = {
@@ -133,6 +135,7 @@ export function initSettings(): void {
     if (saved.notifyFills !== undefined) state.settings.notifyFills = saved.notifyFills;
     if (saved.webhookConfidence !== undefined) state.settings.webhookConfidence = saved.webhookConfidence;
     if (saved.minConfidence !== undefined) state.settings.minConfidence = saved.minConfidence;
+    if (saved.marginAware !== undefined) state.settings.marginAware = saved.marginAware;
     console.log("[STATE] Loaded saved settings. Allowed symbols:", state.settings.allowedSymbols.length);
 
     // Restore runtime state (active cooldowns and the trading lock) so a restart
@@ -198,6 +201,7 @@ function persistAll(): void {
     notifyFills: state.settings.notifyFills,
     webhookConfidence: state.settings.webhookConfidence,
     minConfidence: state.settings.minConfidence,
+    marginAware: state.settings.marginAware,
     runtime: {
       tradingLocked: state.tradingLocked,
       lockDay: state.tradingLocked ? todayUTC() : null,
