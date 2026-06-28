@@ -357,6 +357,17 @@ export async function executeSignal(signal: ParsedSignal): Promise<void> {
   // position reflect the size actually sent regardless of sizing mode.
   const lots = spec.lotSize ? orderVolume / spec.lotSize : 0;
 
+  // DIAGNOSTIC (NOT_ENOUGH_MONEY investigation): log the margin this single order
+  // needs vs the account, to confirm whether one order already exceeds free
+  // margin and what the effective leverage is. Runs regardless of the
+  // margin-aware toggle. Remove once the cause is confirmed.
+  try {
+    const dm = await getExpectedMargin(symbolId, orderVolume, signal.direction);
+    const notional = price * (orderVolume / 100);
+    const lev = dm && dm > 0 ? (notional / dm).toFixed(1) : "?";
+    console.log(`[MARGIN-DIAG] ${signal.direction} ${signal.symbol}: needs ~$${dm !== null ? dm.toFixed(2) : "?"} margin, notional ~$${notional.toFixed(0)} (effective leverage ~1:${lev}), balance $${state.accountInfo.balance.toFixed(2)}, open positions ${state.positions.size}`);
+  } catch { /* diagnostic only, never block the order */ }
+
   // Unique label per order so we can correlate execution events back to THIS
   // order. Without it, concurrent orders' listeners all match any ORDER_FILLED
   // event and mis-attribute fills (double/wrong SL, missed positions).
