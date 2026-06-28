@@ -7,6 +7,19 @@ const SYMBOL_ALIASES: Record<string, string> = {
   LINK: "LNKUSD",
 };
 
+// Parse the symbol arguments after the action (parts[0] = /symbols, parts[1] =
+// add/remove). Accepts a comma and/or space separated list, e.g.
+// "BTCUSD,ETHUSD POOPUSD", uppercased and de-duplicated.
+function parseSymbols(parts: string[]): string[] {
+  const syms = parts
+    .slice(2)
+    .join(" ")
+    .split(/[,\s]+/)
+    .map((s) => s.trim().toUpperCase())
+    .filter(Boolean);
+  return [...new Set(syms)];
+}
+
 export async function symbolsCmd(ctx: any) {
   const msg = ctx.message.text.trim();
   const parts = msg.split(/\s+/);
@@ -59,32 +72,42 @@ export async function symbolsCmd(ctx: any) {
     return;
   }
 
-  // /symbols add <symbol>
+  // /symbols add <SYM>[,<SYM>...] - one or more symbols, comma or space separated
   if (action === "add" && parts[2]) {
-    const symbol = parts[2].toUpperCase();
-    if (state.settings.allowedSymbols.includes(symbol)) {
-      await ctx.reply(`${symbol} already in allowed list.`);
-      return;
+    const syms = parseSymbols(parts);
+    const added: string[] = [];
+    const already: string[] = [];
+    for (const sym of syms) {
+      if (state.settings.allowedSymbols.includes(sym)) already.push(sym);
+      else { state.settings.allowedSymbols.push(sym); added.push(sym); }
     }
-    state.settings.allowedSymbols.push(symbol);
-    persistSettings();
-    await ctx.reply(`Added ${symbol}. Allowed: ${state.settings.allowedSymbols.join(", ")}`);
+    if (added.length) persistSettings();
+    const out: string[] = [];
+    if (added.length) out.push(`Added: ${added.join(", ")}`);
+    if (already.length) out.push(`Already present: ${already.join(", ")}`);
+    out.push(`Allowed: ${state.settings.allowedSymbols.join(", ")}`);
+    await ctx.reply(out.join("\n"));
     return;
   }
 
-  // /symbols remove <symbol>
+  // /symbols remove <SYM>[,<SYM>...] - one or more symbols, comma or space separated
   if (action === "remove" && parts[2]) {
-    const symbol = parts[2].toUpperCase();
-    const idx = state.settings.allowedSymbols.indexOf(symbol);
-    if (idx === -1) {
-      await ctx.reply(`${symbol} not in allowed list.`);
-      return;
+    const syms = parseSymbols(parts);
+    const removed: string[] = [];
+    const notFound: string[] = [];
+    for (const sym of syms) {
+      const idx = state.settings.allowedSymbols.indexOf(sym);
+      if (idx === -1) notFound.push(sym);
+      else { state.settings.allowedSymbols.splice(idx, 1); removed.push(sym); }
     }
-    state.settings.allowedSymbols.splice(idx, 1);
-    persistSettings();
-    await ctx.reply(`Removed ${symbol}. Allowed: ${state.settings.allowedSymbols.join(", ")}`);
+    if (removed.length) persistSettings();
+    const out: string[] = [];
+    if (removed.length) out.push(`Removed: ${removed.join(", ")}`);
+    if (notFound.length) out.push(`Not in list: ${notFound.join(", ")}`);
+    out.push(`Allowed: ${state.settings.allowedSymbols.join(", ")}`);
+    await ctx.reply(out.join("\n"));
     return;
   }
 
-  await ctx.reply("Usage: /symbols | /symbols add <SYM> | /symbols add all | /symbols remove <SYM> | /symbols reset");
+  await ctx.reply("Usage: /symbols | /symbols add <SYM>[,<SYM>...] | /symbols add all | /symbols remove <SYM>[,<SYM>...] | /symbols reset");
 }
