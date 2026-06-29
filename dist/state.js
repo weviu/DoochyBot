@@ -26,8 +26,10 @@ exports.DEFAULT_SETTINGS = {
     reentryCooldownMinutes: 10,
     maxCombinedRiskUSD: 0,
     notifyFills: true,
-    webhookConfidence: 4,
-    minConfidence: 3,
+    signalNotify: false,
+    signalNotifyMinConfidence: 50,
+    webhookConfidence: 69,
+    minConfidence: 50,
     marginAware: false,
 };
 exports.state = {
@@ -90,6 +92,10 @@ function initSettings() {
             exports.state.settings.maxCombinedRiskUSD = saved.maxCombinedRiskUSD;
         if (saved.notifyFills !== undefined)
             exports.state.settings.notifyFills = saved.notifyFills;
+        if (saved.signalNotify !== undefined)
+            exports.state.settings.signalNotify = saved.signalNotify;
+        if (saved.signalNotifyMinConfidence !== undefined)
+            exports.state.settings.signalNotifyMinConfidence = saved.signalNotifyMinConfidence;
         if (saved.webhookConfidence !== undefined)
             exports.state.settings.webhookConfidence = saved.webhookConfidence;
         if (saved.minConfidence !== undefined)
@@ -151,6 +157,8 @@ function persistAll() {
         reentryCooldownMinutes: exports.state.settings.reentryCooldownMinutes,
         maxCombinedRiskUSD: exports.state.settings.maxCombinedRiskUSD,
         notifyFills: exports.state.settings.notifyFills,
+        signalNotify: exports.state.settings.signalNotify,
+        signalNotifyMinConfidence: exports.state.settings.signalNotifyMinConfidence,
         webhookConfidence: exports.state.settings.webhookConfidence,
         minConfidence: exports.state.settings.minConfidence,
         marginAware: exports.state.settings.marginAware,

@@ -40,14 +40,14 @@ async function symbolsCmd(ctx) {
         await ctx.reply(`Symbol list reset to defaults: ${state_1.state.settings.allowedSymbols.join(", ")}`);
         return;
     }
-    // /symbols add all - add all symbols from the feed with confidence >= 3
+    // /symbols add all - add all symbols from the feed with confidence >= 50
     if (action === "add" && parts[2]?.toLowerCase() === "all") {
         try {
             const res = await fetch("https://signals.route07.com/rsi_alerts.json");
             const alerts = await res.json();
             const symbols = new Set();
             for (const alert of alerts) {
-                if (alert.confidence >= 3) {
+                if (alert.confidence >= 50) {
                     const base = alert.symbol.split("/")[0].toUpperCase();
                     const resolved = SYMBOL_ALIASES[base] || `${base}USD`;
                     symbols.add(resolved);
@@ -61,7 +61,7 @@ async function symbolsCmd(ctx) {
                 }
             }
             (0, state_1.persistSettings)();
-            await ctx.reply(`Added ${added} symbols with confidence >= 3. Total allowed: ${state_1.state.settings.allowedSymbols.length}`);
+            await ctx.reply(`Added ${added} symbols with confidence >= 50. Total allowed: ${state_1.state.settings.allowedSymbols.length}`);
         }
         catch (err) {
             await ctx.reply(`Failed to fetch feed: ${err.message}`);

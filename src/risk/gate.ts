@@ -6,6 +6,7 @@ import { getReentryCooldown, formatRemaining } from "./reentryCooldown";
 import { existingCombinedRisk } from "./combinedRisk";
 import { executeSignal } from "../ctrader/orders";
 import { executeReversal } from "./reversal";
+import { maybeNotifySignal } from "../bot/signalNotify";
 
 // Outcome of running a signal through the gate. The poller ignores this; the
 // webhook uses it to tell the caller whether the signal executed or why it was
@@ -16,6 +17,11 @@ export interface GateResult {
 }
 
 export function processSignal(signal: ParsedSignal): GateResult {
+  // Signal notification (independent of execution): tell the user about every
+  // qualifying signal up front, before any gate rejection, so they can trade it
+  // manually elsewhere even when this account skips it.
+  maybeNotifySignal(signal);
+
   // Check 1: Trading paused?
   if (state.paused) {
     console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - Trading paused`);

@@ -8,7 +8,12 @@ const reentryCooldown_1 = require("./reentryCooldown");
 const combinedRisk_1 = require("./combinedRisk");
 const orders_1 = require("../ctrader/orders");
 const reversal_1 = require("./reversal");
+const signalNotify_1 = require("../bot/signalNotify");
 function processSignal(signal) {
+    // Signal notification (independent of execution): tell the user about every
+    // qualifying signal up front, before any gate rejection, so they can trade it
+    // manually elsewhere even when this account skips it.
+    (0, signalNotify_1.maybeNotifySignal)(signal);
     // Check 1: Trading paused?
     if (state_1.state.paused) {
         console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - Trading paused`);

@@ -162,8 +162,8 @@ bot.command("help", async (ctx) => {
     "/risk capbuffer <usd>: trigger cap this many $ early\n" +
     "/risk maxpos <n>: max concurrent positions\n" +
     "/risk combined <usd>: max summed risk across same symbol+direction positions (0 = off)\n" +
-    "/risk confidence <n>: confidence given to channel signals, for reversal flips (default 4)\n" +
-    "/risk minconfidence <n>: reject feed signals below this score; channel signals bypass (0 = off, default 3)\n" +
+    "/risk confidence <n>: confidence given to channel signals (0-100), for reversal flips (default 69)\n" +
+    "/risk minconfidence <n>: reject feed signals below this score (0-100); channel signals bypass (0 = off, default 50)\n" +
     "/risk marginaware on|off: cap order size to fit free margin (default off)\n" +
     "\n" +
     "• COOLDOWN (per symbol loss streak)\n" +
@@ -178,6 +178,8 @@ bot.command("help", async (ctx) => {
     "/status: connection, P&L, limits, sizing, cooldowns\n" +
     "/settings: show all your configured settings\n" +
     "/notifications on|off: message me when an order fills\n" +
+    "/notifications signals on|off: message me on every incoming signal (to trade manually elsewhere)\n" +
+    "/notifications signals min <0-100>: only notify on signals at/above this score\n" +
     "/positions: open positions: entry, mark, SL, TP, P&L\n" +
     "/closeall: close all open positions\n" +
     "\n" +

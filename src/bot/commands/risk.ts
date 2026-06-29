@@ -141,8 +141,8 @@ export async function riskCmd(ctx: any) {
 
   if (setting === "confidence" && parts[2] !== undefined) {
     const n = parseInt(parts[2]);
-    if (isNaN(n) || n < 0 || n > 4) {
-      await ctx.reply("Channel confidence must be between 0 and 4 (default 4).");
+    if (isNaN(n) || n < 0 || n > 100) {
+      await ctx.reply("Channel confidence must be between 0 and 100 (default 69).");
       return;
     }
     state.settings.webhookConfidence = n;
@@ -153,8 +153,8 @@ export async function riskCmd(ctx: any) {
 
   if (setting === "minconfidence" && parts[2] !== undefined) {
     const n = parseInt(parts[2]);
-    if (isNaN(n) || n < 0 || n > 6) {
-      await ctx.reply("Minimum confidence must be between 0 and 6 (0 = off).");
+    if (isNaN(n) || n < 0 || n > 100) {
+      await ctx.reply("Minimum confidence must be between 0 and 100% (0 = off).");
       return;
     }
     state.settings.minConfidence = n;
@@ -266,5 +266,5 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
-  await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk sl <pct> | /risk tp <pct> | /risk sl <SYM> <pct> | /risk tp <SYM> <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk reentry <min> | /risk combined <usd> | /risk confidence <n> | /risk minconfidence <n> | /risk marginaware on|off");
+  await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk sl <pct> | /risk tp <pct> | /risk sl <SYM> <pct> | /risk tp <SYM> <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk reentry <min> | /risk combined <usd> | /risk confidence <n> | /risk minconfidence <n>% | /risk marginaware on|off");
 }

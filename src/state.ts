@@ -39,6 +39,8 @@ export interface BotSettings {
   reentryCooldownMinutes: number; // after ANY losing close, block re-entry on the same symbol+direction for this long (prop-firm same-trade-idea rule); 0 = disabled
   maxCombinedRiskUSD: number; // max summed potential loss across all open positions of the same symbol+direction (prop-firm per-trade-idea limit); 0 = disabled
   notifyFills: boolean; // send a Telegram message whenever an order fills
+  signalNotify: boolean; // send a Telegram message for every incoming signal (executed or not), for trading manually elsewhere
+  signalNotifyMinConfidence: number; // only notify on signals scoring at least this; independent of the entry gate
   webhookConfidence: number; // confidence assigned to channel/webhook signals (which carry none); drives reversal gating against feed signals
   minConfidence: number; // reject feed signals scoring below this as an entry gate; channel signals bypass it; 0 = off
   marginAware: boolean; // when true, cap each order's size to fit free margin (ProtoOAExpectedMarginReq); when false, place the full risk-based size
@@ -77,8 +79,10 @@ export const DEFAULT_SETTINGS: BotSettings = {
   reentryCooldownMinutes: 10,
   maxCombinedRiskUSD: 0,
   notifyFills: true,
-  webhookConfidence: 4,
-  minConfidence: 3,
+  signalNotify: false,
+  signalNotifyMinConfidence: 50,
+  webhookConfidence: 69,
+  minConfidence: 50,
   marginAware: false,
 };
 
@@ -133,6 +137,8 @@ export function initSettings(): void {
     if (saved.reentryCooldownMinutes !== undefined) state.settings.reentryCooldownMinutes = saved.reentryCooldownMinutes;
     if (saved.maxCombinedRiskUSD !== undefined) state.settings.maxCombinedRiskUSD = saved.maxCombinedRiskUSD;
     if (saved.notifyFills !== undefined) state.settings.notifyFills = saved.notifyFills;
+    if (saved.signalNotify !== undefined) state.settings.signalNotify = saved.signalNotify;
+    if (saved.signalNotifyMinConfidence !== undefined) state.settings.signalNotifyMinConfidence = saved.signalNotifyMinConfidence;
     if (saved.webhookConfidence !== undefined) state.settings.webhookConfidence = saved.webhookConfidence;
     if (saved.minConfidence !== undefined) state.settings.minConfidence = saved.minConfidence;
     if (saved.marginAware !== undefined) state.settings.marginAware = saved.marginAware;
@@ -199,6 +205,8 @@ function persistAll(): void {
     reentryCooldownMinutes: state.settings.reentryCooldownMinutes,
     maxCombinedRiskUSD: state.settings.maxCombinedRiskUSD,
     notifyFills: state.settings.notifyFills,
+    signalNotify: state.settings.signalNotify,
+    signalNotifyMinConfidence: state.settings.signalNotifyMinConfidence,
     webhookConfidence: state.settings.webhookConfidence,
     minConfidence: state.settings.minConfidence,
     marginAware: state.settings.marginAware,
