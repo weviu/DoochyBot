@@ -39,6 +39,9 @@ export function parseSignal(alert: RawAlert): ParsedSignal | null {
     confidence: alert.confidence ?? 0,
     timeframe: alert.timeframe,
     timestamp: alert.timestamp,
+    // Carry the feed's own SL/TP for display only (see ParsedSignal.feedSl).
+    feedSl: alert.sl,
+    feedTp: alert.tp,
     source: "Feed",
   };
 }
