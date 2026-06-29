@@ -47,7 +47,7 @@ export async function symbolsCmd(ctx: any) {
   // /symbols add all - add all symbols from the feed with confidence >= 50
   if (action === "add" && parts[2]?.toLowerCase() === "all") {
     try {
-      const res = await fetch("https://signals.route07.com/rsi_alerts.json");
+      const res = await fetch("https://signals.route07.com/alerts.json");
       const alerts = await res.json();
       const symbols = new Set<string>();
       for (const alert of alerts) {

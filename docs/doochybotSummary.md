@@ -49,7 +49,7 @@ The external RSI signal feed (referred to as MiniSig) is a third-party service t
 
 ### 3.1 RSI JSON feed (poller)
 
-- Source: `https://signals.route07.com/rsi_alerts.json`, polled every 10 seconds (`src/signals/poller.ts`).
+- Source: `https://signals.route07.com/alerts.json`, polled every 10 seconds (`src/signals/poller.ts`).
 - On first poll it records the latest timestamp and processes nothing (avoids replaying history). After that, any alert newer than the last seen timestamp is processed oldest-first.
 - Signal format (`RawAlert`): JSON objects with `timestamp`, `symbol`, `timeframe`, `direction`, `rsi`, `price`, `pivot_level`, `pivot_distance`, `confidence`.
 - Parsing (`src/signals/parser.ts`): resolves the feed symbol to the broker symbol. A few explicit aliases exist (for example AAVE to AAVUSD, LINK to LNKUSD, US30 to "US 30", US100 to "US TECH 100"); otherwise the base symbol gets a `USD` suffix. Direction must be BUY or SELL. The result is a `ParsedSignal` carrying `rsi`, `price`, `confidence`, `timeframe`, and timestamp. These feed signals are always treated as market orders and do not carry their own SL/TP.
@@ -238,7 +238,7 @@ Current live values, with defaults in parentheses:
 - `CHANNEL_USERNAME`: public username or private invite link of the channel.
 - `WEBHOOK_URL`: defaults to `http://localhost:9009/webhook`.
 
-The RSI feed URL (`signals.route07.com/rsi_alerts.json`) and its 10s interval are hardcoded in the poller, not configurable via settings or env.
+The RSI feed URL (`signals.route07.com/alerts.json`) and its 10s interval are hardcoded in the poller, not configurable via settings or env.
 
 ---
 

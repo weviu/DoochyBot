@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.startPoller = startPoller;
 const parser_1 = require("./parser");
-const FEED_URL = "https://signals.route07.com/rsi_alerts.json";
+const FEED_URL = "https://signals.route07.com/alerts.json";
 const INTERVAL_MS = 10_000;
 let lastTimestamp = null;
 function startPoller(onSignal) {
