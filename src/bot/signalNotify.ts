@@ -16,15 +16,19 @@ export function maybeNotifySignal(signal: ParsedSignal): void {
   // Green orb for buys, red orb for sells, per request.
   const orb = signal.direction === "BUY" ? "\u{1F7E2}" : "\u{1F534}";
 
-  // Fields in the requested order: symbol, confidence, direction, price, sl, tp,
-  // signal source. SL/TP are shown only when the signal carries them (feed
-  // signals do not); the orb stays on the direction line as the colour cue.
-  const lines = [signal.symbol, `Confidence: ${conf}`, `${orb} ${signal.direction}`];
-
-  if (signal.price) lines.push(`Price: ${signal.price}`);
+  // Fields in the requested order, always present so every notification has the
+  // same shape: symbol, confidence, direction, price, sl, tp, signal source.
+  // Feed signals carry no SL/TP, so those show a dash. The orb stays on the
+  // direction line as the colour cue.
+  const lines = [
+    signal.symbol,
+    `Confidence: ${conf}`,
+    `${orb} ${signal.direction}`,
+    `Price: ${signal.price || "-"}`,
+  ];
   if (signal.orderType === "LIMIT" && signal.limitPrice != null) lines.push(`Limit: ${signal.limitPrice}`);
-  if (signal.sl != null) lines.push(`SL: ${signal.sl}`);
-  if (signal.tp != null) lines.push(`TP: ${signal.tp}`);
+  lines.push(`SL: ${signal.sl != null ? signal.sl : "-"}`);
+  lines.push(`TP: ${signal.tp != null ? signal.tp : "-"}`);
   lines.push(`Source: ${signal.source || "Unknown"}`);
 
   notify(lines.join("\n")).catch(() => {});
