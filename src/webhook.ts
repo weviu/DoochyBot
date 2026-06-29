@@ -17,7 +17,7 @@ const PORT = 9009;
  * order pipeline applies directly. The optional LIMIT=<price> selects a resting
  * limit order at that price; without it the signal is a market order.
  */
-function parseTextSignal(text: string): ParsedSignal | null {
+function parseTextSignal(text: string, source: string): ParsedSignal | null {
   const m = text.trim().match(/^(BUY|SELL)\s+(\S+)\s+(?:LIMIT=([\d.]+)\s+)?SL=([\d.]+)\s+TP=([\d.]+)/i);
   if (!m) return null;
 
@@ -44,6 +44,7 @@ function parseTextSignal(text: string): ParsedSignal | null {
     tp,
     orderType: limitPrice !== undefined ? "LIMIT" : "MARKET",
     limitPrice,
+    source,
   };
 }
 
@@ -58,9 +59,12 @@ export function startWebhookServer(): void {
 
   app.post("/webhook", (req, res) => {
     const body = typeof req.body === "string" ? req.body : "";
-    console.log(`[WEBHOOK] Received: ${JSON.stringify(body)}`);
+    // The channel-listener labels each POST with the channel title; default to a
+    // generic "Channel" if the header is absent (e.g. a manual curl).
+    const source = (req.get("X-Signal-Source") || "Channel").trim() || "Channel";
+    console.log(`[WEBHOOK] Received (${source}): ${JSON.stringify(body)}`);
 
-    const signal = parseTextSignal(body);
+    const signal = parseTextSignal(body, source);
     if (!signal) {
       console.log("[WEBHOOK] Rejected: could not parse signal");
       return res.status(400).send("Could not parse signal");

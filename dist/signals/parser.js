@@ -39,6 +39,7 @@ function parseSignal(alert) {
         confidence: alert.confidence ?? 0,
         timeframe: alert.timeframe,
         timestamp: alert.timestamp,
+        source: "Feed",
     };
 }
 //# sourceMappingURL=parser.js.map

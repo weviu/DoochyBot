@@ -27,4 +27,7 @@ export interface ParsedSignal {
   // channel listener; fills only when price reaches limitPrice.
   orderType?: "MARKET" | "LIMIT";
   limitPrice?: number;
+  // Where the signal came from, for notifications: "Feed" for the RSI poller, or
+  // the channel title for webhook signals from the channel-listener.
+  source?: string;
 }

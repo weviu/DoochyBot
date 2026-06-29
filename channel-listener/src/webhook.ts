@@ -15,14 +15,14 @@ import { Signal } from "./parser";
  * Fire-and-forget: a failed POST is logged and dropped. The channel never repeats
  * a signal, so retrying a stale entry would be worse than skipping it.
  */
-export async function sendSignal(signal: Signal, webhookUrl: string): Promise<void> {
+export async function sendSignal(signal: Signal, webhookUrl: string, source: string): Promise<void> {
   const entryPart = signal.orderType === "LIMIT" ? `LIMIT=${signal.entry} ` : "";
   const body = `${signal.direction} ${signal.symbol} ${entryPart}SL=${signal.sl} TP=${signal.tp}`;
 
   try {
     const res = await fetch(webhookUrl, {
       method: "POST",
-      headers: { "Content-Type": "text/plain" },
+      headers: { "Content-Type": "text/plain", "X-Signal-Source": source },
       body,
     });
 

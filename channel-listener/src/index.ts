@@ -61,6 +61,7 @@ interface ChannelRuntime {
   cfg: ChannelConfig;
   entity: Api.TypeEntityLike;
   peerId: string;
+  title: string;
   sureshot: SignalParser | null;
   seen: Set<number>;
 }
@@ -208,6 +209,7 @@ async function main(): Promise<void> {
         cfg,
         entity,
         peerId,
+        title,
         sureshot: cfg.parser === "sureshot" ? new SignalParser() : null,
         seen: new Set<number>(),
       });
@@ -233,7 +235,7 @@ async function main(): Promise<void> {
     const signal = rt.sureshot ? rt.sureshot.processMessage(text) : parseFxoroSignal(text);
     if (signal) {
       console.log("[signal] Complete signal extracted:", signal);
-      await sendSignal(signal, config.webhookUrl);
+      await sendSignal(signal, config.webhookUrl, rt.title);
     }
   };
 

@@ -39,5 +39,6 @@ export function parseSignal(alert: RawAlert): ParsedSignal | null {
     confidence: alert.confidence ?? 0,
     timeframe: alert.timeframe,
     timestamp: alert.timestamp,
+    source: "Feed",
   };
 }
