@@ -106,10 +106,14 @@ export function processSignal(signal: ParsedSignal): GateResult {
       return { accepted: false, reason: `Already holding ${existing.direction}` };
     }
 
-    // Opposite direction — flip only if the new signal is more confident.
+    // Opposite direction: flip if the new signal is at least as confident. Equal
+    // confidence flips because the newer signal is the source's updated view (a
+    // channel reversing its own call sends equal-confidence signals, which the
+    // old strictly-higher rule could never honour). The minimum-confidence gate
+    // (Check 2c) already ran, so a weak signal never reaches here.
     const newConf = signal.confidence ?? 0;
     const oldConf = existing.confidence ?? 0;
-    if (newConf <= oldConf) {
+    if (newConf < oldConf) {
       console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} — Confidence too low (${newConf} vs existing ${oldConf})`);
       return { accepted: false, reason: `Confidence too low (${newConf} vs existing ${oldConf})` };
     }
