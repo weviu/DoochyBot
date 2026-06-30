@@ -174,11 +174,28 @@ export async function reconcilePositions(): Promise<void> {
     // reconcile request itself is coming back empty (account/host routing).
     console.log(`[RECONCILE] Broker returned ${positions.length} raw position(s).`);
 
+    // Only adopt positions on symbols the bot is configured to trade. The same
+    // account is also traded manually (e.g. FX pairs), and our floating-P&L money
+    // model assumes a USD quote currency — applying it to a JPY/CAD-quoted pair
+    // overstates its P&L by ~the cross rate, which once produced a false daily-loss
+    // breach that force-closed a manual trade. allowedSymbols are all USD-quoted,
+    // so restricting here keeps every tracked position correctly valued. Resolved
+    // via symbolIdFor so the broker's symbol naming is matched, not the raw string.
+    const allowedIds = new Set(
+      state.settings.allowedSymbols
+        .map((s) => symbolIdFor(s))
+        .filter((id): id is number => id !== undefined)
+    );
+
     let count = 0;
     for (const p of positions) {
       if (p.positionStatus && p.positionStatus !== "POSITION_STATUS_OPEN" && p.positionStatus !== 1) continue;
       const td = p.tradeData || {};
       const symbolId = Number(td.symbolId);
+      if (!allowedIds.has(symbolId)) {
+        console.log(`[RECONCILE] Skipping position #${p.positionId} on ${symbolNameById(symbolId)} — not an allowed bot symbol (manual trade).`);
+        continue;
+      }
       const volumeCents = Number(td.volume) || 0;
 
       let lots = 0;

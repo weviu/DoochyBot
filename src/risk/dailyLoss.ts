@@ -16,6 +16,12 @@ export function maxLossUSD(): number {
 export function floatingPnL(): number {
   let total = 0;
   for (const pos of state.positions.values()) {
+    // Belt-and-braces: the money model below assumes a USD quote currency, which
+    // only holds for allowedSymbols (USD-quoted metals/crypto). Never value a
+    // non-allowed symbol here — a stray manual FX position would be overstated by
+    // ~its cross rate and could trip the daily-loss limit. reconcile already
+    // filters these out; this guards any other path that might add one.
+    if (!state.settings.allowedSymbols.includes(pos.symbol)) continue;
     const mark = getMarkPrice(pos.symbol, pos.direction);
     if (!mark || !pos.entryPrice) continue;
     const diff = pos.direction === "BUY" ? mark - pos.entryPrice : pos.entryPrice - mark;
