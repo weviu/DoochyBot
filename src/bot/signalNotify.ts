@@ -45,6 +45,9 @@ export function maybeNotifySignal(signal: ParsedSignal): void {
   if (signal.orderType === "LIMIT" && signal.limitPrice != null) lines.push(`Limit: ${signal.limitPrice}`);
   lines.push(`SL: ${fmt(slP)}`);
   lines.push(`TP: ${fmt(tpP)}`);
+  // BTC macro state, for crypto only. Null/absent (gold, silver, forex, indices)
+  // omits the line entirely rather than showing a meaningless "n/a".
+  if (signal.btcState) lines.push(`BTC: ${signal.btcState}`);
   lines.push(`Source: ${signal.source || "Unknown"}`);
 
   notify(lines.join("\n")).catch(() => {});

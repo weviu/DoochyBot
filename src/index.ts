@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import { Bot } from "grammy";
 import { CTraderConnection } from "@reiryoku/ctrader-layer";
 import { startPoller } from "./signals/poller";
-import { state, initSettings } from "./state";
+import { state, initSettings, symbolIdFor } from "./state";
 import { processSignal } from "./risk/gate";
 import { pauseCmd } from "./bot/commands/pause";
 import { resumeCmd } from "./bot/commands/resume";
@@ -231,7 +231,7 @@ await fetchSymbols(ctrader);
 // symbol has no mark price and risk-based sizing can't size against it.
 const allowedSymbolIds = [...new Set(
   state.settings.allowedSymbols
-    .map((s) => state.symbolMap.get(s) ?? state.symbolMap.get(s.replace(/USD$/, "")))
+    .map((s) => symbolIdFor(s))
     .filter((id): id is number => id !== undefined)
 )];
 await subscribeSpots(allowedSymbolIds);

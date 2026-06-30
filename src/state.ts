@@ -44,6 +44,9 @@ export interface BotSettings {
   webhookConfidence: number; // confidence assigned to channel/webhook signals (which carry none); drives reversal gating against feed signals
   minConfidence: number; // reject feed signals scoring below this as an entry gate; channel signals bypass it; 0 = off
   marginAware: boolean; // when true, cap each order's size to fit free margin (ProtoOAExpectedMarginReq); when false, place the full risk-based size
+  btcBiasGate: boolean; // when on, suppress crypto BUY signals during BTC bearishness unless their confidence clears the floor below; non-crypto (btc_state null) and SELLs are unaffected
+  btcBiasMinConfBearish: number; // during BTC BEARISH, a crypto BUY needs at least this confidence to pass
+  btcBiasMinConfStrongBearish: number; // during BTC BEARISH_STRONG, a crypto BUY needs at least this confidence to pass
 }
 
 export interface BotState {
@@ -84,6 +87,9 @@ export const DEFAULT_SETTINGS: BotSettings = {
   webhookConfidence: 69,
   minConfidence: 50,
   marginAware: false,
+  btcBiasGate: true,
+  btcBiasMinConfBearish: 80,
+  btcBiasMinConfStrongBearish: 90,
 };
 
 export const state: BotState = {
@@ -109,6 +115,16 @@ export function slPctFor(symbol: string): number {
 }
 export function tpPctFor(symbol: string): number {
   return state.settings.symbolTakeProfitPercent[symbol] ?? state.settings.takeProfitPercent;
+}
+
+// Resolve a signal/position symbol name to the broker's symbolId. Some brokers
+// name a symbol without the "USD" quote suffix (e.g. "BTC" not "BTCUSD"), so we
+// fall back to the stripped name. This MUST be the single resolver used by order
+// placement, the entry gate, and the live-price/floating-P&L path alike: if they
+// disagree, a position can open on a fallback-resolved symbol that the spot
+// subscription then never matches, silently reading its floating P&L as 0.
+export function symbolIdFor(symbol: string): number | undefined {
+  return state.symbolMap.get(symbol) ?? state.symbolMap.get(symbol.replace(/USD$/, ""));
 }
 
 export interface AccountInfo {
@@ -142,6 +158,9 @@ export function initSettings(): void {
     if (saved.webhookConfidence !== undefined) state.settings.webhookConfidence = saved.webhookConfidence;
     if (saved.minConfidence !== undefined) state.settings.minConfidence = saved.minConfidence;
     if (saved.marginAware !== undefined) state.settings.marginAware = saved.marginAware;
+    if (saved.btcBiasGate !== undefined) state.settings.btcBiasGate = saved.btcBiasGate;
+    if (saved.btcBiasMinConfBearish !== undefined) state.settings.btcBiasMinConfBearish = saved.btcBiasMinConfBearish;
+    if (saved.btcBiasMinConfStrongBearish !== undefined) state.settings.btcBiasMinConfStrongBearish = saved.btcBiasMinConfStrongBearish;
     console.log("[STATE] Loaded saved settings. Allowed symbols:", state.settings.allowedSymbols.length);
 
     // Restore runtime state (active cooldowns and the trading lock) so a restart
@@ -210,6 +229,9 @@ function persistAll(): void {
     webhookConfidence: state.settings.webhookConfidence,
     minConfidence: state.settings.minConfidence,
     marginAware: state.settings.marginAware,
+    btcBiasGate: state.settings.btcBiasGate,
+    btcBiasMinConfBearish: state.settings.btcBiasMinConfBearish,
+    btcBiasMinConfStrongBearish: state.settings.btcBiasMinConfStrongBearish,
     runtime: {
       tradingLocked: state.tradingLocked,
       lockDay: state.tradingLocked ? todayUTC() : null,

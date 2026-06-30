@@ -38,12 +38,12 @@ export async function notificationsCmd(ctx: any) {
     if (sub === "min" && parts[3] !== undefined) {
       const n = parseInt(parts[3]);
       if (isNaN(n) || n < 0 || n > 100) {
-        await ctx.reply("Signal notification minimum confidence must be between 0 and 100.");
+        await ctx.reply("Signal notification minimum confidence must be between 0 and 100%");
         return;
       }
       state.settings.signalNotifyMinConfidence = n;
       persistSettings();
-      await ctx.reply(`Signal notifications now fire only for signals scoring at least ${n}.`);
+      await ctx.reply(`Signal notifications now fire only for signals scoring at least ${n}%`);
       return;
     }
 

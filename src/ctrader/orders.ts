@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { state, slPctFor, tpPctFor } from "../state";
+import { state, slPctFor, tpPctFor, symbolIdFor } from "../state";
 import { ParsedSignal } from "../signals/types";
 import { amendPositionSLTP } from "./amend";
 import { updateDailyPnL, floatingPnL } from "../risk/dailyLoss";
@@ -259,7 +259,7 @@ export async function executeSignal(signal: ParsedSignal): Promise<void> {
   }
 
   console.log("[ORDER] executeSignal called for", signal.symbol);
-  const symbolId = state.symbolMap.get(signal.symbol) ?? state.symbolMap.get(signal.symbol.replace(/USD$/, ""));
+  const symbolId = symbolIdFor(signal.symbol);
   if (!symbolId) {
     console.log(`[ORDER] Symbol not found in cache: ${signal.symbol}`);
     return;

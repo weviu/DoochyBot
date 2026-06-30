@@ -42,6 +42,8 @@ export function parseSignal(alert: RawAlert): ParsedSignal | null {
     // Carry the feed's own SL/TP for display only (see ParsedSignal.feedSl).
     feedSl: alert.sl,
     feedTp: alert.tp,
+    // BTC macro state for crypto (null for non-crypto, or absent on older alerts).
+    btcState: alert.btc_state ?? null,
     source: "Feed",
   };
 }

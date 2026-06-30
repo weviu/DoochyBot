@@ -1,3 +1,14 @@
+// BTC's higher-timeframe macro state at the moment a signal fired, as decided by
+// the feed's scanner. Crypto tracks BTC, so this drives the crypto suppression
+// gate. Non-crypto instruments (gold, silver, forex, indices) carry null - the
+// scanner already classified them, so we never infer crypto-ness ourselves.
+export type BtcState =
+  | "BULLISH_STRONG"
+  | "BULLISH"
+  | "NEUTRAL"
+  | "BEARISH"
+  | "BEARISH_STRONG";
+
 export interface RawAlert {
   timestamp: string;
   symbol: string;
@@ -13,6 +24,9 @@ export interface RawAlert {
   sl?: number;
   tp?: number;
   signal_source?: string;
+  // BTC macro state for crypto alerts; null for non-crypto. Optional too, so
+  // alerts that predate this feed field parse as "not applicable" (same as null).
+  btc_state?: BtcState | null;
 }
 
 export interface ParsedSignal {
@@ -41,4 +55,9 @@ export interface ParsedSignal {
   // Where the signal came from, for notifications: "Feed" for the RSI poller, or
   // the channel title for webhook signals from the channel-listener.
   source?: string;
+  // BTC macro state carried from the feed (alert.btc_state). Non-null only for
+  // crypto; null/undefined means non-crypto or a signal source that doesn't
+  // report it (webhook). Drives the crypto BTC-bias gate and is shown in
+  // notifications. Never used for sizing or order placement.
+  btcState?: BtcState | null;
 }

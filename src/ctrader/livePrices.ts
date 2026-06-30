@@ -1,4 +1,4 @@
-import { state } from "../state";
+import { state, symbolIdFor } from "../state";
 
 // Live mark prices straight from cTrader's spot stream. This is the ONLY
 // real-time price source we have — the HTTP signal feed only updates a symbol
@@ -79,7 +79,7 @@ export async function subscribeSpots(symbolIds: number[]): Promise<void> {
 export async function subscribeOpenPositions(): Promise<void> {
   const ids = [...new Set(
     [...state.positions.values()]
-      .map((p) => state.symbolMap.get(p.symbol))
+      .map((p) => symbolIdFor(p.symbol))
       .filter((id): id is number => id !== undefined)
   )];
   await subscribeSpots(ids);
@@ -90,7 +90,7 @@ export async function subscribeOpenPositions(): Promise<void> {
 //   SELL closes at the ask (you buy to close)
 // This matches how cTrader computes the "Net USD" figure shown in the UI.
 export function getMarkPrice(symbol: string, direction: "BUY" | "SELL"): number | null {
-  const symId = state.symbolMap.get(symbol);
+  const symId = symbolIdFor(symbol);
   if (symId === undefined) return null;
   // quotes is keyed by Number(symbolId); coerce defensively so a stray string
   // symbolId can never silently miss the lookup (the bug that zeroed floating P&L).
@@ -102,7 +102,7 @@ export function getMarkPrice(symbol: string, direction: "BUY" | "SELL"): number 
 
 // Has a live quote for this symbol arrived yet?
 export function hasLiveQuote(symbol: string): boolean {
-  const symId = state.symbolMap.get(symbol);
+  const symId = symbolIdFor(symbol);
   if (symId === undefined) return false;
   return quotes.has(Number(symId));
 }

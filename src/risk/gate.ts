@@ -1,4 +1,4 @@
-import { state, Position } from "../state";
+import { state, Position, symbolIdFor } from "../state";
 import { ParsedSignal } from "../signals/types";
 import { isLocked, evaluateDailyLimits } from "./dailyLoss";
 import { getCooldown } from "./cooldown";
@@ -65,7 +65,7 @@ export function processSignal(signal: ParsedSignal): GateResult {
   }
 
   // Check 2b: Symbol available on this broker?
-  const resolvable = state.symbolMap.has(signal.symbol) || state.symbolMap.has(signal.symbol.replace(/USD$/, ""));
+  const resolvable = symbolIdFor(signal.symbol) !== undefined;
   if (!resolvable) {
     console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - Not available on broker`);
     return { accepted: false, reason: "Not available on broker" };
@@ -81,6 +81,24 @@ export function processSignal(signal: ParsedSignal): GateResult {
     const reason = `Confidence too low (${conf}, minimum ${minConf})`;
     console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - ${reason}`);
     return { accepted: false, reason };
+  }
+
+  // Check 2d: BTC macro-bias gate (crypto BUYs only). Crypto tracks BTC, so when
+  // BTC's higher-timeframe state is bearish we only let high-conviction LONGS
+  // through. The feed stamps each alert with btc_state (signal.btcState): one of
+  // the five states for crypto, or null for non-crypto (gold, silver, forex,
+  // indices) - the scanner already classified those, so a null/absent state skips
+  // this gate entirely. SELLs are aligned with the bearishness and pass untouched.
+  if (state.settings.btcBiasGate && signal.direction === "BUY" && signal.btcState) {
+    let floor: number | null = null;
+    if (signal.btcState === "BEARISH_STRONG") floor = state.settings.btcBiasMinConfStrongBearish;
+    else if (signal.btcState === "BEARISH") floor = state.settings.btcBiasMinConfBearish;
+    const conf = signal.confidence ?? 0;
+    if (floor !== null && conf < floor) {
+      const reason = `BTC ${signal.btcState}: BUY needs confidence >= ${floor} (got ${conf})`;
+      console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - ${reason}`);
+      return { accepted: false, reason };
+    }
   }
 
   // Check 3: Per-symbol consecutive-loss cooldown.

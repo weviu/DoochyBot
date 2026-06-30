@@ -63,6 +63,7 @@ export async function statusCmd(ctx: any) {
     `Profit cap: ${cap > 0 ? `$${cap.toFixed(2)} (total ${(dailyPnL + liveFloating).toFixed(2)} used)` : "off"}`,
     `Daily loss limit: -$${maxLossUSD().toFixed(2)} (force-close all)`,
     `Min confidence: ${state.settings.minConfidence > 0 ? `${state.settings.minConfidence} (feed signals; channel bypasses)` : "off"}`,
+    `BTC-bias gate: ${state.settings.btcBiasGate ? `on (crypto BUY needs >=${state.settings.btcBiasMinConfBearish} BEARISH / >=${state.settings.btcBiasMinConfStrongBearish} BEARISH_STRONG)` : "off"}`,
     `Margin-aware sizing: ${state.settings.marginAware ? "on" : "off"}`,
     `Sizing: ${state.settings.riskPerTradeUSD > 0 ? `$${state.settings.riskPerTradeUSD.toFixed(2)} risk/trade @ ${state.settings.stopLossPercent}% SL / ${state.settings.takeProfitPercent}% TP` : "not set - /risk pertrade required to trade"}`,
     ...(overrides ? [`Per-symbol overrides: ${overrides}`] : []),
