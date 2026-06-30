@@ -44,6 +44,6 @@ export function parseSignal(alert: RawAlert): ParsedSignal | null {
     feedTp: alert.tp,
     // BTC macro state for crypto (null for non-crypto, or absent on older alerts).
     btcState: alert.btc_state ?? null,
-    source: "Feed",
+    source: "Signal-scanner",
   };
 }
