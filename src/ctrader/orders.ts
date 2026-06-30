@@ -269,17 +269,24 @@ async function getExpectedMargin(symbolId: number, volumeCents: number, directio
   }
 }
 
-export async function executeSignal(signal: ParsedSignal): Promise<void> {
+// Outcome of placing an order. Feed/channel callers ignore it (fire-and-forget);
+// manual Telegram orders use it to reply to the user with success or the reason.
+export interface OrderResult {
+  ok: boolean;
+  error?: string;
+}
+
+export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> {
   if (!connection) {
     console.log("[ORDER] No cTrader connection");
-    return;
+    return { ok: false, error: "No broker connection" };
   }
 
   console.log("[ORDER] executeSignal called for", signal.symbol);
   const symbolId = symbolIdFor(signal.symbol);
   if (!symbolId) {
     console.log(`[ORDER] Symbol not found in cache: ${signal.symbol}`);
-    return;
+    return { ok: false, error: `Symbol ${signal.symbol} not available on this broker` };
   }
   console.log(`[ORDER] Resolved ${signal.symbol} → symbolId ${symbolId}`);
 
@@ -289,85 +296,112 @@ export async function executeSignal(signal: ParsedSignal): Promise<void> {
   const spec = await getSymbolSpec(symbolId);
   if (!spec) {
     console.log(`[ORDER] No contract spec for ${signal.symbol}; skipping`);
-    return;
+    return { ok: false, error: `No contract spec for ${signal.symbol}` };
   }
 
-  // Two sizing modes:
-  //  - Risk-based (riskPerTradeUSD > 0): derive the volume so a stopLossPercent
-  //    stop loses ~riskPerTradeUSD, using the live mark price. This bounds every
-  //    trade's worst case to a fixed dollar amount — a flat SL % otherwise gives
-  //    wildly different $ risk per symbol (e.g. one XAUUSD stop = 5× a BTCUSD one).
-  //    Falls back to fixed lots if no live quote has arrived for the symbol yet.
-  //  - Fixed (riskPerTradeUSD == 0): the configured per-symbol / default lot size.
-  // Sizing is risk-based only: size so a stopLossPercent stop loses ~riskUSD.
-  // There is no fixed-lot mode — if risk sizing isn't configured we refuse to
-  // trade rather than guess a size (an unsized order is how the -$350 happened).
-  const riskUSD = state.settings.riskPerTradeUSD ?? 0;
-  const slPct = slPctFor(signal.symbol);
-  if (riskUSD <= 0 || slPct <= 0) {
-    console.log(`[ORDER] Risk sizing not configured (pertrade=$${riskUSD}, SL=${slPct}%) — skipping ${signal.symbol}. Set /risk pertrade and /risk sl.`);
-    return;
-  }
+  // Sizing has two sources:
+  //  - Manual order (signal.manualLots set): the exact lot size the user typed in
+  //    Telegram. Used verbatim, snapped only to the broker's volume grid. No risk
+  //    sizing and no margin cap — they asked for this size.
+  //  - Feed/channel signal: risk-based — derive the volume so a stopLossPercent
+  //    stop loses ~riskPerTradeUSD, using the live mark price. There is no
+  //    fixed-lot mode for these; if risk sizing isn't configured we refuse to
+  //    trade rather than guess a size (an unsized order is how the -$350 happened).
+  let orderVolume: number;
+  let actualRisk: number;
+  let price: number | null;
 
-  // Prefer the live mark, but fall back to the signal's own price (feed price /
-  // channel limit price) when no spot has streamed for this symbol yet.
-  let price = getMarkPrice(signal.symbol, signal.direction);
-  if (!price || price <= 0) {
-    price = signal.limitPrice && signal.limitPrice > 0
-      ? signal.limitPrice
-      : signal.price && signal.price > 0
-      ? signal.price
-      : null;
-    if (price) {
-      console.log(`[ORDER] No live quote for ${signal.symbol} yet — sizing from signal price ${price}`);
+  if (signal.manualLots != null) {
+    if (!spec.lotSize) {
+      console.log(`[ORDER] No lotSize for ${signal.symbol}; cannot size manual order`);
+      return { ok: false, error: `Cannot size ${signal.symbol} (no lot size from broker)` };
     }
-  }
-  if (!price || price <= 0) {
-    console.log(`[ORDER] No price for ${signal.symbol} (no live quote, signal carries none) — skipping to avoid an unsized order`);
-    return;
-  }
+    // Lots → broker volume (cents), snapped to the symbol's step/min/max so an
+    // off-grid size isn't rejected outright.
+    let vol = Math.round(signal.manualLots * spec.lotSize);
+    if (spec.stepVolume > 0) vol = Math.round(vol / spec.stepVolume) * spec.stepVolume;
+    if (spec.minVolume && vol < spec.minVolume) vol = spec.minVolume;
+    if (spec.maxVolume && vol > spec.maxVolume) vol = spec.maxVolume;
+    orderVolume = vol;
+    // Best-effort reference price for the risk estimate / diagnostic only.
+    price = getMarkPrice(signal.symbol, signal.direction)
+      ?? (signal.limitPrice && signal.limitPrice > 0 ? signal.limitPrice : null)
+      ?? (signal.price && signal.price > 0 ? signal.price : null);
+    const entryRef = signal.limitPrice && signal.limitPrice > 0 ? signal.limitPrice : (price ?? 0);
+    actualRisk = signal.sl != null && entryRef > 0
+      ? Math.abs(entryRef - signal.sl) * (orderVolume / 100)
+      : 0;
+    const snapped = orderVolume !== Math.round(signal.manualLots * spec.lotSize);
+    console.log(`[ORDER] Manual ${signal.symbol}: ${signal.manualLots} lots -> ${orderVolume} vol${snapped ? " (snapped to broker grid)" : ""} (~$${actualRisk.toFixed(2)} risk)`);
+  } else {
+    const riskUSD = state.settings.riskPerTradeUSD ?? 0;
+    const slPct = slPctFor(signal.symbol);
+    if (riskUSD <= 0 || slPct <= 0) {
+      console.log(`[ORDER] Risk sizing not configured (pertrade=$${riskUSD}, SL=${slPct}%) — skipping ${signal.symbol}. Set /risk pertrade and /risk sl.`);
+      return { ok: false, error: "Risk sizing not configured (set /risk pertrade and /risk sl)" };
+    }
 
-  let orderVolume = riskBasedVolume(riskUSD, price, slPct, spec);
-  if (!orderVolume) {
-    console.log(`[ORDER] Could not compute volume for ${signal.symbol} (lotSize ${spec.lotSize}); skipping`);
-    return;
-  }
-
-  // Margin-aware cap (toggled by /risk marginaware). Risk-based sizing bounds the
-  // dollar risk at the stop but ignores margin, so a tight stop on a low-leverage
-  // symbol (alts) can need far more margin than the account can post, which the
-  // broker rejects as NOT_ENOUGH_MONEY. When enabled, cap each position to an
-  // equal share of equity so up to maxPositions positions always fit. When
-  // disabled, place the full risk-based size (and skip the extra broker calls).
-  // Fail-safe: if the margin figure is unavailable we keep the risk-based size.
-  if (state.settings.marginAware) {
-    const expMargin = await getExpectedMargin(symbolId, orderVolume, signal.direction);
-    if (expMargin !== null) {
-      let balance = state.accountInfo.balance;
-      try { balance = (await fetchTrader(connection)).balance; } catch { /* keep cached balance */ }
-      const equity = balance + floatingPnL();
-      const budget = (equity * MARGIN_CAP_FRACTION) / Math.max(1, state.settings.maxPositions);
-      if (expMargin > budget) {
-        const step = spec.stepVolume || 1;
-        const scaled = Math.floor((orderVolume * budget) / expMargin / step) * step;
-        if (!scaled || (spec.minVolume && scaled < spec.minVolume)) {
-          console.log(`[MARGIN] ${signal.direction} ${signal.symbol}: needs ~$${expMargin.toFixed(2)} margin but per-trade budget is ~$${budget.toFixed(2)} (equity ~$${equity.toFixed(2)} / ${state.settings.maxPositions}); even the minimum size will not fit, skipping`);
-          if (state.settings.notifyFills) {
-            notify(`Skipped ${signal.direction} ${signal.symbol}: needs ~$${expMargin.toFixed(2)} margin, only ~$${budget.toFixed(2)} budget per trade. Lower /risk pertrade, widen /risk sl, or reduce /risk maxpos.`);
-          }
-          return;
-        }
-        console.log(`[MARGIN] ${signal.direction} ${signal.symbol}: margin-capped ${orderVolume} -> ${scaled} vol (needs ~$${expMargin.toFixed(2)} > budget ~$${budget.toFixed(2)}, equity ~$${equity.toFixed(2)})`);
-        orderVolume = scaled;
+    // Prefer the live mark, but fall back to the signal's own price (feed price /
+    // channel limit price) when no spot has streamed for this symbol yet.
+    price = getMarkPrice(signal.symbol, signal.direction);
+    if (!price || price <= 0) {
+      price = signal.limitPrice && signal.limitPrice > 0
+        ? signal.limitPrice
+        : signal.price && signal.price > 0
+        ? signal.price
+        : null;
+      if (price) {
+        console.log(`[ORDER] No live quote for ${signal.symbol} yet — sizing from signal price ${price}`);
       }
     }
-  }
+    if (!price || price <= 0) {
+      console.log(`[ORDER] No price for ${signal.symbol} (no live quote, signal carries none) — skipping to avoid an unsized order`);
+      return { ok: false, error: `No price for ${signal.symbol} yet` };
+    }
 
-  // Report the ACTUAL risk of the final (possibly margin-capped) size.
-  const actualRisk = price * (slPct / 100) * (orderVolume / 100);
-  console.log(`[ORDER] Risk-sized ${signal.symbol}: ${orderVolume} vol -> ~$${actualRisk.toFixed(2)} at ${slPct}% SL (target $${riskUSD})`);
-  if (actualRisk > riskUSD * 1.5) {
-    console.log(`[ORDER] ${signal.symbol}: broker min volume forces risk to ~$${actualRisk.toFixed(2)}, above target $${riskUSD}`);
+    const sized = riskBasedVolume(riskUSD, price, slPct, spec);
+    if (!sized) {
+      console.log(`[ORDER] Could not compute volume for ${signal.symbol} (lotSize ${spec.lotSize}); skipping`);
+      return { ok: false, error: `Could not size ${signal.symbol}` };
+    }
+    orderVolume = sized;
+
+    // Margin-aware cap (toggled by /risk marginaware). Risk-based sizing bounds the
+    // dollar risk at the stop but ignores margin, so a tight stop on a low-leverage
+    // symbol (alts) can need far more margin than the account can post, which the
+    // broker rejects as NOT_ENOUGH_MONEY. When enabled, cap each position to an
+    // equal share of equity so up to maxPositions positions always fit. When
+    // disabled, place the full risk-based size (and skip the extra broker calls).
+    // Fail-safe: if the margin figure is unavailable we keep the risk-based size.
+    if (state.settings.marginAware) {
+      const expMargin = await getExpectedMargin(symbolId, orderVolume, signal.direction);
+      if (expMargin !== null) {
+        let balance = state.accountInfo.balance;
+        try { balance = (await fetchTrader(connection)).balance; } catch { /* keep cached balance */ }
+        const equity = balance + floatingPnL();
+        const budget = (equity * MARGIN_CAP_FRACTION) / Math.max(1, state.settings.maxPositions);
+        if (expMargin > budget) {
+          const step = spec.stepVolume || 1;
+          const scaled = Math.floor((orderVolume * budget) / expMargin / step) * step;
+          if (!scaled || (spec.minVolume && scaled < spec.minVolume)) {
+            console.log(`[MARGIN] ${signal.direction} ${signal.symbol}: needs ~$${expMargin.toFixed(2)} margin but per-trade budget is ~$${budget.toFixed(2)} (equity ~$${equity.toFixed(2)} / ${state.settings.maxPositions}); even the minimum size will not fit, skipping`);
+            if (state.settings.notifyFills) {
+              notify(`Skipped ${signal.direction} ${signal.symbol}: needs ~$${expMargin.toFixed(2)} margin, only ~$${budget.toFixed(2)} budget per trade. Lower /risk pertrade, widen /risk sl, or reduce /risk maxpos.`);
+            }
+            return { ok: false, error: `Not enough margin for ${signal.symbol}` };
+          }
+          console.log(`[MARGIN] ${signal.direction} ${signal.symbol}: margin-capped ${orderVolume} -> ${scaled} vol (needs ~$${expMargin.toFixed(2)} > budget ~$${budget.toFixed(2)}, equity ~$${equity.toFixed(2)})`);
+          orderVolume = scaled;
+        }
+      }
+    }
+
+    // Report the ACTUAL risk of the final (possibly margin-capped) size.
+    actualRisk = price * (slPct / 100) * (orderVolume / 100);
+    console.log(`[ORDER] Risk-sized ${signal.symbol}: ${orderVolume} vol -> ~$${actualRisk.toFixed(2)} at ${slPct}% SL (target $${riskUSD})`);
+    if (actualRisk > riskUSD * 1.5) {
+      console.log(`[ORDER] ${signal.symbol}: broker min volume forces risk to ~$${actualRisk.toFixed(2)}, above target $${riskUSD}`);
+    }
   }
 
   // Display lots derived from the final broker volume, so logs and the stored
@@ -380,7 +414,7 @@ export async function executeSignal(signal: ParsedSignal): Promise<void> {
   // margin-aware toggle. Remove once the cause is confirmed.
   try {
     const dm = await getExpectedMargin(symbolId, orderVolume, signal.direction);
-    const notional = price * (orderVolume / 100);
+    const notional = (price ?? 0) * (orderVolume / 100);
     const lev = dm && dm > 0 ? (notional / dm).toFixed(1) : "?";
     console.log(`[MARGIN-DIAG] ${signal.direction} ${signal.symbol}: needs ~$${dm !== null ? dm.toFixed(2) : "?"} margin, notional ~$${notional.toFixed(0)} (effective leverage ~1:${lev}), balance $${state.accountInfo.balance.toFixed(2)}, open positions ${state.positions.size}`);
   } catch { /* diagnostic only, never block the order */ }
@@ -405,8 +439,7 @@ export async function executeSignal(signal: ParsedSignal): Promise<void> {
   // (protected even across a bot restart). Handled separately from the immediate
   // market fill path below; sizing/volume above is shared.
   if (signal.orderType === "LIMIT" && signal.limitPrice && signal.limitPrice > 0) {
-    await placeLimitOrder(signal, symbolId, orderVolume, lots, label);
-    return;
+    return await placeLimitOrder(signal, symbolId, orderVolume, lots, label);
   }
 
   try {
@@ -511,12 +544,14 @@ export async function executeSignal(signal: ParsedSignal): Promise<void> {
     });
 
     await fillPromise;
+    return { ok: true };
   } catch (err: any) {
     // Belt-and-braces: cleanup() clears the entry on the normal fill/timeout/
     // reject paths, but if sendCommand itself threw before any listener fired,
     // clear it here so a failed submission never blocks future signals.
     state.pendingOrders.delete(label);
     console.log(`[ORDER] Failed: ${signal.direction} ${signal.symbol} — ${err.message}`);
+    return { ok: false, error: err.message || "order failed" };
   }
 }
 
@@ -538,11 +573,11 @@ async function placeLimitOrder(
   orderVolume: number,
   lots: number,
   label: string
-): Promise<void> {
+): Promise<OrderResult> {
   if (!connection) {
     console.log("[ORDER] No cTrader connection");
     state.pendingOrders.delete(label);
-    return;
+    return { ok: false, error: "No broker connection" };
   }
 
   const limitPrice = signal.limitPrice!;
@@ -659,8 +694,10 @@ async function placeLimitOrder(
       label,
     });
     await placement;
+    return { ok: true };
   } catch (err: any) {
     state.pendingOrders.delete(label);
     console.log(`[ORDER] Limit failed: ${signal.direction} ${signal.symbol} — ${err.message}`);
+    return { ok: false, error: err.message || "limit order failed" };
   }
 }

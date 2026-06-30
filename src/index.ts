@@ -16,6 +16,7 @@ import { settingsCmd } from "./bot/commands/settings";
 import { notificationsCmd } from "./bot/commands/notifications";
 import { cooldownCmd } from "./bot/commands/cooldown";
 import { positionsCmd } from "./bot/commands/positions";
+import { orderCmd } from "./bot/commands/order";
 import { fetchAccountInfo, fetchTodayRealizedPnL } from "./ctrader/account";
 import { evaluateDailyLimits } from "./risk/dailyLoss";
 import { fetchSymbols } from "./ctrader/symbols";
@@ -186,6 +187,11 @@ bot.command("help", async (ctx) => {
     "\n" +
     "/export [from] [to]: export trade history\n" +
     "\n" +
+    "• MANUAL ORDERS\n" +
+    "Market: BUY|SELL <symbol> <lots> <TP> <SL>\n" +
+    "Limit:  BUY|SELL <symbol> <lots> <entry> <TP> <SL>\n" +
+    "TP/SL are absolute prices. Symbol must be on your allowed list. Bypasses the signal gate and risk sizing.\n" +
+    "\n" +
     "Notes: trade size comes from pertrade + the SL %. One position per symbol. Opposite signals flip only on higher confidence."
   );
 });
@@ -202,6 +208,9 @@ bot.command("help", async (ctx) => {
   bot.command("notifications", notificationsCmd);
   bot.command("cooldown", cooldownCmd);
   bot.command("positions", positionsCmd);
+  // Manual orders are typed without a slash ("SELL XAUUSD 0.02 3950 4010"), so
+  // match the leading BUY/SELL instead of registering a command.
+  bot.hears(/^\s*(buy|sell)\b/i, orderCmd);
   bot.start({
     drop_pending_updates: true,
     onStart: () => console.log("[TELEGRAM] Bot started"),

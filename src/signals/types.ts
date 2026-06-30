@@ -46,6 +46,12 @@ export interface ParsedSignal {
   // channel listener; fills only when price reaches limitPrice.
   orderType?: "MARKET" | "LIMIT";
   limitPrice?: number;
+  // Set only by a manual Telegram order (/order or a "BUY/SELL ..." chat message):
+  // the exact lot size the user typed. When present, executeSignal uses this size
+  // verbatim and skips risk-based sizing and the margin-aware cap — the user asked
+  // for this size. sl/tp carry their absolute price levels. Absent for feed/channel
+  // signals, which are always risk-sized.
+  manualLots?: number;
   // SL/TP the feed supplied with the alert. Display-only: shown in the signal
   // notification when present, but never fed into order placement or sizing
   // (which stay on the configured stopLossPercent/takeProfitPercent). Kept
