@@ -164,6 +164,7 @@ bot.command("help", async (ctx) => {
     "/risk combined <usd>: max summed risk across same symbol+direction positions (0 = off)\n" +
     "/risk confidence <n>: confidence given to channel signals (0-100), for reversal flips (default 69)\n" +
     "/risk minconfidence <n>: reject feed signals below this score (0-100); channel signals bypass (0 = off, default 50)\n" +
+    "/risk btcbias on|off | bearish <n> | strongbearish <n>: suppress crypto BUYs when BTC is bearish unless confidence clears the floor (default on, 80 BEARISH / 90 BEARISH_STRONG)\n" +
     "/risk marginaware on|off: cap order size to fit free margin (default off)\n" +
     "\n" +
     "• COOLDOWN (per symbol loss streak)\n" +
