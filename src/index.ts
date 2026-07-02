@@ -112,10 +112,8 @@ async function startBot() {
       "Nothing trades until this is set. It is the max $ you lose if a trade's stop is hit; the bot sizes every position to match.\n" +
       "   /risk pertrade 50\n" +
       "\n" +
-      "2. Set your stop and target (sensible defaults already on)\n" +
-      "SL = where the stop sits (% from entry); it also drives trade size together with pertrade. TP = where the target sits.\n" +
-      "   /risk sl 0.5\n" +
-      "   /risk tp 0.75\n" +
+      "2. Nothing to set for SL/TP\n" +
+      "Each signal carries its own stop and target; the bot sizes the trade to that stop so a hit loses ~your pertrade amount. A signal with no SL/TP is skipped.\n" +
       "\n" +
       "3. Choose which symbols to trade\n" +
       "   /symbols  (show current list)\n" +
@@ -151,10 +149,7 @@ bot.command("help", async (ctx) => {
     "/risk pertrade <usd>: max $ you lose if a trade's stop is hit; the bot sizes the lots to match (0 = trading off)\n" +
     "\n" +
     "• STOP / TARGET\n" +
-    "/risk sl <pct>: where the stop sits, as % from entry. Also drives size (with pertrade): tighter stop = bigger trade.\n" +
-    "/risk tp <pct>: where the target sits, as % from entry.\n" +
-    "/risk sl <SYM> <pct> | /risk tp <SYM> <pct>: per-symbol override (0 = remove, fall back to global)\n" +
-    "Note: channel signals carry their own SL/TP, which override these %s.\n" +
+    "SL/TP come from the signal itself (scanner, channel, or manual). The trade is sized so the distance to that stop loses ~your pertrade amount; a signal with no SL/TP is skipped.\n" +
     "/minhold <secs>: min hold before TP arms\n" +
     "\n" +
     "• DAILY LIMITS (both force close ALL positions + stop for the day)\n" +

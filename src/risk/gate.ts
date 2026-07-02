@@ -28,6 +28,17 @@ export function processSignal(signal: ParsedSignal): GateResult {
     return { accepted: false, reason: "Trading paused" };
   }
 
+  // Check 1a: SL and TP are mandatory. Both drive execution now: the SL sets the
+  // position size (risk-based sizing measures entry-to-SL distance) and the TP is
+  // the exit. A signal missing either can't be sized or protected, so reject it
+  // rather than fall back to a guessed stop. Feed and channel signals both carry
+  // real levels; a missing one means a malformed/incomplete signal.
+  if (signal.sl == null || signal.tp == null) {
+    const reason = `Missing ${signal.sl == null ? "SL" : ""}${signal.sl == null && signal.tp == null ? " and " : ""}${signal.tp == null ? "TP" : ""}`;
+    console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - ${reason}`);
+    return { accepted: false, reason };
+  }
+
   // Check 1b: Re-entry cooldown after a loss (prop-firm same-trade-idea rule).
   // A losing close blocks re-entry on the SAME symbol+direction for a window.
   // Checked early so blocked signals are rejected quickly. Opposite direction

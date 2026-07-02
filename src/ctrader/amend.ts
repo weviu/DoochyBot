@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { state, slPctFor, tpPctFor } from "../state";
+import { state } from "../state";
 
 let connection: any = null;
 
@@ -86,21 +86,12 @@ export async function amendPositionSLTP(
     return;
   }
 
-  // Percentage-of-entry SL/TP. Works uniformly across BTC/ETH/XAU/FX without
-  // any contract-size math. Explicit signal values (if ever provided) win.
-  // A per-symbol override (e.g. a wider stop for silver) takes precedence over
-  // the global percentage; symbols without an override are unchanged.
-  const slPct = slPctFor(symbol);
-  const tpPct = tpPctFor(symbol);
+  // SL/TP are the signal's own absolute levels (scanner/channel/manual), passed
+  // straight through by the caller. There is no percentage fallback: a signal with
+  // no SL/TP is rejected upstream at the gate, so anything reaching here already
+  // carries real levels. The profit-cap logic below may still add/tighten the TP.
   let sl: number | null = signal.sl ?? null;
   let tp: number | null = signal.tp ?? null;
-
-  if (sl === null && slPct > 0) {
-    sl = direction === "BUY" ? entryPrice * (1 - slPct / 100) : entryPrice * (1 + slPct / 100);
-  }
-  if (tp === null && tpPct > 0) {
-    tp = direction === "BUY" ? entryPrice * (1 + tpPct / 100) : entryPrice * (1 - tpPct / 100);
-  }
 
   if (sl && direction === "BUY" && sl >= entryPrice) {
     console.log(`[AMEND] Invalid SL for BUY: ${sl} >= entry ${entryPrice}. Skipping SL.`);

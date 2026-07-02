@@ -25,12 +25,8 @@ export interface BotSettings {
   allowedSymbols: string[];
   maxPositions: number;
   maxDailyLossUSD: number;
-  stopLossPercent: number;
-  takeProfitPercent: number;
-  symbolStopLossPercent: Record<string, number>; // per-symbol SL % overrides; falls back to stopLossPercent
-  symbolTakeProfitPercent: Record<string, number>; // per-symbol TP % overrides; falls back to takeProfitPercent
   minHoldSeconds: number;
-  riskPerTradeUSD: number; // size each position so a stopLossPercent stop loses ~this many $. Required to trade (0 = trading disabled; there is no fixed-lot fallback).
+  riskPerTradeUSD: number; // size each position so the signal's own entry-to-SL distance loses ~this many $. Required to trade (0 = trading disabled; there is no fixed-lot fallback).
   dailyProfitCapUSD: number; // lock trading once daily realized profit hits this; 0 = disabled
   capBufferUSD: number; // force-close this many $ BELOW the cap to never overshoot it
   maxConsecutiveLosses: number; // SL hits on one symbol within the window that trigger a cooldown; 0 = disabled
@@ -70,10 +66,6 @@ export const DEFAULT_SETTINGS: BotSettings = {
   allowedSymbols: ["BTCUSD", "XAUUSD", "XAGUSD"],
   maxPositions: 3,
   maxDailyLossUSD: 200,
-  stopLossPercent: 0.5,
-  takeProfitPercent: 0.75,
-  symbolStopLossPercent: {},
-  symbolTakeProfitPercent: {},
   minHoldSeconds: 60,
   riskPerTradeUSD: 0,
   dailyProfitCapUSD: 0,
@@ -90,7 +82,7 @@ export const DEFAULT_SETTINGS: BotSettings = {
   minConfidence: 50,
   entryTolerancePercent: 0.15,
   staleOrderBars: 3,
-  marginAware: false,
+  marginAware: true,
   btcBiasGate: true,
   btcBiasMinConfBearish: 80,
   btcBiasMinConfStrongBearish: 90,
@@ -110,16 +102,6 @@ export const state: BotState = {
   lossReentry: new Map(),
   symbolCooldowns: new Map(),
 };
-
-// Effective SL/TP percentage for a symbol: the per-symbol override if one is set,
-// otherwise the global value. Used everywhere a percentage drives sizing, SL/TP
-// placement, or display, so an override stays consistent across all of them.
-export function slPctFor(symbol: string): number {
-  return state.settings.symbolStopLossPercent[symbol] ?? state.settings.stopLossPercent;
-}
-export function tpPctFor(symbol: string): number {
-  return state.settings.symbolTakeProfitPercent[symbol] ?? state.settings.takeProfitPercent;
-}
 
 // Resolve a signal/position symbol name to the broker's symbolId. Some brokers
 // name a symbol without the "USD" quote suffix (e.g. "BTC" not "BTCUSD"), so we
@@ -143,10 +125,6 @@ export function initSettings(): void {
     if (saved.allowedSymbols) state.settings.allowedSymbols = saved.allowedSymbols;
     if (saved.maxPositions) state.settings.maxPositions = saved.maxPositions;
     if (saved.maxDailyLossUSD !== undefined) state.settings.maxDailyLossUSD = saved.maxDailyLossUSD;
-    if (saved.stopLossPercent !== undefined) state.settings.stopLossPercent = saved.stopLossPercent;
-    if (saved.takeProfitPercent !== undefined) state.settings.takeProfitPercent = saved.takeProfitPercent;
-    if (saved.symbolStopLossPercent) state.settings.symbolStopLossPercent = saved.symbolStopLossPercent;
-    if (saved.symbolTakeProfitPercent) state.settings.symbolTakeProfitPercent = saved.symbolTakeProfitPercent;
     if (saved.minHoldSeconds !== undefined) state.settings.minHoldSeconds = saved.minHoldSeconds;
     if (saved.riskPerTradeUSD !== undefined) state.settings.riskPerTradeUSD = saved.riskPerTradeUSD;
     if (saved.dailyProfitCapUSD !== undefined) state.settings.dailyProfitCapUSD = saved.dailyProfitCapUSD;
@@ -216,10 +194,6 @@ function persistAll(): void {
     allowedSymbols: state.settings.allowedSymbols,
     maxPositions: state.settings.maxPositions,
     maxDailyLossUSD: state.settings.maxDailyLossUSD,
-    stopLossPercent: state.settings.stopLossPercent,
-    takeProfitPercent: state.settings.takeProfitPercent,
-    symbolStopLossPercent: state.settings.symbolStopLossPercent,
-    symbolTakeProfitPercent: state.settings.symbolTakeProfitPercent,
     minHoldSeconds: state.settings.minHoldSeconds,
     riskPerTradeUSD: state.settings.riskPerTradeUSD,
     dailyProfitCapUSD: state.settings.dailyProfitCapUSD,
