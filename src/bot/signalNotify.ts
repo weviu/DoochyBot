@@ -1,4 +1,4 @@
-import { state, slPctFor, tpPctFor } from "../state";
+import { state } from "../state";
 import { ParsedSignal } from "../signals/types";
 import { notify } from "./notify";
 
@@ -16,21 +16,14 @@ export function maybeNotifySignal(signal: ParsedSignal): void {
   // Green orb for buys, red orb for sells, per request.
   const orb = signal.direction === "BUY" ? "\u{1F7E2}" : "\u{1F534}";
 
-  // SL/TP to display, in priority order:
-  //  1. signal.sl/tp   - explicit levels on a channel signal (drive execution).
-  //  2. feedSl/feedTp  - levels the feed supplied (display-only; execution still
-  //                      uses the configured percentages, so these never reach
-  //                      order placement - see ParsedSignal.feedSl).
-  //  3. derived        - same formula order placement uses (orders.ts): the
-  //                      would-be entry price and the per-symbol SL/TP percent.
-  // A LIMIT enters at limitPrice, a STOP at its trigger, otherwise the market price.
+  // SL/TP to display: the signal's own levels (scanner/channel/manual), which are
+  // what execution actually uses. A LIMIT enters at limitPrice, a STOP at its
+  // trigger, otherwise the market price - used only to pick display precision.
   const entry = signal.orderType === "LIMIT" && signal.limitPrice != null ? signal.limitPrice
     : signal.orderType === "STOP" && signal.stopPrice != null ? signal.stopPrice
     : signal.price;
-  const slPct = slPctFor(signal.symbol);
-  const tpPct = tpPctFor(signal.symbol);
-  const slP = signal.sl ?? signal.feedSl ?? (entry ? (signal.direction === "BUY" ? entry * (1 - slPct / 100) : entry * (1 + slPct / 100)) : undefined);
-  const tpP = signal.tp ?? signal.feedTp ?? (entry ? (signal.direction === "BUY" ? entry * (1 + tpPct / 100) : entry * (1 - tpPct / 100)) : undefined);
+  const slP = signal.sl;
+  const tpP = signal.tp;
   // Match SL/TP precision to the entry price's decimal places.
   const digits = ((entry ?? 0).toString().split(".")[1] || "").length || 2;
   const fmt = (n: number | undefined) => (n != null ? n.toFixed(digits) : "-");

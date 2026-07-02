@@ -38,20 +38,6 @@ export async function statusCmd(ctx: any) {
   const cap = state.settings.dailyProfitCapUSD;
   const cooldowns = activeCooldowns();
 
-  // Per-symbol SL/TP overrides (only shown when at least one is set).
-  const ovSyms = [...new Set([
-    ...Object.keys(state.settings.symbolStopLossPercent),
-    ...Object.keys(state.settings.symbolTakeProfitPercent),
-  ])];
-  const overrides = ovSyms.map((s) => {
-    const parts: string[] = [];
-    const sl = state.settings.symbolStopLossPercent[s];
-    const tp = state.settings.symbolTakeProfitPercent[s];
-    if (sl !== undefined) parts.push(`SL ${sl}%`);
-    if (tp !== undefined) parts.push(`TP ${tp}%`);
-    return `${s} ${parts.join(" / ")}`;
-  }).join(", ");
-
   const lines = [
     `cTrader: ${connOk ? "connected" : "not connected"}`,
     `Account: ${process.env.ACCOUNT_ID || "?"}`,
@@ -65,8 +51,7 @@ export async function statusCmd(ctx: any) {
     `Min confidence: ${state.settings.minConfidence > 0 ? `${state.settings.minConfidence} (feed signals; channel bypasses)` : "off"}`,
     `BTC-bias gate: ${state.settings.btcBiasGate ? `on (crypto BUY needs >=${state.settings.btcBiasMinConfBearish} BEARISH / >=${state.settings.btcBiasMinConfStrongBearish} BEARISH_STRONG)` : "off"}`,
     `Margin-aware sizing: ${state.settings.marginAware ? "on" : "off"}`,
-    `Sizing: ${state.settings.riskPerTradeUSD > 0 ? `$${state.settings.riskPerTradeUSD.toFixed(2)} risk/trade @ ${state.settings.stopLossPercent}% SL / ${state.settings.takeProfitPercent}% TP` : "not set - /risk pertrade required to trade"}`,
-    ...(overrides ? [`Per-symbol overrides: ${overrides}`] : []),
+    `Sizing: ${state.settings.riskPerTradeUSD > 0 ? `$${state.settings.riskPerTradeUSD.toFixed(2)} risk/trade, sized to the signal's own SL (TP from signal)` : "not set - /risk pertrade required to trade"}`,
     `Cooldowns: ${cooldowns.length === 0 ? "none" : cooldowns.map((c) => `${c.symbol} ${Math.ceil(c.remainingMs / 60_000)}m`).join(", ")}`,
     `Allowed symbols: ${state.settings.allowedSymbols.length}`,
   ];

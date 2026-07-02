@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { state, slPctFor, tpPctFor, symbolIdFor } from "../state";
+import { state, symbolIdFor, isUsdQuoted } from "../state";
 import { ParsedSignal } from "../signals/types";
 import { amendPositionSLTP } from "./amend";
 import { updateDailyPnL, floatingPnL } from "../risk/dailyLoss";
@@ -9,18 +9,11 @@ import { recordLoss } from "../risk/reentryCooldown";
 import { subscribeSpots, getMarkPrice } from "./livePrices";
 import { notify } from "../bot/notify";
 
-// Decimal places in a price, used to round derived SL/TP back onto a valid tick.
-// The broker silently rejects float junk (e.g. 4333.099999999999), so any
-// computed level must be rounded to the entry's precision before it is sent.
-function priceDigits(price: number): number {
-  const s = String(price);
-  const i = s.indexOf(".");
-  return i === -1 ? 0 : s.length - i - 1;
-}
-function roundTo(value: number, digits: number): number {
-  const f = Math.pow(10, digits);
-  return Math.round(value * f) / f;
-}
+// How close our live mark must be to a feed signal's target (as % of the target)
+// to fill at market instead of resting an order at the target and waiting for
+// price to reach it. Fixed in code (not a user setting) so behaviour is identical
+// across every deployment. 0 would mean "always market".
+export const ENTRY_TOLERANCE_PERCENT = 0.15;
 
 // One bar of a signal timeframe ("30m", "15m", "1h", "4h", "1d", "1w") in ms, or
 // null if it can't be parsed - in which case the staleness guard is skipped and
@@ -38,8 +31,8 @@ function timeframeMs(tf: string | undefined): number | null {
 }
 
 // Send a Telegram message when an order fills (toggled by /notifications). SL/TP
-// are the values being applied: explicit channel levels when supplied, otherwise
-// derived from the configured percentages, the same way the amend will set them.
+// are the levels being applied: the explicit values passed in (resting orders) or
+// the signal's own SL/TP (the scanner/channel/manual levels that drive execution).
 function notifyFill(
   kind: string,
   signal: ParsedSignal,
@@ -51,12 +44,10 @@ function notifyFill(
   tp?: number | null
 ): void {
   if (!state.settings.notifyFills) return;
-  const slPct = slPctFor(signal.symbol);
-  const tpPct = tpPctFor(signal.symbol);
-  const slP = sl ?? signal.sl ?? (signal.direction === "BUY" ? entry * (1 - slPct / 100) : entry * (1 + slPct / 100));
-  const tpP = tp ?? signal.tp ?? (signal.direction === "BUY" ? entry * (1 + tpPct / 100) : entry * (1 - tpPct / 100));
+  const slP = sl ?? signal.sl;
+  const tpP = tp ?? signal.tp;
   const digits = (entry.toString().split(".")[1] || "").length || 2;
-  const f = (n: number) => n.toFixed(digits);
+  const f = (n: number | null | undefined) => (n != null ? n.toFixed(digits) : "-");
   notify(
     `${kind}\n` +
     `${signal.direction} ${signal.symbol} ${lots.toFixed(2)} lots @ ${entry}\n` +
@@ -117,8 +108,12 @@ export function setConnection(conn: any): void {
       // loosen) to reflect the new headroom. Only fires when cap is enabled.
       if (state.settings.dailyProfitCapUSD > 0 && state.dailyPnLSeeded && state.positions.size > 0) {
         for (const [pid, p] of state.positions.entries()) {
+          // Re-send the position's own SL and TP so the amend (which replaces the
+          // full SL/TP state) preserves them; the cap logic inside tightens the TP
+          // if the reduced headroom now bites before the normal target.
           amendPositionSLTP(pid, p.symbol, p.entryPrice, p.direction, {
             sl: p.sl ?? undefined,
+            tp: p.tp ?? undefined,
           });
         }
       }
@@ -157,14 +152,14 @@ export async function getSymbolSpec(symbolId: number): Promise<SymbolSpec | null
   return spec;
 }
 
-// Compute the broker volume (cents) so a stopLossPercent move against the
-// position loses ~riskUSD at the given price. The money model is the same one
-// floatingPnL uses: $PnL = priceDiff × volumeCents/100. The stop sits
-// stopDistance = price × slPct/100 away, so volumeCents = riskUSD × 100 /
-// stopDistance. Snapped to the symbol's min/step/max.
-function riskBasedVolume(riskUSD: number, price: number, slPct: number, spec: SymbolSpec): number | null {
+// Compute the broker volume (cents) so the position loses ~riskUSD if price moves
+// stopDistance (the entry-to-SL price distance) against it. The money model is the
+// same one floatingPnL uses: $PnL = priceDiff × volumeCents/100, so
+// volumeCents = riskUSD × 100 / stopDistance. Snapped to the symbol's min/step/max.
+// stopDistance comes from the signal's real SL, so the sizing tracks the actual
+// stop the scanner drew rather than a fixed percentage.
+function riskBasedVolume(riskUSD: number, stopDistance: number, spec: SymbolSpec): number | null {
   if (!spec.lotSize) return null;
-  const stopDistance = price * (slPct / 100);
   if (stopDistance <= 0) return null;
   let vol = (riskUSD * 100) / stopDistance;
   if (spec.stepVolume > 0) vol = Math.round(vol / spec.stepVolume) * spec.stepVolume;
@@ -224,6 +219,11 @@ export async function reconcilePositions(): Promise<void> {
         console.log(`[RECONCILE] Skipping position #${p.positionId} on ${symbolNameById(symbolId)} — not an allowed bot symbol (manual trade).`);
         continue;
       }
+      // Never adopt a non-USD-quoted position: the money model would mis-value it.
+      if (!isUsdQuoted(symbolNameById(symbolId))) {
+        console.log(`[RECONCILE] Skipping position #${p.positionId} on ${symbolNameById(symbolId)} — not USD-quoted (money model does not support it).`);
+        continue;
+      }
       const volumeCents = Number(td.volume) || 0;
 
       let lots = 0;
@@ -248,17 +248,12 @@ export async function reconcilePositions(): Promise<void> {
       const pid = Number(p.positionId);
       state.positions.set(pid, posSlot);
 
-      // If the position has no TP (e.g. bot restarted during minhold window),
-      // re-arm it immediately — the hold period has already passed.
-      const reTpPct = tpPctFor(posSlot.symbol);
-      if (!p.takeProfit && entry && reTpPct > 0) {
-        const tp = direction === "BUY"
-          ? entry * (1 + reTpPct / 100)
-          : entry * (1 - reTpPct / 100);
-        const sl = p.stopLoss ?? undefined;
-        console.log(`[RECONCILE] Re-arming TP ${tp.toFixed(2)} for position #${pid} (${posSlot.symbol})`);
-        amendPositionSLTP(pid, posSlot.symbol, entry, direction, { sl, tp });
-      }
+      // The broker echoes the position's live SL/TP above (p.stopLoss/p.takeProfit),
+      // so a reconciled position keeps whatever protection it already had. We can't
+      // re-derive a missing TP anymore — the signal's own level isn't recoverable
+      // after a restart — so we leave it as-is (the SL and daily-loss limit still
+      // cap the downside). The rare gap: a market fill restarted mid-minhold before
+      // its TP was sent has SL only until manually managed.
 
       count++;
     }
@@ -331,10 +326,11 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
   //  - Manual order (signal.manualLots set): the exact lot size the user typed in
   //    Telegram. Used verbatim, snapped only to the broker's volume grid. No risk
   //    sizing and no margin cap — they asked for this size.
-  //  - Feed/channel signal: risk-based — derive the volume so a stopLossPercent
-  //    stop loses ~riskPerTradeUSD, using the live mark price. There is no
-  //    fixed-lot mode for these; if risk sizing isn't configured we refuse to
-  //    trade rather than guess a size (an unsized order is how the -$350 happened).
+  //  - Feed/channel signal: risk-based — derive the volume so the signal's own
+  //    entry-to-SL distance loses ~riskPerTradeUSD. There is no fixed-lot mode for
+  //    these; if risk sizing isn't configured, or the signal carries no SL, we
+  //    refuse to trade rather than guess a size (an unsized order is how the -$350
+  //    happened).
   let orderVolume: number;
   let actualRisk: number;
   let price: number | null;
@@ -363,31 +359,41 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
     console.log(`[ORDER] Manual ${signal.symbol}: ${signal.manualLots} lots -> ${orderVolume} vol${snapped ? " (snapped to broker grid)" : ""} (~$${actualRisk.toFixed(2)} risk)`);
   } else {
     const riskUSD = state.settings.riskPerTradeUSD ?? 0;
-    const slPct = slPctFor(signal.symbol);
-    if (riskUSD <= 0 || slPct <= 0) {
-      console.log(`[ORDER] Risk sizing not configured (pertrade=$${riskUSD}, SL=${slPct}%) — skipping ${signal.symbol}. Set /risk pertrade and /risk sl.`);
-      return { ok: false, error: "Risk sizing not configured (set /risk pertrade and /risk sl)" };
+    if (riskUSD <= 0) {
+      console.log(`[ORDER] Risk sizing not configured (pertrade=$${riskUSD}) — skipping ${signal.symbol}. Set /risk pertrade.`);
+      return { ok: false, error: "Risk sizing not configured (set /risk pertrade)" };
+    }
+    // Belt-and-braces: the gate rejects feed/channel signals with no SL, but the
+    // reversal path (and any future caller) reaches here too — never size without a
+    // stop, that is exactly how an unsized/over-risked order slips through.
+    if (signal.sl == null) {
+      console.log(`[ORDER] ${signal.symbol}: signal carries no SL — cannot size to a stop, skipping`);
+      return { ok: false, error: `No SL on ${signal.symbol} signal` };
     }
 
-    // Prefer the live mark, but fall back to the signal's own price (feed price /
-    // channel limit price) when no spot has streamed for this symbol yet.
-    price = getMarkPrice(signal.symbol, signal.direction);
-    if (!price || price <= 0) {
-      price = signal.limitPrice && signal.limitPrice > 0
-        ? signal.limitPrice
-        : signal.price && signal.price > 0
-        ? signal.price
-        : null;
-      if (price) {
-        console.log(`[ORDER] No live quote for ${signal.symbol} yet — sizing from signal price ${price}`);
-      }
-    }
-    if (!price || price <= 0) {
+    // Entry anchor the stop distance is measured from: an explicit resting level if
+    // the signal already carries one (channel/manual limit), otherwise the feed's
+    // target price, and finally the live mark (channel market orders carry no price
+    // of their own). This is where the fill lands (or within tolerance of it), so
+    // |anchor − SL| is the real price distance the position risks to its stop.
+    const entryAnchor =
+      (signal.limitPrice && signal.limitPrice > 0) ? signal.limitPrice
+      : (signal.stopPrice && signal.stopPrice > 0) ? signal.stopPrice
+      : (signal.price && signal.price > 0) ? signal.price
+      : getMarkPrice(signal.symbol, signal.direction) ?? null;
+    if (!entryAnchor || entryAnchor <= 0) {
       console.log(`[ORDER] No price for ${signal.symbol} (no live quote, signal carries none) — skipping to avoid an unsized order`);
       return { ok: false, error: `No price for ${signal.symbol} yet` };
     }
+    price = entryAnchor;
 
-    const sized = riskBasedVolume(riskUSD, price, slPct, spec);
+    const stopDistance = Math.abs(entryAnchor - signal.sl);
+    if (stopDistance <= 0) {
+      console.log(`[ORDER] ${signal.symbol}: SL ${signal.sl} equals entry ${entryAnchor} — zero stop distance, skipping`);
+      return { ok: false, error: `SL equals entry for ${signal.symbol}` };
+    }
+
+    const sized = riskBasedVolume(riskUSD, stopDistance, spec);
     if (!sized) {
       console.log(`[ORDER] Could not compute volume for ${signal.symbol} (lotSize ${spec.lotSize}); skipping`);
       return { ok: false, error: `Could not size ${signal.symbol}` };
@@ -414,7 +420,7 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
           if (!scaled || (spec.minVolume && scaled < spec.minVolume)) {
             console.log(`[MARGIN] ${signal.direction} ${signal.symbol}: needs ~$${expMargin.toFixed(2)} margin but per-trade budget is ~$${budget.toFixed(2)} (equity ~$${equity.toFixed(2)} / ${state.settings.maxPositions}); even the minimum size will not fit, skipping`);
             if (state.settings.notifyFills) {
-              notify(`Skipped ${signal.direction} ${signal.symbol}: needs ~$${expMargin.toFixed(2)} margin, only ~$${budget.toFixed(2)} budget per trade. Lower /risk pertrade, widen /risk sl, or reduce /risk maxpos.`);
+              notify(`Skipped ${signal.direction} ${signal.symbol}: needs ~$${expMargin.toFixed(2)} margin, only ~$${budget.toFixed(2)} budget per trade. Lower /risk pertrade or reduce /risk maxpos.`);
             }
             return { ok: false, error: `Not enough margin for ${signal.symbol}` };
           }
@@ -424,11 +430,25 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
       }
     }
 
-    // Report the ACTUAL risk of the final (possibly margin-capped) size.
-    actualRisk = price * (slPct / 100) * (orderVolume / 100);
-    console.log(`[ORDER] Risk-sized ${signal.symbol}: ${orderVolume} vol -> ~$${actualRisk.toFixed(2)} at ${slPct}% SL (target $${riskUSD})`);
-    if (actualRisk > riskUSD * 1.5) {
-      console.log(`[ORDER] ${signal.symbol}: broker min volume forces risk to ~$${actualRisk.toFixed(2)}, above target $${riskUSD}`);
+    // Report the ACTUAL risk of the final (possibly margin-capped) size, measured
+    // against the real stop distance.
+    actualRisk = stopDistance * (orderVolume / 100);
+    console.log(`[ORDER] Risk-sized ${signal.symbol}: ${orderVolume} vol -> ~$${actualRisk.toFixed(2)} at stop ${stopDistance} from ${entryAnchor} (target $${riskUSD})`);
+
+    // Overrun guard: a wide stop makes the risk-based size small, and the broker's
+    // minimum volume can floor it above what riskPerTradeUSD allows. On a loss-
+    // limited (prop) account, silently risking well over the per-trade cap is worse
+    // than skipping, but a small overshoot from the min-lot floor is usually fine —
+    // so the tolerance is configurable via /risk overrun (% over target). (The
+    // margin cap only ever lowers the size, so it never trips this.)
+    const overrunPct = state.settings.riskOverrunPercent ?? 0;
+    const overrunLimit = riskUSD * (1 + overrunPct / 100);
+    if (actualRisk > overrunLimit) {
+      console.log(`[ORDER] ${signal.symbol}: broker min volume forces risk to ~$${actualRisk.toFixed(2)}, over the $${riskUSD} per-trade cap +${overrunPct}% (=$${overrunLimit.toFixed(2)}) — rejecting`);
+      if (state.settings.notifyFills) {
+        notify(`Skipped ${signal.direction} ${signal.symbol}: its stop is wide enough that the smallest tradable size risks ~$${actualRisk.toFixed(2)}, over your $${riskUSD} per-trade limit +${overrunPct}%. Raise /risk pertrade or /risk overrun to take it.`);
+      }
+      return { ok: false, error: `Risk ~$${actualRisk.toFixed(2)} exceeds per-trade cap $${riskUSD} +${overrunPct}%` };
     }
   }
 
@@ -483,7 +503,7 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
   // channel/manual entries (which keep their good-till-cancel behaviour).
   let restStaleMs = 0;
   if (!signal.orderType && signal.manualLots == null && signal.price > 0) {
-    const tolPct = state.settings.entryTolerancePercent;
+    const tolPct = ENTRY_TOLERANCE_PERCENT;
     const live = getMarkPrice(signal.symbol, signal.direction);
     if (tolPct > 0 && live && live > 0) {
       const driftPct = (Math.abs(live - signal.price) / signal.price) * 100;
@@ -499,20 +519,9 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
         signal.orderType = kind;
         if (kind === "STOP") signal.stopPrice = signal.price;
         else signal.limitPrice = signal.price;
-        // The resting order carries its own SL/TP (placeRestingOrder does no percent
-        // math), so derive them from the configured percentages at the target - the
-        // same levels the market path amends on after a fill - and round to the
-        // target's tick so the broker accepts them. The order fills at ~price, so
-        // these stay on the correct side.
-        const digits = priceDigits(signal.price);
-        const slPct = slPctFor(signal.symbol);
-        const tpPct = tpPctFor(signal.symbol);
-        if (signal.sl == null && slPct > 0) {
-          signal.sl = roundTo(signal.direction === "BUY" ? signal.price * (1 - slPct / 100) : signal.price * (1 + slPct / 100), digits);
-        }
-        if (signal.tp == null && tpPct > 0) {
-          signal.tp = roundTo(signal.direction === "BUY" ? signal.price * (1 + tpPct / 100) : signal.price * (1 - tpPct / 100), digits);
-        }
+        // The resting order carries the signal's own SL/TP (already on the signal,
+        // anchored to signal.price = the resting level). The order fills at ~price,
+        // so they stay on the correct side; placeRestingOrder attaches them verbatim.
         // Staleness guard: give the setup up to staleOrderBars bars of its own
         // timeframe to be reached, then cancel the unfilled order (a target the
         // market never came back to is a stale idea). Skipped (GTC) when the bars
@@ -697,7 +706,7 @@ async function placeRestingOrder(
   const tag = kind === "STOP" ? "Stop" : "Limit"; // log/notification label
   // Drop SL or TP if it sits on the wrong side of the entry level; the broker
   // would reject the whole order otherwise. (Channel LIMIT levels come verbatim
-  // from the message; feed STOP levels are the %-derived values set upstream.)
+  // from the message; feed levels are the scanner's own, set upstream.)
   let sl: number | null = signal.sl ?? null;
   let tp: number | null = signal.tp ?? null;
   if (sl !== null && ((signal.direction === "BUY" && sl >= entry) || (signal.direction === "SELL" && sl <= entry))) {
@@ -709,10 +718,9 @@ async function placeRestingOrder(
     tp = null;
   }
 
-  // Actual dollar risk of this order: stop distance (absolute SL, or the SL %)
-  // times the volume, for the fill notification.
-  const slPct = slPctFor(signal.symbol);
-  const restRisk = (sl !== null ? Math.abs(entry - sl) : entry * (slPct / 100)) * (orderVolume / 100);
+  // Actual dollar risk of this order: the stop distance (entry to SL) times the
+  // volume, for the fill notification. 0 if the SL was dropped as wrong-side above.
+  const restRisk = (sl !== null ? Math.abs(entry - sl) : 0) * (orderVolume / 100);
 
   let fillListenerId = "";
   let errorListenerId = "";
