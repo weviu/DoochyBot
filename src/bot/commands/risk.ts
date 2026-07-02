@@ -167,22 +167,6 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
-  if (setting === "entrytol" && parts[2] !== undefined) {
-    const pct = parseFloat(parts[2]);
-    if (isNaN(pct) || pct < 0 || pct > 5) {
-      await ctx.reply("Entry tolerance % must be between 0 (always market) and 5.");
-      return;
-    }
-    state.settings.entryTolerancePercent = pct;
-    persistSettings();
-    await ctx.reply(
-      pct === 0
-        ? "Entry tolerance set to 0 - feed signals always fill at market (never rest an order)."
-        : `Entry tolerance set to ${pct}%. Feed signals fill at market when our live price is within ${pct}% of the target, otherwise a resting order sits at the target and fills only when price reaches it: for a target above the market a buy-stop (BUY) or sell-limit (SELL), for a target below it a buy-limit (BUY) or sell-stop (SELL).`
-    );
-    return;
-  }
-
   if (setting === "stalebars" && parts[2] !== undefined) {
     const n = parseInt(parts[2]);
     if (isNaN(n) || n < 0 || n > 100) {
@@ -273,5 +257,21 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
-  await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk reentry <min> | /risk combined <usd> | /risk confidence <n> | /risk minconfidence <n>% | /risk entrytol <pct> | /risk stalebars <n> | /risk marginaware on|off | /risk btcbias on|off|bearish <n>|strongbearish <n>");
+  if (setting === "overrun" && parts[2] !== undefined) {
+    const pct = parseFloat(parts[2]);
+    if (isNaN(pct) || pct < 0 || pct > 100000) {
+      await ctx.reply("Risk overrun % must be 0 (strict) or greater.");
+      return;
+    }
+    state.settings.riskOverrunPercent = pct;
+    persistSettings();
+    await ctx.reply(
+      pct === 0
+        ? "Risk overrun set to 0 (strict): a trade is skipped whenever the smallest tradable lot would risk more than /risk pertrade."
+        : `Risk overrun set to ${pct}%. A trade is allowed through when the broker's minimum lot forces its risk up to ${pct}% over your per-trade target (e.g. $${state.settings.riskPerTradeUSD} -> up to $${(state.settings.riskPerTradeUSD * (1 + pct / 100)).toFixed(2)}); beyond that it is skipped. Set a large value to effectively disable the guard.`
+    );
+    return;
+  }
+
+  await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk overrun <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk reentry <min> | /risk combined <usd> | /risk confidence <n> | /risk minconfidence <n>% | /risk stalebars <n> | /risk marginaware on|off | /risk btcbias on|off|bearish <n>|strongbearish <n>");
 }

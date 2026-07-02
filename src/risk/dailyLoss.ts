@@ -1,4 +1,4 @@
-import { state, setTradingLock } from "../state";
+import { state, setTradingLock, isUsdQuoted } from "../state";
 import { notify } from "../bot/notify";
 import { getMarkPrice } from "../ctrader/livePrices";
 
@@ -16,12 +16,12 @@ export function maxLossUSD(): number {
 export function floatingPnL(): number {
   let total = 0;
   for (const pos of state.positions.values()) {
-    // Belt-and-braces: the money model below assumes a USD quote currency, which
-    // only holds for allowedSymbols (USD-quoted metals/crypto). Never value a
-    // non-allowed symbol here — a stray manual FX position would be overstated by
-    // ~its cross rate and could trip the daily-loss limit. reconcile already
-    // filters these out; this guards any other path that might add one.
+    // Belt-and-braces: the money model below assumes a USD quote currency. Only
+    // value a position that is BOTH an allowed symbol AND actually USD-quoted — a
+    // JPY/GBP-quoted pair (even one mistakenly on the allowed list) would be
+    // overstated by ~its cross rate and could trip the daily-loss limit.
     if (!state.settings.allowedSymbols.includes(pos.symbol)) continue;
+    if (!isUsdQuoted(pos.symbol)) continue;
     const mark = getMarkPrice(pos.symbol, pos.direction);
     if (!mark || !pos.entryPrice) continue;
     const diff = pos.direction === "BUY" ? mark - pos.entryPrice : pos.entryPrice - mark;

@@ -1,4 +1,12 @@
-import { state, persistSettings, DEFAULT_SETTINGS } from "../../state";
+import { state, persistSettings, DEFAULT_SETTINGS, symbolIdFor, isUsdQuoted } from "../../state";
+
+// A symbol is unsupported if the broker knows it (resolvable) but its quote
+// currency is not USD — the money model can only value USD-quoted symbols. Symbols
+// the broker doesn't know are left alone here (the gate rejects them at trade time
+// as "not available on broker"), so a typo isn't misreported as non-USD.
+function isNonUsdQuoted(sym: string): boolean {
+  return symbolIdFor(sym) !== undefined && !isUsdQuoted(sym);
+}
 
 const SYMBOL_ALIASES: Record<string, string> = {
   AAVE: "AAVUSD",
@@ -58,14 +66,17 @@ export async function symbolsCmd(ctx: any) {
         }
       }
       let added = 0;
+      const skippedNonUsd: string[] = [];
       for (const sym of symbols) {
+        if (isNonUsdQuoted(sym)) { skippedNonUsd.push(sym); continue; }
         if (!state.settings.allowedSymbols.includes(sym)) {
           state.settings.allowedSymbols.push(sym);
           added++;
         }
       }
       persistSettings();
-      await ctx.reply(`Added ${added} symbols with confidence >= 50. Total allowed: ${state.settings.allowedSymbols.length}`);
+      const skipNote = skippedNonUsd.length ? `\nSkipped ${skippedNonUsd.length} non-USD-quoted (unsupported): ${skippedNonUsd.join(", ")}` : "";
+      await ctx.reply(`Added ${added} symbols with confidence >= 50. Total allowed: ${state.settings.allowedSymbols.length}${skipNote}`);
     } catch (err: any) {
       await ctx.reply(`Failed to fetch feed: ${err.message}`);
     }
@@ -77,14 +88,17 @@ export async function symbolsCmd(ctx: any) {
     const syms = parseSymbols(parts);
     const added: string[] = [];
     const already: string[] = [];
+    const nonUsd: string[] = [];
     for (const sym of syms) {
-      if (state.settings.allowedSymbols.includes(sym)) already.push(sym);
+      if (isNonUsdQuoted(sym)) nonUsd.push(sym);
+      else if (state.settings.allowedSymbols.includes(sym)) already.push(sym);
       else { state.settings.allowedSymbols.push(sym); added.push(sym); }
     }
     if (added.length) persistSettings();
     const out: string[] = [];
     if (added.length) out.push(`Added: ${added.join(", ")}`);
     if (already.length) out.push(`Already present: ${already.join(", ")}`);
+    if (nonUsd.length) out.push(`Not added (not USD-quoted, unsupported): ${nonUsd.join(", ")}`);
     out.push(`Allowed: ${state.settings.allowedSymbols.join(", ")}`);
     await ctx.reply(out.join("\n"));
     return;

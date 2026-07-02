@@ -1,4 +1,4 @@
-import { state, Position, symbolIdFor } from "../state";
+import { state, Position, symbolIdFor, isUsdQuoted } from "../state";
 import { ParsedSignal } from "../signals/types";
 import { isLocked, evaluateDailyLimits } from "./dailyLoss";
 import { getCooldown } from "./cooldown";
@@ -80,6 +80,17 @@ export function processSignal(signal: ParsedSignal): GateResult {
   if (!resolvable) {
     console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - Not available on broker`);
     return { accepted: false, reason: "Not available on broker" };
+  }
+
+  // Check 2b2: Quote currency must be USD. The whole money model (risk sizing,
+  // floating P&L, daily limits) assumes a USD quote; a JPY/GBP/etc-quoted pair like
+  // GBPJPY is valued in its quote currency and mis-read by ~the cross rate (which
+  // is why its min-lot risk showed as ~$1691 instead of ~$9). Refuse it outright
+  // rather than size or value it wrongly. Fails open if asset data didn't load.
+  if (!isUsdQuoted(signal.symbol)) {
+    const reason = `${signal.symbol} is not USD-quoted; doochybot only trades USD-quoted symbols. Remove it with /symbols remove ${signal.symbol}`;
+    console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - ${reason}`);
+    return { accepted: false, reason };
   }
 
   // Check 2c: Minimum confidence (entry gate). Reject feed signals scoring below

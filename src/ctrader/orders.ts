@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { state, symbolIdFor } from "../state";
+import { state, symbolIdFor, isUsdQuoted } from "../state";
 import { ParsedSignal } from "../signals/types";
 import { amendPositionSLTP } from "./amend";
 import { updateDailyPnL, floatingPnL } from "../risk/dailyLoss";
@@ -8,6 +8,12 @@ import { recordStopLoss } from "../risk/cooldown";
 import { recordLoss } from "../risk/reentryCooldown";
 import { subscribeSpots, getMarkPrice } from "./livePrices";
 import { notify } from "../bot/notify";
+
+// How close our live mark must be to a feed signal's target (as % of the target)
+// to fill at market instead of resting an order at the target and waiting for
+// price to reach it. Fixed in code (not a user setting) so behaviour is identical
+// across every deployment. 0 would mean "always market".
+export const ENTRY_TOLERANCE_PERCENT = 0.15;
 
 // One bar of a signal timeframe ("30m", "15m", "1h", "4h", "1d", "1w") in ms, or
 // null if it can't be parsed - in which case the staleness guard is skipped and
@@ -211,6 +217,11 @@ export async function reconcilePositions(): Promise<void> {
       const symbolId = Number(td.symbolId);
       if (!allowedIds.has(symbolId)) {
         console.log(`[RECONCILE] Skipping position #${p.positionId} on ${symbolNameById(symbolId)} — not an allowed bot symbol (manual trade).`);
+        continue;
+      }
+      // Never adopt a non-USD-quoted position: the money model would mis-value it.
+      if (!isUsdQuoted(symbolNameById(symbolId))) {
+        console.log(`[RECONCILE] Skipping position #${p.positionId} on ${symbolNameById(symbolId)} — not USD-quoted (money model does not support it).`);
         continue;
       }
       const volumeCents = Number(td.volume) || 0;
@@ -426,15 +437,18 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
 
     // Overrun guard: a wide stop makes the risk-based size small, and the broker's
     // minimum volume can floor it above what riskPerTradeUSD allows. On a loss-
-    // limited (prop) account, silently risking more than the per-trade cap is worse
-    // than skipping the trade, so reject once the forced risk clears the target by
-    // more than 20%. (The margin cap only ever lowers the size, so it never trips this.)
-    if (actualRisk > riskUSD * 1.2) {
-      console.log(`[ORDER] ${signal.symbol}: broker min volume forces risk to ~$${actualRisk.toFixed(2)}, over the $${riskUSD} per-trade cap (+20%) — rejecting`);
+    // limited (prop) account, silently risking well over the per-trade cap is worse
+    // than skipping, but a small overshoot from the min-lot floor is usually fine —
+    // so the tolerance is configurable via /risk overrun (% over target). (The
+    // margin cap only ever lowers the size, so it never trips this.)
+    const overrunPct = state.settings.riskOverrunPercent ?? 0;
+    const overrunLimit = riskUSD * (1 + overrunPct / 100);
+    if (actualRisk > overrunLimit) {
+      console.log(`[ORDER] ${signal.symbol}: broker min volume forces risk to ~$${actualRisk.toFixed(2)}, over the $${riskUSD} per-trade cap +${overrunPct}% (=$${overrunLimit.toFixed(2)}) — rejecting`);
       if (state.settings.notifyFills) {
-        notify(`Skipped ${signal.direction} ${signal.symbol}: its stop is wide enough that the smallest tradable size risks ~$${actualRisk.toFixed(2)}, over your $${riskUSD} per-trade limit. Raise /risk pertrade to take it.`);
+        notify(`Skipped ${signal.direction} ${signal.symbol}: its stop is wide enough that the smallest tradable size risks ~$${actualRisk.toFixed(2)}, over your $${riskUSD} per-trade limit +${overrunPct}%. Raise /risk pertrade or /risk overrun to take it.`);
       }
-      return { ok: false, error: `Risk ~$${actualRisk.toFixed(2)} exceeds per-trade cap $${riskUSD}` };
+      return { ok: false, error: `Risk ~$${actualRisk.toFixed(2)} exceeds per-trade cap $${riskUSD} +${overrunPct}%` };
     }
   }
 
@@ -489,7 +503,7 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
   // channel/manual entries (which keep their good-till-cancel behaviour).
   let restStaleMs = 0;
   if (!signal.orderType && signal.manualLots == null && signal.price > 0) {
-    const tolPct = state.settings.entryTolerancePercent;
+    const tolPct = ENTRY_TOLERANCE_PERCENT;
     const live = getMarkPrice(signal.symbol, signal.direction);
     if (tolPct > 0 && live && live > 0) {
       const driftPct = (Math.abs(live - signal.price) / signal.price) * 100;

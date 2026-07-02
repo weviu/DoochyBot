@@ -1,4 +1,5 @@
 import { state } from "../../state";
+import { ENTRY_TOLERANCE_PERCENT } from "../../ctrader/orders";
 
 // Show the user's configured settings (the knobs set via /risk, /minhold, etc.),
 // grouped to match the /help categories. Distinct from /status, which shows live
@@ -15,8 +16,9 @@ export async function settingsCmd(ctx: any) {
     "",
     "Sizing",
     `Per-trade risk: ${s.riskPerTradeUSD > 0 ? `$${s.riskPerTradeUSD}` : "not set (trading off)"}`,
+    `Risk overrun tolerance: ${s.riskOverrunPercent > 0 ? `+${s.riskOverrunPercent}% over target (min-lot skipped beyond)` : "strict (0% - skip any over target)"}`,
     "SL/TP: from the signal (sized to its stop; no SL/TP = skipped)",
-    `Entry tolerance (feed market vs resting order): ${s.entryTolerancePercent > 0 ? `${s.entryTolerancePercent}%` : "off (always market)"}`,
+    `Entry tolerance (feed market vs resting order): ${ENTRY_TOLERANCE_PERCENT}% (fixed)`,
     `Stale-order guard (feed resting orders): ${s.staleOrderBars > 0 ? `${s.staleOrderBars} bars of the signal timeframe` : "off (good-till-cancel)"}`,
     `Min hold before TP: ${s.minHoldSeconds}s`,
     "",

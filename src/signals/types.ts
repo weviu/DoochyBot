@@ -58,7 +58,7 @@ export interface ParsedSignal {
   // Order type. Absent → decided at execution time (executeSignal): channel and
   // manual orders set it explicitly, while feed/scanner signals leave it unset and
   // executeSignal picks MARKET / STOP / LIMIT by where signal.price (the target)
-  // sits versus our live price (see entryTolerancePercent):
+  // sits versus our live price (see ENTRY_TOLERANCE_PERCENT in orders.ts):
   //   target ≈ live               → MARKET (immediate fill)
   //   target the market must RISE → BUY buy-STOP  / SELL sell-LIMIT
   //   target the market must FALL → BUY buy-LIMIT / SELL sell-STOP

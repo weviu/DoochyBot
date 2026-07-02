@@ -147,6 +147,7 @@ bot.command("help", async (ctx) => {
     "\n" +
     "• SIZING (how big each trade is)\n" +
     "/risk pertrade <usd>: max $ you lose if a trade's stop is hit; the bot sizes the lots to match (0 = trading off)\n" +
+    "/risk overrun <pct>: how far over pertrade a trade may go when the broker's min lot forces it (0 = strict, default 20)\n" +
     "\n" +
     "• STOP / TARGET\n" +
     "SL/TP come from the signal itself (scanner, channel, or manual). The trade is sized so the distance to that stop loses ~your pertrade amount; a signal with no SL/TP is skipped.\n" +

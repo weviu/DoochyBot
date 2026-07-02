@@ -27,6 +27,7 @@ export interface BotSettings {
   maxDailyLossUSD: number;
   minHoldSeconds: number;
   riskPerTradeUSD: number; // size each position so the signal's own entry-to-SL distance loses ~this many $. Required to trade (0 = trading disabled; there is no fixed-lot fallback).
+  riskOverrunPercent: number; // how far a trade's risk may exceed riskPerTradeUSD before it's skipped, as % over target (a wide stop can force the broker's min lot above target). e.g. 20 = allow up to 1.2x. 0 = strict (skip anything over target); set high to effectively disable.
   dailyProfitCapUSD: number; // lock trading once daily realized profit hits this; 0 = disabled
   capBufferUSD: number; // force-close this many $ BELOW the cap to never overshoot it
   maxConsecutiveLosses: number; // SL hits on one symbol within the window that trigger a cooldown; 0 = disabled
@@ -39,7 +40,6 @@ export interface BotSettings {
   signalNotifyMinConfidence: number; // only notify on signals scoring at least this; independent of the entry gate
   webhookConfidence: number; // confidence assigned to channel/webhook signals (which carry none); drives reversal gating against feed signals
   minConfidence: number; // reject feed signals scoring below this as an entry gate; channel signals bypass it; 0 = off
-  entryTolerancePercent: number; // feed signals only: if our live price is within this % of the signal's intended entry, fill at market; beyond it, rest a stop/limit at the target instead of chasing. 0 = always market
   staleOrderBars: number; // feed resting orders only: cancel an unfilled stop/limit after this many bars of the signal's timeframe (e.g. 3 x 30m = 90m). 0 = never (leave it good-till-cancel)
   marginAware: boolean; // when true, cap each order's size to fit free margin (ProtoOAExpectedMarginReq); when false, place the full risk-based size
   btcBiasGate: boolean; // when on, suppress crypto BUY signals during BTC bearishness unless their confidence clears the floor below; non-crypto (btc_state null) and SELLs are unaffected
@@ -58,6 +58,7 @@ export interface BotState {
   lastSignalTime: Map<string, number>;
   accountInfo: AccountInfo;
   symbolMap: Map<string, number>;
+  usdQuotedSymbols: Set<string>; // broker symbol names (same keys as symbolMap) whose QUOTE currency is USD. The money model (risk sizing, floating P&L, daily limits) only holds for these; a JPY/GBP/etc-quoted pair would be mis-valued by ~the cross rate. Empty until the asset+symbol lists load (then isUsdQuoted fails open).
   lossReentry: Map<string, number>; // "SYMBOL:DIRECTION" -> epoch ms of the losing close, for the re-entry cooldown
   symbolCooldowns: Map<string, { until: number; triggerHits: number }>; // per-symbol consecutive-loss cooldowns (until = epoch ms)
 }
@@ -68,6 +69,7 @@ export const DEFAULT_SETTINGS: BotSettings = {
   maxDailyLossUSD: 200,
   minHoldSeconds: 60,
   riskPerTradeUSD: 0,
+  riskOverrunPercent: 20,
   dailyProfitCapUSD: 0,
   capBufferUSD: 0,
   maxConsecutiveLosses: 3,
@@ -80,7 +82,6 @@ export const DEFAULT_SETTINGS: BotSettings = {
   signalNotifyMinConfidence: 50,
   webhookConfidence: 69,
   minConfidence: 50,
-  entryTolerancePercent: 0.15,
   staleOrderBars: 3,
   marginAware: true,
   btcBiasGate: true,
@@ -99,6 +100,7 @@ export const state: BotState = {
   lastSignalTime: new Map(),
   accountInfo: { balance: 0, equity: 0, currency: "USD" },
   symbolMap: new Map(),
+  usdQuotedSymbols: new Set(),
   lossReentry: new Map(),
   symbolCooldowns: new Map(),
 };
@@ -111,6 +113,18 @@ export const state: BotState = {
 // subscription then never matches, silently reading its floating P&L as 0.
 export function symbolIdFor(symbol: string): number | undefined {
   return state.symbolMap.get(symbol) ?? state.symbolMap.get(symbol.replace(/USD$/, ""));
+}
+
+// Whether a symbol's QUOTE currency is USD, which is the assumption behind the
+// whole money model (risk sizing, floating P&L, daily limits). A non-USD-quoted
+// pair (e.g. GBPJPY) would be valued in its quote currency and mis-read by ~the
+// cross rate, so callers refuse to trade or value it. Resolved with the same
+// name/stripped-USD fallback as symbolIdFor so signal names match broker names.
+// Fails OPEN (returns true) until the asset+symbol lists have loaded, so a failed
+// asset fetch degrades to the previous behaviour rather than halting all trading.
+export function isUsdQuoted(symbol: string): boolean {
+  if (state.usdQuotedSymbols.size === 0) return true;
+  return state.usdQuotedSymbols.has(symbol) || state.usdQuotedSymbols.has(symbol.replace(/USD$/, ""));
 }
 
 export interface AccountInfo {
@@ -127,6 +141,7 @@ export function initSettings(): void {
     if (saved.maxDailyLossUSD !== undefined) state.settings.maxDailyLossUSD = saved.maxDailyLossUSD;
     if (saved.minHoldSeconds !== undefined) state.settings.minHoldSeconds = saved.minHoldSeconds;
     if (saved.riskPerTradeUSD !== undefined) state.settings.riskPerTradeUSD = saved.riskPerTradeUSD;
+    if (saved.riskOverrunPercent !== undefined) state.settings.riskOverrunPercent = saved.riskOverrunPercent;
     if (saved.dailyProfitCapUSD !== undefined) state.settings.dailyProfitCapUSD = saved.dailyProfitCapUSD;
     if (saved.capBufferUSD !== undefined) state.settings.capBufferUSD = saved.capBufferUSD;
     if (saved.maxConsecutiveLosses !== undefined) state.settings.maxConsecutiveLosses = saved.maxConsecutiveLosses;
@@ -139,7 +154,6 @@ export function initSettings(): void {
     if (saved.signalNotifyMinConfidence !== undefined) state.settings.signalNotifyMinConfidence = saved.signalNotifyMinConfidence;
     if (saved.webhookConfidence !== undefined) state.settings.webhookConfidence = saved.webhookConfidence;
     if (saved.minConfidence !== undefined) state.settings.minConfidence = saved.minConfidence;
-    if (saved.entryTolerancePercent !== undefined) state.settings.entryTolerancePercent = saved.entryTolerancePercent;
     if (saved.staleOrderBars !== undefined) state.settings.staleOrderBars = saved.staleOrderBars;
     if (saved.marginAware !== undefined) state.settings.marginAware = saved.marginAware;
     if (saved.btcBiasGate !== undefined) state.settings.btcBiasGate = saved.btcBiasGate;
@@ -196,6 +210,7 @@ function persistAll(): void {
     maxDailyLossUSD: state.settings.maxDailyLossUSD,
     minHoldSeconds: state.settings.minHoldSeconds,
     riskPerTradeUSD: state.settings.riskPerTradeUSD,
+    riskOverrunPercent: state.settings.riskOverrunPercent,
     dailyProfitCapUSD: state.settings.dailyProfitCapUSD,
     capBufferUSD: state.settings.capBufferUSD,
     maxConsecutiveLosses: state.settings.maxConsecutiveLosses,
@@ -208,7 +223,6 @@ function persistAll(): void {
     signalNotifyMinConfidence: state.settings.signalNotifyMinConfidence,
     webhookConfidence: state.settings.webhookConfidence,
     minConfidence: state.settings.minConfidence,
-    entryTolerancePercent: state.settings.entryTolerancePercent,
     staleOrderBars: state.settings.staleOrderBars,
     marginAware: state.settings.marginAware,
     btcBiasGate: state.settings.btcBiasGate,
