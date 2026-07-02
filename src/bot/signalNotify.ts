@@ -23,8 +23,10 @@ export function maybeNotifySignal(signal: ParsedSignal): void {
   //                      order placement - see ParsedSignal.feedSl).
   //  3. derived        - same formula order placement uses (orders.ts): the
   //                      would-be entry price and the per-symbol SL/TP percent.
-  // A LIMIT order would enter at limitPrice, otherwise the signal's market price.
-  const entry = signal.orderType === "LIMIT" && signal.limitPrice != null ? signal.limitPrice : signal.price;
+  // A LIMIT enters at limitPrice, a STOP at its trigger, otherwise the market price.
+  const entry = signal.orderType === "LIMIT" && signal.limitPrice != null ? signal.limitPrice
+    : signal.orderType === "STOP" && signal.stopPrice != null ? signal.stopPrice
+    : signal.price;
   const slPct = slPctFor(signal.symbol);
   const tpPct = tpPctFor(signal.symbol);
   const slP = signal.sl ?? signal.feedSl ?? (entry ? (signal.direction === "BUY" ? entry * (1 - slPct / 100) : entry * (1 + slPct / 100)) : undefined);
@@ -42,7 +44,11 @@ export function maybeNotifySignal(signal: ParsedSignal): void {
     `${orb} ${signal.direction}`,
     `Price: ${signal.price || "-"}`,
   ];
+  // Scanner's spot at generation, for reference (shown only when it differs from
+  // the intended entry above; doochybot's own live price drives execution).
+  if (signal.currentPrice != null && signal.currentPrice !== signal.price) lines.push(`Spot at signal: ${signal.currentPrice}`);
   if (signal.orderType === "LIMIT" && signal.limitPrice != null) lines.push(`Limit: ${signal.limitPrice}`);
+  if (signal.orderType === "STOP" && signal.stopPrice != null) lines.push(`Stop trigger: ${signal.stopPrice}`);
   lines.push(`SL: ${fmt(slP)}`);
   lines.push(`TP: ${fmt(tpP)}`);
   // BTC macro state, for crypto only. Null/absent (gold, silver, forex, indices)

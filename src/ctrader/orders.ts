@@ -9,6 +9,34 @@ import { recordLoss } from "../risk/reentryCooldown";
 import { subscribeSpots, getMarkPrice } from "./livePrices";
 import { notify } from "../bot/notify";
 
+// Decimal places in a price, used to round derived SL/TP back onto a valid tick.
+// The broker silently rejects float junk (e.g. 4333.099999999999), so any
+// computed level must be rounded to the entry's precision before it is sent.
+function priceDigits(price: number): number {
+  const s = String(price);
+  const i = s.indexOf(".");
+  return i === -1 ? 0 : s.length - i - 1;
+}
+function roundTo(value: number, digits: number): number {
+  const f = Math.pow(10, digits);
+  return Math.round(value * f) / f;
+}
+
+// One bar of a signal timeframe ("30m", "15m", "1h", "4h", "1d", "1w") in ms, or
+// null if it can't be parsed - in which case the staleness guard is skipped and
+// the resting order stays GOOD_TILL_CANCEL. Minutes/hours/days/weeks only (the
+// scanner's timeframes); case-insensitive, m = minute.
+function timeframeMs(tf: string | undefined): number | null {
+  if (!tf) return null;
+  const m = /^(\d+)\s*([mhdw])$/i.exec(tf.trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 10);
+  if (!n) return null;
+  const unit = m[2].toLowerCase();
+  const mult = unit === "m" ? 60_000 : unit === "h" ? 3_600_000 : unit === "d" ? 86_400_000 : 604_800_000;
+  return n * mult;
+}
+
 // Send a Telegram message when an order fills (toggled by /notifications). SL/TP
 // are the values being applied: explicit channel levels when supplied, otherwise
 // derived from the configured percentages, the same way the amend will set them.
@@ -433,13 +461,81 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
     placedAt: Date.now(),
   });
 
-  // Channel limit signals rest at the broker until price reaches the level,
-  // rather than filling immediately like the feed's market orders. They carry
-  // their SL/TP on the order itself so the resting order is self-contained
-  // (protected even across a bot restart). Handled separately from the immediate
-  // market fill path below; sizing/volume above is shared.
+  // Execution-type decision for FEED signals (no explicit orderType, not a manual
+  // order). signal.price is the TARGET the market must reach; we rest an order there
+  // and fill only when price actually arrives - if it never does, no trade. We own
+  // the choice here, at execution time, using our OWN live mark, and the order TYPE
+  // is simply whichever the exchange requires for that side of the market:
+  //   target within tolerance of live -> MARKET (already at the level; also a
+  //                                      resting order at the current price can be
+  //                                      rejected).
+  //   target the market must RISE to  -> BUY: buy-STOP  | SELL: sell-LIMIT
+  //     (price > live)
+  //   target the market must FALL to  -> BUY: buy-LIMIT | SELL: sell-STOP
+  //     (price < live)
+  // Both non-market legs rest at signal.price and are non-marketable, so the fill
+  // lands at ~price and %SL/TP anchored to it stay on the correct side (SL below for
+  // BUY / above for SELL) - no wrong-side-of-level bug in any path. No live quote or
+  // tolerance 0 -> MARKET. Manual (/order) and channel signals set their own type.
+  // Staleness window (ms) for a feed resting order: cancel it if unfilled after
+  // staleOrderBars bars of the signal's timeframe. Set only when this signal is
+  // promoted to a resting order below; stays 0 for market fills and for
+  // channel/manual entries (which keep their good-till-cancel behaviour).
+  let restStaleMs = 0;
+  if (!signal.orderType && signal.manualLots == null && signal.price > 0) {
+    const tolPct = state.settings.entryTolerancePercent;
+    const live = getMarkPrice(signal.symbol, signal.direction);
+    if (tolPct > 0 && live && live > 0) {
+      const driftPct = (Math.abs(live - signal.price) / signal.price) * 100;
+      if (driftPct <= tolPct) {
+        console.log(`[ORDER] ${signal.symbol}: live ${live} within ${tolPct}% of target ${signal.price} (${driftPct.toFixed(2)}%) - MARKET`);
+      } else {
+        // A target the market must rise to is a buy-STOP (long) or sell-LIMIT
+        // (short); one it must fall to is a buy-LIMIT (long) or sell-STOP (short).
+        const mustRise = signal.price > live;
+        const kind: "STOP" | "LIMIT" =
+          signal.direction === "BUY" ? (mustRise ? "STOP" : "LIMIT")
+                                     : (mustRise ? "LIMIT" : "STOP");
+        signal.orderType = kind;
+        if (kind === "STOP") signal.stopPrice = signal.price;
+        else signal.limitPrice = signal.price;
+        // The resting order carries its own SL/TP (placeRestingOrder does no percent
+        // math), so derive them from the configured percentages at the target - the
+        // same levels the market path amends on after a fill - and round to the
+        // target's tick so the broker accepts them. The order fills at ~price, so
+        // these stay on the correct side.
+        const digits = priceDigits(signal.price);
+        const slPct = slPctFor(signal.symbol);
+        const tpPct = tpPctFor(signal.symbol);
+        if (signal.sl == null && slPct > 0) {
+          signal.sl = roundTo(signal.direction === "BUY" ? signal.price * (1 - slPct / 100) : signal.price * (1 + slPct / 100), digits);
+        }
+        if (signal.tp == null && tpPct > 0) {
+          signal.tp = roundTo(signal.direction === "BUY" ? signal.price * (1 + tpPct / 100) : signal.price * (1 - tpPct / 100), digits);
+        }
+        // Staleness guard: give the setup up to staleOrderBars bars of its own
+        // timeframe to be reached, then cancel the unfilled order (a target the
+        // market never came back to is a stale idea). Skipped (GTC) when the bars
+        // setting is 0 or the timeframe can't be parsed.
+        const bars = state.settings.staleOrderBars;
+        const barMs = timeframeMs(signal.timeframe);
+        if (bars > 0 && barMs) restStaleMs = bars * barMs;
+        console.log(`[ORDER] ${signal.symbol}: live ${live} is ${driftPct.toFixed(2)}% from target ${signal.price} (> ${tolPct}% tol) - resting ${signal.direction}-${kind} @ ${signal.price} (SL ${signal.sl ?? "-"} / TP ${signal.tp ?? "-"})${restStaleMs > 0 ? ` [cancel in ${bars}x${signal.timeframe}=${Math.round(restStaleMs / 60_000)}m if unfilled]` : ""}`);
+      }
+    }
+  }
+
+  // Resting orders (channel/manual LIMIT entries, and feed STOP breakouts promoted
+  // just above) sit at the broker until price reaches the level, rather than filling
+  // immediately like a market order. They carry their SL/TP on the order itself so
+  // the resting order is self-contained (protected even across a bot restart).
+  // Handled by placeRestingOrder, separate from the immediate market fill path
+  // below; sizing/volume above is shared.
   if (signal.orderType === "LIMIT" && signal.limitPrice && signal.limitPrice > 0) {
-    return await placeLimitOrder(signal, symbolId, orderVolume, lots, label);
+    return await placeRestingOrder(signal, symbolId, orderVolume, lots, label, "LIMIT", restStaleMs);
+  }
+  if (signal.orderType === "STOP" && signal.stopPrice && signal.stopPrice > 0) {
+    return await placeRestingOrder(signal, symbolId, orderVolume, lots, label, "STOP", restStaleMs);
   }
 
   try {
@@ -556,23 +652,37 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
 }
 
 /**
- * Place a resting LIMIT order (channel signals). Unlike a market order it does
- * not fill immediately — it sits at the broker (GOOD_TILL_CANCEL) until price
- * reaches limitPrice, which may be seconds or hours. SL/TP are attached to the
- * order, so the resting order is protected even if the bot restarts before it
- * fills. We wait only long enough for the broker to ACCEPT the order (confirming
- * it is resting, or catching an outright rejection) and then return, leaving a
- * listener to record the position whenever the fill eventually arrives.
+ * Place a resting order at the broker: a LIMIT (channel/manual entries, fills at
+ * the level or better) or a STOP (feed breakout entries, triggers only when price
+ * reaches the level in the trade's direction). Unlike a market order it does not
+ * fill immediately — it sits at the broker (GOOD_TILL_CANCEL) until price reaches
+ * the level, which may be seconds or hours. SL/TP are attached to the order, so
+ * the resting order is protected even if the bot restarts before it fills. We wait
+ * only long enough for the broker to ACCEPT the order (confirming it is resting, or
+ * catching an outright rejection) and then return, leaving a listener to record the
+ * position whenever the fill eventually arrives.
+ *
+ * A STOP is sent as a stop-market: it guarantees the fill once triggered, at
+ * ~stopPrice (small slippage possible). Switch to STOP_LIMIT here if bounding
+ * slippage ever matters more than guaranteeing the fill.
+ *
+ * staleMs > 0 makes the order GOOD_TILL_DATE, expiring that many ms out (the
+ * feed staleness guard: N bars of the signal's timeframe). The broker enforces
+ * the expiry, so it holds even across a bot restart; we just clean up our own
+ * bookkeeping when the expiry (ORDER_EXPIRED/CANCELLED) event arrives. staleMs 0
+ * leaves it GOOD_TILL_CANCEL (channel/manual entries, no auto-expiry).
  *
  * Sizing/volume is computed by the caller (executeSignal) and shared with the
  * market path; only the order-send and fill-handling differ here.
  */
-async function placeLimitOrder(
+async function placeRestingOrder(
   signal: ParsedSignal,
   symbolId: number,
   orderVolume: number,
   lots: number,
-  label: string
+  label: string,
+  kind: "LIMIT" | "STOP",
+  staleMs: number
 ): Promise<OrderResult> {
   if (!connection) {
     console.log("[ORDER] No cTrader connection");
@@ -580,25 +690,29 @@ async function placeLimitOrder(
     return { ok: false, error: "No broker connection" };
   }
 
-  const limitPrice = signal.limitPrice!;
-  // SL/TP come verbatim from the channel message (no arithmetic → no float junk,
-  // so no rounding needed). Drop either if it sits on the wrong side of the limit
-  // entry; the broker would reject the whole order otherwise.
+  // The resting level: the limit price for a LIMIT, the trigger price for a STOP.
+  // SL/TP sit on the same side of it in both cases (SL below for BUY / above for
+  // SELL), so the validation below is identical for the two order types.
+  const entry = kind === "STOP" ? signal.stopPrice! : signal.limitPrice!;
+  const tag = kind === "STOP" ? "Stop" : "Limit"; // log/notification label
+  // Drop SL or TP if it sits on the wrong side of the entry level; the broker
+  // would reject the whole order otherwise. (Channel LIMIT levels come verbatim
+  // from the message; feed STOP levels are the %-derived values set upstream.)
   let sl: number | null = signal.sl ?? null;
   let tp: number | null = signal.tp ?? null;
-  if (sl !== null && ((signal.direction === "BUY" && sl >= limitPrice) || (signal.direction === "SELL" && sl <= limitPrice))) {
-    console.log(`[ORDER] Invalid SL ${sl} for ${signal.direction} limit @ ${limitPrice}; dropping SL`);
+  if (sl !== null && ((signal.direction === "BUY" && sl >= entry) || (signal.direction === "SELL" && sl <= entry))) {
+    console.log(`[ORDER] Invalid SL ${sl} for ${signal.direction} ${kind} @ ${entry}; dropping SL`);
     sl = null;
   }
-  if (tp !== null && ((signal.direction === "BUY" && tp <= limitPrice) || (signal.direction === "SELL" && tp >= limitPrice))) {
-    console.log(`[ORDER] Invalid TP ${tp} for ${signal.direction} limit @ ${limitPrice}; dropping TP`);
+  if (tp !== null && ((signal.direction === "BUY" && tp <= entry) || (signal.direction === "SELL" && tp >= entry))) {
+    console.log(`[ORDER] Invalid TP ${tp} for ${signal.direction} ${kind} @ ${entry}; dropping TP`);
     tp = null;
   }
 
   // Actual dollar risk of this order: stop distance (absolute SL, or the SL %)
   // times the volume, for the fill notification.
   const slPct = slPctFor(signal.symbol);
-  const limitRisk = (sl !== null ? Math.abs(limitPrice - sl) : limitPrice * (slPct / 100)) * (orderVolume / 100);
+  const restRisk = (sl !== null ? Math.abs(entry - sl) : entry * (slPct / 100)) * (orderVolume / 100);
 
   let fillListenerId = "";
   let errorListenerId = "";
@@ -608,19 +722,19 @@ async function placeLimitOrder(
     // If the broker never acknowledges, the order was almost certainly rejected
     // (same PROTO_OA_ERROR_RES / "Unknown payload type 2142" case as market
     // orders). Give up the placement wait — but never auto-cancel a resting
-    // order just because it hasn't filled; that's the whole point of a limit.
+    // order just because it hasn't filled; that's the whole point of a resting order.
     const placeTimeout = setTimeout(() => {
       if (settled) return;
       settled = true;
       connection.removeEventListener(fillListenerId);
       connection.removeEventListener(errorListenerId);
       state.pendingOrders.delete(label);
-      reject(new Error("No broker acknowledgement for limit order (likely rejected)"));
+      reject(new Error(`No broker acknowledgement for ${kind} order (likely rejected)`));
     }, 10_000);
 
     errorListenerId = connection.on("ProtoOAOrderErrorEvent", (event: any) => {
       const data = event.descriptor ?? event;
-      console.log(`[ORDER] Limit OrderError for ${signal.symbol}:`, JSON.stringify(data));
+      console.log(`[ORDER] ${tag} OrderError for ${signal.symbol}:`, JSON.stringify(data));
       if (settled) return;
       settled = true;
       clearTimeout(placeTimeout);
@@ -633,7 +747,7 @@ async function placeLimitOrder(
     fillListenerId = connection.on("ProtoOAExecutionEvent", (event: any) => {
       const data = event.descriptor ?? event;
       if (data.order?.tradeData?.label !== label) return;
-      console.log(`[ORDER] Limit execution event (${signal.symbol}): type=${data.executionType} positionId=${data.position?.positionId}`);
+      console.log(`[ORDER] ${tag} execution event (${signal.symbol}): type=${data.executionType} positionId=${data.position?.positionId}`);
 
       if (data.executionType === "ORDER_ACCEPTED" && !settled) {
         // The order is now resting at the broker. End the placement wait but keep
@@ -641,14 +755,31 @@ async function placeLimitOrder(
         settled = true;
         clearTimeout(placeTimeout);
         connection.removeEventListener(errorListenerId);
-        console.log(`[ORDER] Limit resting: ${signal.direction} ${lots} lots ${signal.symbol} @ ${limitPrice} (SL ${sl ?? "—"} / TP ${tp ?? "—"})`);
+        const expiryNote = staleMs > 0 ? `, expires in ${Math.round(staleMs / 60_000)}m if unfilled` : "";
+        console.log(`[ORDER] ${tag} resting: ${signal.direction} ${lots} lots ${signal.symbol} @ ${entry} (SL ${sl ?? "—"} / TP ${tp ?? "—"}${expiryNote})`);
         resolve();
+        return;
+      }
+
+      // Broker expired (GOOD_TILL_DATE staleness guard) or cancelled the resting
+      // order before it filled. Terminal: drop our listener and the pending-order
+      // entry so the symbol+direction isn't blocked as "pending fill" forever.
+      if ((data.executionType === "ORDER_CANCELLED" || data.executionType === "ORDER_EXPIRED") && !data.position?.positionId) {
+        connection.removeEventListener(fillListenerId);
+        state.pendingOrders.delete(label);
+        console.log(`[ORDER] ${tag} ${data.executionType === "ORDER_EXPIRED" ? "expired" : "cancelled"} unfilled: ${signal.direction} ${signal.symbol} @ ${entry}`);
+        if (!settled) {
+          settled = true;
+          clearTimeout(placeTimeout);
+          connection.removeEventListener(errorListenerId);
+          resolve();
+        }
         return;
       }
 
       if (data.executionType === "ORDER_FILLED" && data.position?.positionId) {
         const positionId = Number(data.position.positionId);
-        const entryPrice = data.deal?.executionPrice || data.position.price || limitPrice;
+        const entryPrice = data.deal?.executionPrice || data.position.price || entry;
         // SL/TP are already attached to the order broker-side; mirror them onto
         // the in-memory position for display and live monitoring.
         state.positions.set(positionId, {
@@ -665,9 +796,9 @@ async function placeLimitOrder(
         subscribeSpots([symbolId]);
         connection.removeEventListener(fillListenerId);
         state.pendingOrders.delete(label);
-        console.log(`[ORDER] Limit filled: ${signal.direction} ${lots} lots ${signal.symbol} @ ${entryPrice} | Position #${positionId}`);
-        notifyFill("Limit order filled", signal, lots, entryPrice, positionId, limitRisk, sl, tp);
-        // A limit through the market can fill instantly without a separate
+        console.log(`[ORDER] ${tag} filled: ${signal.direction} ${lots} lots ${signal.symbol} @ ${entryPrice} | Position #${positionId}`);
+        notifyFill(`${tag} order filled`, signal, lots, entryPrice, positionId, restRisk, sl, tp);
+        // A marketable resting order can fill instantly without a separate
         // ORDER_ACCEPTED first — settle the placement wait here too.
         if (!settled) {
           settled = true;
@@ -680,15 +811,21 @@ async function placeLimitOrder(
   });
 
   try {
-    console.log(`[ORDER] Placing LIMIT ${signal.direction} ${lots} lots (${orderVolume} vol) ${signal.symbol} @ ${limitPrice} (label ${label.slice(0, 8)})...`);
+    console.log(`[ORDER] Placing ${kind} ${signal.direction} ${lots} lots (${orderVolume} vol) ${signal.symbol} @ ${entry} (label ${label.slice(0, 8)})...`);
+    // Staleness guard: with a window, use GOOD_TILL_DATE so the broker expires the
+    // order itself (holds across a bot restart); otherwise leave it good-till-cancel.
+    // expirationTimestamp is Unix ms.
+    const expiry = staleMs > 0 ? { timeInForce: "GOOD_TILL_DATE", expirationTimestamp: Date.now() + staleMs }
+                               : { timeInForce: "GOOD_TILL_CANCEL" };
     await connection.sendCommand("ProtoOANewOrderReq", {
       ctidTraderAccountId: parseInt(process.env.ACCOUNT_ID || "0"),
       symbolId,
-      orderType: "LIMIT",
+      orderType: kind,
       tradeSide: signal.direction,
       volume: orderVolume,
-      limitPrice,
-      timeInForce: "GOOD_TILL_CANCEL",
+      // LIMIT uses limitPrice; STOP uses stopPrice (the trigger).
+      ...(kind === "STOP" ? { stopPrice: entry } : { limitPrice: entry }),
+      ...expiry,
       ...(sl !== null ? { stopLoss: sl } : {}),
       ...(tp !== null ? { takeProfit: tp } : {}),
       label,
@@ -697,7 +834,7 @@ async function placeLimitOrder(
     return { ok: true };
   } catch (err: any) {
     state.pendingOrders.delete(label);
-    console.log(`[ORDER] Limit failed: ${signal.direction} ${signal.symbol} — ${err.message}`);
-    return { ok: false, error: err.message || "limit order failed" };
+    console.log(`[ORDER] ${tag} failed: ${signal.direction} ${signal.symbol} — ${err.message}`);
+    return { ok: false, error: err.message || `${kind} order failed` };
   }
 }

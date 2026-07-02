@@ -24,10 +24,16 @@ export async function executeReversal(
   // Step 2 — brief delay so the broker processes the close before the new order.
   await new Promise((r) => setTimeout(r, 1000));
 
-  // Step 3 — open the new position. executeSignal handles its own errors, so we
-  // verify success by checking a matching position actually opened.
+  // Step 3 — open the new position. A reversal is a deliberate "flip now": we've
+  // just closed and gone flat, so the entry must fill immediately. Force a MARKET
+  // order (executeSignal's feed decision would otherwise rest a stop/limit at the
+  // signal's target, leaving us flat and tripping the unhedged alarm below). Set
+  // it on a copy so we never mutate the caller's signal.
+  const marketSignal: ParsedSignal = { ...signal, orderType: "MARKET" };
+  // executeSignal handles its own errors, so we verify success by checking a
+  // matching position actually opened.
   try {
-    await executeSignal(signal);
+    await executeSignal(marketSignal);
   } catch (err: any) {
     console.log(`[REVERSAL] executeSignal threw: ${err.message}`);
   }

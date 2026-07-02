@@ -43,6 +43,8 @@ export interface BotSettings {
   signalNotifyMinConfidence: number; // only notify on signals scoring at least this; independent of the entry gate
   webhookConfidence: number; // confidence assigned to channel/webhook signals (which carry none); drives reversal gating against feed signals
   minConfidence: number; // reject feed signals scoring below this as an entry gate; channel signals bypass it; 0 = off
+  entryTolerancePercent: number; // feed signals only: if our live price is within this % of the signal's intended entry, fill at market; beyond it, rest a stop/limit at the target instead of chasing. 0 = always market
+  staleOrderBars: number; // feed resting orders only: cancel an unfilled stop/limit after this many bars of the signal's timeframe (e.g. 3 x 30m = 90m). 0 = never (leave it good-till-cancel)
   marginAware: boolean; // when true, cap each order's size to fit free margin (ProtoOAExpectedMarginReq); when false, place the full risk-based size
   btcBiasGate: boolean; // when on, suppress crypto BUY signals during BTC bearishness unless their confidence clears the floor below; non-crypto (btc_state null) and SELLs are unaffected
   btcBiasMinConfBearish: number; // during BTC BEARISH, a crypto BUY needs at least this confidence to pass
@@ -86,6 +88,8 @@ export const DEFAULT_SETTINGS: BotSettings = {
   signalNotifyMinConfidence: 50,
   webhookConfidence: 69,
   minConfidence: 50,
+  entryTolerancePercent: 0.15,
+  staleOrderBars: 3,
   marginAware: false,
   btcBiasGate: true,
   btcBiasMinConfBearish: 80,
@@ -157,6 +161,8 @@ export function initSettings(): void {
     if (saved.signalNotifyMinConfidence !== undefined) state.settings.signalNotifyMinConfidence = saved.signalNotifyMinConfidence;
     if (saved.webhookConfidence !== undefined) state.settings.webhookConfidence = saved.webhookConfidence;
     if (saved.minConfidence !== undefined) state.settings.minConfidence = saved.minConfidence;
+    if (saved.entryTolerancePercent !== undefined) state.settings.entryTolerancePercent = saved.entryTolerancePercent;
+    if (saved.staleOrderBars !== undefined) state.settings.staleOrderBars = saved.staleOrderBars;
     if (saved.marginAware !== undefined) state.settings.marginAware = saved.marginAware;
     if (saved.btcBiasGate !== undefined) state.settings.btcBiasGate = saved.btcBiasGate;
     if (saved.btcBiasMinConfBearish !== undefined) state.settings.btcBiasMinConfBearish = saved.btcBiasMinConfBearish;
@@ -228,6 +234,8 @@ function persistAll(): void {
     signalNotifyMinConfidence: state.settings.signalNotifyMinConfidence,
     webhookConfidence: state.settings.webhookConfidence,
     minConfidence: state.settings.minConfidence,
+    entryTolerancePercent: state.settings.entryTolerancePercent,
+    staleOrderBars: state.settings.staleOrderBars,
     marginAware: state.settings.marginAware,
     btcBiasGate: state.settings.btcBiasGate,
     btcBiasMinConfBearish: state.settings.btcBiasMinConfBearish,

@@ -34,6 +34,8 @@ export function parseSignal(alert: RawAlert): ParsedSignal | null {
     direction: dir,
     rsi: alert.rsi,
     price: alert.price,
+    // Spot at generation (reference/display only; not used to place orders).
+    currentPrice: alert.current_price,
     pivotLevel: alert.pivot_level,
     pivotDistance: alert.pivot_distance,
     confidence: alert.confidence ?? 0,

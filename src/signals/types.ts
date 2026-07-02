@@ -16,6 +16,10 @@ export interface RawAlert {
   direction: string;
   rsi: number;
   price: number;
+  // Spot price at the moment the scanner generated the signal. Reference only:
+  // doochybot decides market-vs-limit at execution time against its OWN live
+  // price, never this one (which is already stale by the time we consume it).
+  current_price?: number;
   pivot_level: string | null;
   pivot_distance: number | null;
   confidence?: number;
@@ -34,6 +38,9 @@ export interface ParsedSignal {
   direction: "BUY" | "SELL";
   rsi: number;
   price: number;
+  // Scanner's spot price at generation time (alert.current_price). Reference /
+  // display only: the market-vs-limit decision uses our own live mark, not this.
+  currentPrice?: number;
   pivotLevel: string | null;
   pivotDistance: number | null;
   confidence: number;
@@ -41,11 +48,22 @@ export interface ParsedSignal {
   timestamp: string;
   sl?: number;
   tp?: number;
-  // Order type. Absent/"MARKET" → immediate market fill (the feed's behaviour,
-  // unchanged). "LIMIT" with limitPrice → a resting limit order placed by the
-  // channel listener; fills only when price reaches limitPrice.
-  orderType?: "MARKET" | "LIMIT";
+  // Order type. Absent → decided at execution time (executeSignal): channel and
+  // manual orders set it explicitly, while feed/scanner signals leave it unset and
+  // executeSignal picks MARKET / STOP / LIMIT by where signal.price (the target)
+  // sits versus our live price (see entryTolerancePercent):
+  //   target ≈ live               → MARKET (immediate fill)
+  //   target the market must RISE → BUY buy-STOP  / SELL sell-LIMIT
+  //   target the market must FALL → BUY buy-LIMIT / SELL sell-STOP
+  // Both non-market legs rest at the target and fill only when price reaches it (no
+  // fill, no trade if it never does) - "STOP" vs "LIMIT" is just the type the
+  // exchange requires for that side; both are non-marketable so the fill lands at
+  // ~price. limitPrice carries a LIMIT level, stopPrice a STOP trigger.
+  orderType?: "MARKET" | "LIMIT" | "STOP";
   limitPrice?: number;
+  // Trigger level for a STOP order. The order fills at ~stopPrice when the market
+  // reaches it, so SL/TP anchored here stay on the correct side.
+  stopPrice?: number;
   // Set only by a manual Telegram order (/order or a "BUY/SELL ..." chat message):
   // the exact lot size the user typed. When present, executeSignal uses this size
   // verbatim and skips risk-based sizing and the margin-aware cap — the user asked

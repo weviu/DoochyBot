@@ -17,6 +17,8 @@ export async function settingsCmd(ctx: any) {
     `Per-trade risk: ${s.riskPerTradeUSD > 0 ? `$${s.riskPerTradeUSD}` : "not set (trading off)"}`,
     `Stop loss: ${s.stopLossPercent}% from entry`,
     `Take profit: ${s.takeProfitPercent}% from entry`,
+    `Entry tolerance (feed market vs resting order): ${s.entryTolerancePercent > 0 ? `${s.entryTolerancePercent}%` : "off (always market)"}`,
+    `Stale-order guard (feed resting orders): ${s.staleOrderBars > 0 ? `${s.staleOrderBars} bars of the signal timeframe` : "off (good-till-cancel)"}`,
     `Min hold before TP: ${s.minHoldSeconds}s`,
     "",
     "Daily limits",
