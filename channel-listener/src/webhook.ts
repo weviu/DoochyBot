@@ -1,5 +1,16 @@
 import { Signal } from "./parser";
 
+function sanitizeHeaderValue(value: string): string {
+  const cleaned = value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x20-\x7E]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return cleaned.slice(0, 120) || "Channel";
+}
+
 /**
  * Forward a parsed signal to DoochyBot's webhook endpoint.
  *
@@ -19,10 +30,12 @@ export async function sendSignal(signal: Signal, webhookUrl: string, source: str
   const entryPart = signal.orderType === "LIMIT" ? `LIMIT=${signal.entry} ` : "";
   const body = `${signal.direction} ${signal.symbol} ${entryPart}SL=${signal.sl} TP=${signal.tp}`;
 
+  const safeSource = sanitizeHeaderValue(source);
+
   try {
     const res = await fetch(webhookUrl, {
       method: "POST",
-      headers: { "Content-Type": "text/plain", "X-Signal-Source": source },
+      headers: { "Content-Type": "text/plain", "X-Signal-Source": safeSource },
       body,
     });
 
