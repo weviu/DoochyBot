@@ -34,14 +34,17 @@ export function parseSignal(alert: RawAlert): ParsedSignal | null {
     direction: dir,
     rsi: alert.rsi,
     price: alert.price,
+    // Spot at generation (reference/display only; not used to place orders).
+    currentPrice: alert.current_price,
     pivotLevel: alert.pivot_level,
     pivotDistance: alert.pivot_distance,
     confidence: alert.confidence ?? 0,
     timeframe: alert.timeframe,
     timestamp: alert.timestamp,
-    // Carry the feed's own SL/TP for display only (see ParsedSignal.feedSl).
-    feedSl: alert.sl,
-    feedTp: alert.tp,
+    // The scanner's own SL/TP. Source of truth: they drive both placement and
+    // risk-based sizing. A signal missing either is rejected at the gate.
+    sl: alert.sl,
+    tp: alert.tp,
     // BTC macro state for crypto (null for non-crypto, or absent on older alerts).
     btcState: alert.btc_state ?? null,
     source: "Signal-scanner",

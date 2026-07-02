@@ -25,12 +25,9 @@ export interface BotSettings {
   allowedSymbols: string[];
   maxPositions: number;
   maxDailyLossUSD: number;
-  stopLossPercent: number;
-  takeProfitPercent: number;
-  symbolStopLossPercent: Record<string, number>; // per-symbol SL % overrides; falls back to stopLossPercent
-  symbolTakeProfitPercent: Record<string, number>; // per-symbol TP % overrides; falls back to takeProfitPercent
   minHoldSeconds: number;
-  riskPerTradeUSD: number; // size each position so a stopLossPercent stop loses ~this many $. Required to trade (0 = trading disabled; there is no fixed-lot fallback).
+  riskPerTradeUSD: number; // size each position so the signal's own entry-to-SL distance loses ~this many $. Required to trade (0 = trading disabled; there is no fixed-lot fallback).
+  riskOverrunPercent: number; // how far a trade's risk may exceed riskPerTradeUSD before it's skipped, as % over target (a wide stop can force the broker's min lot above target). e.g. 20 = allow up to 1.2x. 0 = strict (skip anything over target); set high to effectively disable.
   dailyProfitCapUSD: number; // lock trading once daily realized profit hits this; 0 = disabled
   capBufferUSD: number; // force-close this many $ BELOW the cap to never overshoot it
   maxConsecutiveLosses: number; // SL hits on one symbol within the window that trigger a cooldown; 0 = disabled
@@ -43,6 +40,7 @@ export interface BotSettings {
   signalNotifyMinConfidence: number; // only notify on signals scoring at least this; independent of the entry gate
   webhookConfidence: number; // confidence assigned to channel/webhook signals (which carry none); drives reversal gating against feed signals
   minConfidence: number; // reject feed signals scoring below this as an entry gate; channel signals bypass it; 0 = off
+  staleOrderBars: number; // feed resting orders only: cancel an unfilled stop/limit after this many bars of the signal's timeframe (e.g. 3 x 30m = 90m). 0 = never (leave it good-till-cancel)
   marginAware: boolean; // when true, cap each order's size to fit free margin (ProtoOAExpectedMarginReq); when false, place the full risk-based size
   btcBiasGate: boolean; // when on, suppress crypto BUY signals during BTC bearishness unless their confidence clears the floor below; non-crypto (btc_state null) and SELLs are unaffected
   btcBiasMinConfBearish: number; // during BTC BEARISH, a crypto BUY needs at least this confidence to pass
@@ -60,6 +58,7 @@ export interface BotState {
   lastSignalTime: Map<string, number>;
   accountInfo: AccountInfo;
   symbolMap: Map<string, number>;
+  usdQuotedSymbols: Set<string>; // broker symbol names (same keys as symbolMap) whose QUOTE currency is USD. The money model (risk sizing, floating P&L, daily limits) only holds for these; a JPY/GBP/etc-quoted pair would be mis-valued by ~the cross rate. Empty until the asset+symbol lists load (then isUsdQuoted fails open).
   lossReentry: Map<string, number>; // "SYMBOL:DIRECTION" -> epoch ms of the losing close, for the re-entry cooldown
   symbolCooldowns: Map<string, { until: number; triggerHits: number }>; // per-symbol consecutive-loss cooldowns (until = epoch ms)
 }
@@ -68,12 +67,9 @@ export const DEFAULT_SETTINGS: BotSettings = {
   allowedSymbols: ["BTCUSD", "XAUUSD", "XAGUSD"],
   maxPositions: 3,
   maxDailyLossUSD: 200,
-  stopLossPercent: 0.5,
-  takeProfitPercent: 0.75,
-  symbolStopLossPercent: {},
-  symbolTakeProfitPercent: {},
   minHoldSeconds: 60,
   riskPerTradeUSD: 0,
+  riskOverrunPercent: 20,
   dailyProfitCapUSD: 0,
   capBufferUSD: 0,
   maxConsecutiveLosses: 3,
@@ -86,7 +82,8 @@ export const DEFAULT_SETTINGS: BotSettings = {
   signalNotifyMinConfidence: 50,
   webhookConfidence: 69,
   minConfidence: 50,
-  marginAware: false,
+  staleOrderBars: 3,
+  marginAware: true,
   btcBiasGate: true,
   btcBiasMinConfBearish: 80,
   btcBiasMinConfStrongBearish: 90,
@@ -103,19 +100,10 @@ export const state: BotState = {
   lastSignalTime: new Map(),
   accountInfo: { balance: 0, equity: 0, currency: "USD" },
   symbolMap: new Map(),
+  usdQuotedSymbols: new Set(),
   lossReentry: new Map(),
   symbolCooldowns: new Map(),
 };
-
-// Effective SL/TP percentage for a symbol: the per-symbol override if one is set,
-// otherwise the global value. Used everywhere a percentage drives sizing, SL/TP
-// placement, or display, so an override stays consistent across all of them.
-export function slPctFor(symbol: string): number {
-  return state.settings.symbolStopLossPercent[symbol] ?? state.settings.stopLossPercent;
-}
-export function tpPctFor(symbol: string): number {
-  return state.settings.symbolTakeProfitPercent[symbol] ?? state.settings.takeProfitPercent;
-}
 
 // Resolve a signal/position symbol name to the broker's symbolId. Some brokers
 // name a symbol without the "USD" quote suffix (e.g. "BTC" not "BTCUSD"), so we
@@ -125,6 +113,18 @@ export function tpPctFor(symbol: string): number {
 // subscription then never matches, silently reading its floating P&L as 0.
 export function symbolIdFor(symbol: string): number | undefined {
   return state.symbolMap.get(symbol) ?? state.symbolMap.get(symbol.replace(/USD$/, ""));
+}
+
+// Whether a symbol's QUOTE currency is USD, which is the assumption behind the
+// whole money model (risk sizing, floating P&L, daily limits). A non-USD-quoted
+// pair (e.g. GBPJPY) would be valued in its quote currency and mis-read by ~the
+// cross rate, so callers refuse to trade or value it. Resolved with the same
+// name/stripped-USD fallback as symbolIdFor so signal names match broker names.
+// Fails OPEN (returns true) until the asset+symbol lists have loaded, so a failed
+// asset fetch degrades to the previous behaviour rather than halting all trading.
+export function isUsdQuoted(symbol: string): boolean {
+  if (state.usdQuotedSymbols.size === 0) return true;
+  return state.usdQuotedSymbols.has(symbol) || state.usdQuotedSymbols.has(symbol.replace(/USD$/, ""));
 }
 
 export interface AccountInfo {
@@ -139,12 +139,9 @@ export function initSettings(): void {
     if (saved.allowedSymbols) state.settings.allowedSymbols = saved.allowedSymbols;
     if (saved.maxPositions) state.settings.maxPositions = saved.maxPositions;
     if (saved.maxDailyLossUSD !== undefined) state.settings.maxDailyLossUSD = saved.maxDailyLossUSD;
-    if (saved.stopLossPercent !== undefined) state.settings.stopLossPercent = saved.stopLossPercent;
-    if (saved.takeProfitPercent !== undefined) state.settings.takeProfitPercent = saved.takeProfitPercent;
-    if (saved.symbolStopLossPercent) state.settings.symbolStopLossPercent = saved.symbolStopLossPercent;
-    if (saved.symbolTakeProfitPercent) state.settings.symbolTakeProfitPercent = saved.symbolTakeProfitPercent;
     if (saved.minHoldSeconds !== undefined) state.settings.minHoldSeconds = saved.minHoldSeconds;
     if (saved.riskPerTradeUSD !== undefined) state.settings.riskPerTradeUSD = saved.riskPerTradeUSD;
+    if (saved.riskOverrunPercent !== undefined) state.settings.riskOverrunPercent = saved.riskOverrunPercent;
     if (saved.dailyProfitCapUSD !== undefined) state.settings.dailyProfitCapUSD = saved.dailyProfitCapUSD;
     if (saved.capBufferUSD !== undefined) state.settings.capBufferUSD = saved.capBufferUSD;
     if (saved.maxConsecutiveLosses !== undefined) state.settings.maxConsecutiveLosses = saved.maxConsecutiveLosses;
@@ -157,6 +154,7 @@ export function initSettings(): void {
     if (saved.signalNotifyMinConfidence !== undefined) state.settings.signalNotifyMinConfidence = saved.signalNotifyMinConfidence;
     if (saved.webhookConfidence !== undefined) state.settings.webhookConfidence = saved.webhookConfidence;
     if (saved.minConfidence !== undefined) state.settings.minConfidence = saved.minConfidence;
+    if (saved.staleOrderBars !== undefined) state.settings.staleOrderBars = saved.staleOrderBars;
     if (saved.marginAware !== undefined) state.settings.marginAware = saved.marginAware;
     if (saved.btcBiasGate !== undefined) state.settings.btcBiasGate = saved.btcBiasGate;
     if (saved.btcBiasMinConfBearish !== undefined) state.settings.btcBiasMinConfBearish = saved.btcBiasMinConfBearish;
@@ -210,12 +208,9 @@ function persistAll(): void {
     allowedSymbols: state.settings.allowedSymbols,
     maxPositions: state.settings.maxPositions,
     maxDailyLossUSD: state.settings.maxDailyLossUSD,
-    stopLossPercent: state.settings.stopLossPercent,
-    takeProfitPercent: state.settings.takeProfitPercent,
-    symbolStopLossPercent: state.settings.symbolStopLossPercent,
-    symbolTakeProfitPercent: state.settings.symbolTakeProfitPercent,
     minHoldSeconds: state.settings.minHoldSeconds,
     riskPerTradeUSD: state.settings.riskPerTradeUSD,
+    riskOverrunPercent: state.settings.riskOverrunPercent,
     dailyProfitCapUSD: state.settings.dailyProfitCapUSD,
     capBufferUSD: state.settings.capBufferUSD,
     maxConsecutiveLosses: state.settings.maxConsecutiveLosses,
@@ -228,6 +223,7 @@ function persistAll(): void {
     signalNotifyMinConfidence: state.settings.signalNotifyMinConfidence,
     webhookConfidence: state.settings.webhookConfidence,
     minConfidence: state.settings.minConfidence,
+    staleOrderBars: state.settings.staleOrderBars,
     marginAware: state.settings.marginAware,
     btcBiasGate: state.settings.btcBiasGate,
     btcBiasMinConfBearish: state.settings.btcBiasMinConfBearish,

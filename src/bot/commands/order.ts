@@ -1,4 +1,4 @@
-import { state, symbolIdFor } from "../../state";
+import { state, symbolIdFor, isUsdQuoted } from "../../state";
 import { ParsedSignal } from "../../signals/types";
 import { executeSignal } from "../../ctrader/orders";
 import { getMarkPrice } from "../../ctrader/livePrices";
@@ -69,6 +69,10 @@ export async function orderCmd(ctx: any) {
   }
   if (symbolIdFor(symbol) === undefined) {
     await ctx.reply(`${symbol} is not available on this broker.`);
+    return;
+  }
+  if (!isUsdQuoted(symbol)) {
+    await ctx.reply(`${symbol} is not USD-quoted; doochybot's risk and P&L model only supports USD-quoted symbols.`);
     return;
   }
 

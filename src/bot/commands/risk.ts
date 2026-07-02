@@ -5,7 +5,7 @@ export async function riskCmd(ctx: any) {
   const parts = msg.split(/\s+/);
 
   if (parts.length < 2) {
-    await ctx.reply("Usage: /risk pertrade <usd> | /risk sl <pct> | /risk tp <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd>");
+    await ctx.reply("Usage: /risk pertrade <usd> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> (SL/TP come from the signal)");
     return;
   }
 
@@ -167,6 +167,22 @@ export async function riskCmd(ctx: any) {
     return;
   }
 
+  if (setting === "stalebars" && parts[2] !== undefined) {
+    const n = parseInt(parts[2]);
+    if (isNaN(n) || n < 0 || n > 100) {
+      await ctx.reply("Stale-order bars must be 0 (never expire) to 100.");
+      return;
+    }
+    state.settings.staleOrderBars = n;
+    persistSettings();
+    await ctx.reply(
+      n === 0
+        ? "Stale-order guard off. Feed stop/limit orders rest good-till-cancel until filled or manually cancelled."
+        : `Stale-order guard set to ${n} bars. A feed stop/limit that hasn't filled within ${n} bars of the signal's timeframe (e.g. ${n} x 30m = ${n * 30}m) is expired by the broker.`
+    );
+    return;
+  }
+
   if (setting === "marginaware" && parts[2] !== undefined) {
     const arg = parts[2].toLowerCase();
     if (arg !== "on" && arg !== "off") {
@@ -178,7 +194,7 @@ export async function riskCmd(ctx: any) {
     await ctx.reply(
       state.settings.marginAware
         ? "Margin-aware sizing on. Each order is capped to fit the account's free margin."
-        : "Margin-aware sizing off. Orders use the full risk-based size; manage margin via /risk pertrade, /risk sl, and /risk maxpos."
+        : "Margin-aware sizing off. Orders use the full risk-based size; manage margin via /risk pertrade and /risk maxpos."
     );
     return;
   }
@@ -235,75 +251,27 @@ export async function riskCmd(ctx: any) {
     persistSettings();
     await ctx.reply(
       usd === 0
-        ? "Per-trade risk sizing disabled — using fixed lot sizes."
-        : `Per-trade risk set to $${usd}. Position size is now derived so a ${state.settings.stopLossPercent}% stop loses ~$${usd}, regardless of symbol. Overrides fixed lot size (used as fallback when no live price yet).`
+        ? "Per-trade risk sizing disabled — trading off (there is no fixed-lot fallback)."
+        : `Per-trade risk set to $${usd}. Each position is sized so the distance from entry to the signal's own stop loss loses ~$${usd}. SL/TP come from the signal itself; a signal with no SL/TP is skipped.`
     );
     return;
   }
 
-  if (setting === "sl" && parts[2] !== undefined) {
-    // Per-symbol override form: /risk sl <SYM> <pct>  (pct 0 removes it)
-    if (parts[3] !== undefined) {
-      const sym = parts[2].toUpperCase();
-      const pct = parseFloat(parts[3]);
-      if (pct === 0) {
-        delete state.settings.symbolStopLossPercent[sym];
-        persistSettings();
-        await ctx.reply(`Removed ${sym} stop loss override. Using the global ${state.settings.stopLossPercent}%.`);
-        return;
-      }
-      if (isNaN(pct) || pct < 0.05 || pct > 50) {
-        await ctx.reply("Stop loss % must be 0 (remove override) or between 0.05 and 50.");
-        return;
-      }
-      state.settings.symbolStopLossPercent[sym] = pct;
-      persistSettings();
-      await ctx.reply(`${sym} stop loss set to ${pct}% (overrides the global ${state.settings.stopLossPercent}%).`);
-      return;
-    }
-    // Global form: /risk sl <pct>
+  if (setting === "overrun" && parts[2] !== undefined) {
     const pct = parseFloat(parts[2]);
-    if (isNaN(pct) || pct < 0.05 || pct > 50) {
-      await ctx.reply("Stop loss % must be between 0.05 and 50.");
+    if (isNaN(pct) || pct < 0 || pct > 100000) {
+      await ctx.reply("Risk overrun % must be 0 (strict) or greater.");
       return;
     }
-    state.settings.stopLossPercent = pct;
+    state.settings.riskOverrunPercent = pct;
     persistSettings();
-    await ctx.reply(`Stop loss set to ${pct}% of entry.`);
+    await ctx.reply(
+      pct === 0
+        ? "Risk overrun set to 0 (strict): a trade is skipped whenever the smallest tradable lot would risk more than /risk pertrade."
+        : `Risk overrun set to ${pct}%. A trade is allowed through when the broker's minimum lot forces its risk up to ${pct}% over your per-trade target (e.g. $${state.settings.riskPerTradeUSD} -> up to $${(state.settings.riskPerTradeUSD * (1 + pct / 100)).toFixed(2)}); beyond that it is skipped. Set a large value to effectively disable the guard.`
+    );
     return;
   }
 
-  if (setting === "tp" && parts[2] !== undefined) {
-    // Per-symbol override form: /risk tp <SYM> <pct>  (pct 0 removes it)
-    if (parts[3] !== undefined) {
-      const sym = parts[2].toUpperCase();
-      const pct = parseFloat(parts[3]);
-      if (pct === 0) {
-        delete state.settings.symbolTakeProfitPercent[sym];
-        persistSettings();
-        await ctx.reply(`Removed ${sym} take profit override. Using the global ${state.settings.takeProfitPercent}%.`);
-        return;
-      }
-      if (isNaN(pct) || pct < 0.05 || pct > 50) {
-        await ctx.reply("Take profit % must be 0 (remove override) or between 0.05 and 50.");
-        return;
-      }
-      state.settings.symbolTakeProfitPercent[sym] = pct;
-      persistSettings();
-      await ctx.reply(`${sym} take profit set to ${pct}% (overrides the global ${state.settings.takeProfitPercent}%).`);
-      return;
-    }
-    // Global form: /risk tp <pct>
-    const pct = parseFloat(parts[2]);
-    if (isNaN(pct) || pct < 0.05 || pct > 50) {
-      await ctx.reply("Take profit % must be between 0.05 and 50.");
-      return;
-    }
-    state.settings.takeProfitPercent = pct;
-    persistSettings();
-    await ctx.reply(`Take profit set to ${pct}% of entry.`);
-    return;
-  }
-
-  await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk sl <pct> | /risk tp <pct> | /risk sl <SYM> <pct> | /risk tp <SYM> <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk reentry <min> | /risk combined <usd> | /risk confidence <n> | /risk minconfidence <n>% | /risk marginaware on|off | /risk btcbias on|off|bearish <n>|strongbearish <n>");
+  await ctx.reply("Unknown setting. Usage: /risk pertrade <usd> | /risk overrun <pct> | /risk maxpos <n> | /risk maxloss <usd> | /risk cap <usd> | /risk capbuffer <usd> | /risk losses <n> | /risk losswindow <min> | /risk cooldown <min> | /risk reentry <min> | /risk combined <usd> | /risk confidence <n> | /risk minconfidence <n>% | /risk stalebars <n> | /risk marginaware on|off | /risk btcbias on|off|bearish <n>|strongbearish <n>");
 }
