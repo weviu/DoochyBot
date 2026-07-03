@@ -106,3 +106,97 @@ export function hasLiveQuote(symbol: string): boolean {
   if (symId === undefined) return false;
   return quotes.has(Number(symId));
 }
+
+// ---------------------------------------------------------------------------
+// Quote-currency -> USD conversion
+//
+// The money model ($PnL = priceDiff * volumeCents / 100) produces a figure in the
+// symbol's QUOTE currency. For a USD-quoted symbol that is already USD; for a
+// JPY/CAD-quoted one (GBPJPY, USDCAD, ...) it must be multiplied by the quote
+// currency's USD value. We read that rate live from the broker's spot stream on
+// the matching conversion pair (USDJPY, USDCAD, ...) and cache the last-known
+// value so a momentary gap in the stream never nulls a valuation.
+// ---------------------------------------------------------------------------
+
+// Last successfully-read conversion factor per conversion-pair symbol name. FX
+// rates move slowly, so a cached value is a safe stand-in for a missed tick.
+const lastRate = new Map<string, number>();
+
+// Mid price (average of bid/ask, or whichever side we have) for a symbol. Used
+// for currency conversion, where a direction-neutral rate is wanted.
+function getMidPrice(symbol: string): number | null {
+  const symId = symbolIdFor(symbol);
+  if (symId === undefined) return null;
+  const q = quotes.get(Number(symId));
+  if (!q) return null;
+  if (q.bid > 0 && q.ask > 0) return (q.bid + q.ask) / 2;
+  const one = q.bid > 0 ? q.bid : q.ask;
+  return one > 0 ? one : null;
+}
+
+// The broker symbol whose spot gives `symbol`'s quote-currency-to-USD rate, or
+// null if `symbol` is USD-quoted (no conversion needed) or no USD pair exists for
+// its quote currency. For quote currency Q we prefer USD+Q (e.g. USDJPY) and fall
+// back to Q+USD (e.g. EURUSD). Note USDCAD/USDJPY are their own conversion pair.
+export function conversionSymbolFor(symbol: string): string | null {
+  const quote = state.symbolQuote.get(symbol) ?? state.symbolQuote.get(symbol.replace(/USD$/, ""));
+  if (!quote || quote === "USD") return null;
+  const usdQ = `USD${quote}`;
+  if (symbolIdFor(usdQ) !== undefined) return usdQ;
+  const qUsd = `${quote}USD`;
+  if (symbolIdFor(qUsd) !== undefined) return qUsd;
+  return null;
+}
+
+// Multiplier that converts an amount in `symbol`'s QUOTE currency into USD.
+//   - USD-quoted symbol  -> 1 (identical arithmetic to before this existed).
+//   - convertible non-USD -> the live (or last-known) conversion factor.
+//   - non-USD with no available rate AND nothing cached -> null; callers refuse
+//     to size or value the position rather than use a wrong number.
+// Fails open to 1 only when NO asset data has loaded at all (symbolQuote empty),
+// matching the pre-existing degraded behaviour of isUsdQuoted.
+export function quoteToUsd(symbol: string): number | null {
+  if (state.symbolQuote.size === 0) return 1;
+  const quote = state.symbolQuote.get(symbol) ?? state.symbolQuote.get(symbol.replace(/USD$/, ""));
+  if (!quote || quote === "USD") return 1;
+
+  const convSym = conversionSymbolFor(symbol);
+  if (!convSym) return null;
+
+  const mid = getMidPrice(convSym);
+  if (mid && mid > 0) {
+    // USDJPY-style pair: USD is the base, so 1 unit of quote = 1/mid USD.
+    // EURUSD-style pair (quote is the base): 1 unit of quote = mid USD.
+    const factor = convSym.startsWith("USD") ? 1 / mid : mid;
+    lastRate.set(convSym, factor);
+    return factor;
+  }
+  const cached = lastRate.get(convSym);
+  return cached ?? null;
+}
+
+// Whether `symbol` can be valued in USD IN PRINCIPLE: USD-quoted, or non-USD with
+// a conversion pair on this broker. Independent of whether the rate has streamed
+// yet (unlike quoteToUsd, which returns null until a rate is available). Use this
+// for static "is this tradeable at all" decisions (the entry gate, /symbols add,
+// reconcile adoption); use quoteToUsd for the actual valuation/sizing at trade time.
+export function canValueInUsd(symbol: string): boolean {
+  if (state.symbolQuote.size === 0) return true; // no asset data loaded -> fail open
+  const quote = state.symbolQuote.get(symbol) ?? state.symbolQuote.get(symbol.replace(/USD$/, ""));
+  if (!quote || quote === "USD") return true;
+  return conversionSymbolFor(symbol) !== null;
+}
+
+// Subscribe the USD conversion pairs needed to value the given symbols in USD, so
+// a rate is already streaming (warm) before the first non-USD trade or valuation.
+// USD-quoted symbols contribute nothing. Idempotent (subscribeSpots dedupes).
+export async function subscribeConversionPairs(symbols: string[]): Promise<void> {
+  const ids = [...new Set(
+    symbols
+      .map((s) => conversionSymbolFor(s))
+      .filter((s): s is string => s !== null)
+      .map((s) => symbolIdFor(s))
+      .filter((id): id is number => id !== undefined)
+  )];
+  if (ids.length) await subscribeSpots(ids);
+}

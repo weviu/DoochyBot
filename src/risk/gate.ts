@@ -1,4 +1,5 @@
-import { state, Position, symbolIdFor, isUsdQuoted } from "../state";
+import { state, Position, symbolIdFor } from "../state";
+import { canValueInUsd } from "../ctrader/livePrices";
 import { ParsedSignal } from "../signals/types";
 import { isLocked, evaluateDailyLimits } from "./dailyLoss";
 import { getCooldown } from "./cooldown";
@@ -82,13 +83,15 @@ export function processSignal(signal: ParsedSignal): GateResult {
     return { accepted: false, reason: "Not available on broker" };
   }
 
-  // Check 2b2: Quote currency must be USD. The whole money model (risk sizing,
-  // floating P&L, daily limits) assumes a USD quote; a JPY/GBP/etc-quoted pair like
-  // GBPJPY is valued in its quote currency and mis-read by ~the cross rate (which
-  // is why its min-lot risk showed as ~$1691 instead of ~$9). Refuse it outright
-  // rather than size or value it wrongly. Fails open if asset data didn't load.
-  if (!isUsdQuoted(signal.symbol)) {
-    const reason = `${signal.symbol} is not USD-quoted; doochybot only trades USD-quoted symbols. Remove it with /symbols remove ${signal.symbol}`;
+  // Check 2b2: The symbol must be valuable in USD. USD-quoted symbols qualify
+  // directly; a non-USD-quoted pair (e.g. JPY-quoted GBPJPY, CAD-quoted USDCAD)
+  // qualifies only if the broker offers a USD conversion pair for its quote
+  // currency, which lets quoteToUsd convert its P&L/risk into real dollars. A symbol
+  // with no USD conversion path would be mis-read by ~the cross rate, so refuse it.
+  // (Whether the conversion rate has actually streamed yet is enforced later, at
+  // sizing time, which refuses the trade if the rate is momentarily unavailable.)
+  if (!canValueInUsd(signal.symbol)) {
+    const reason = `${signal.symbol} cannot be valued in USD (no conversion pair); doochybot skips it. Remove it with /symbols remove ${signal.symbol}`;
     console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - ${reason}`);
     return { accepted: false, reason };
   }

@@ -1,7 +1,7 @@
-import { state, symbolIdFor, isUsdQuoted } from "../../state";
+import { state, symbolIdFor } from "../../state";
 import { ParsedSignal } from "../../signals/types";
 import { executeSignal } from "../../ctrader/orders";
-import { getMarkPrice } from "../../ctrader/livePrices";
+import { getMarkPrice, canValueInUsd } from "../../ctrader/livePrices";
 
 // Place a trade by typing it straight into the chat. Bypasses the signal gate
 // (allowed-symbol membership aside) — it's a manual override sized to the exact
@@ -60,9 +60,7 @@ export async function orderCmd(ctx: any) {
     return;
   }
 
-  // Only trade symbols the bot is configured for. These are all USD-quoted, so
-  // floating P&L and the daily limits value the resulting position correctly; a
-  // non-allowed (e.g. JPY-quoted) symbol would be mis-valued. Add it first.
+  // Only trade symbols the bot is configured for. Add it first.
   if (!state.settings.allowedSymbols.includes(symbol)) {
     await ctx.reply(`${symbol} is not in your allowed symbols. Add it with /symbols add ${symbol} first.`);
     return;
@@ -71,8 +69,10 @@ export async function orderCmd(ctx: any) {
     await ctx.reply(`${symbol} is not available on this broker.`);
     return;
   }
-  if (!isUsdQuoted(symbol)) {
-    await ctx.reply(`${symbol} is not USD-quoted; doochybot's risk and P&L model only supports USD-quoted symbols.`);
+  // The position must be valuable in USD: USD-quoted directly, or non-USD with a
+  // conversion pair (so floating P&L and the daily limits convert it correctly).
+  if (!canValueInUsd(symbol)) {
+    await ctx.reply(`${symbol} cannot be valued in USD (no conversion pair); doochybot cannot manage its risk and P&L.`);
     return;
   }
 

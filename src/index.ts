@@ -21,7 +21,7 @@ import { fetchAccountInfo, fetchTodayRealizedPnL } from "./ctrader/account";
 import { evaluateDailyLimits } from "./risk/dailyLoss";
 import { fetchSymbols } from "./ctrader/symbols";
 import { setConnection, reconcilePositions } from "./ctrader/orders";
-import { setLivePriceConnection, subscribeOpenPositions, subscribeSpots } from "./ctrader/livePrices";
+import { setLivePriceConnection, subscribeOpenPositions, subscribeSpots, subscribeConversionPairs } from "./ctrader/livePrices";
 import { setAmendConnection } from "./ctrader/amend";
 import { setMidnightConnection, startMidnightCheck } from "./risk/midnightClose";
 import { startDailyReset } from "./risk/dailyLoss";
@@ -243,6 +243,11 @@ const allowedSymbolIds = [...new Set(
 await subscribeSpots(allowedSymbolIds);
 console.log(`[BOOT] Pre-subscribed spots for ${allowedSymbolIds.length} allowed symbol(s)`);
 
+// Also stream the USD conversion pairs (USDJPY, USDCAD, ...) for any non-USD-quoted
+// allowed symbol, so a quote-to-USD rate is already warm before the first trade or
+// valuation. Without this, a GBPJPY signal would be refused (no rate) at first sight.
+await subscribeConversionPairs(state.settings.allowedSymbols);
+
 // Seed today's realized P&L from the broker BEFORE reconciling positions. This
 // order is critical: reconcilePositions() re-arms TPs on positions opened before
 // the restart, and the cap-TP logic in amend.ts only applies when dailyPnLSeeded
@@ -267,6 +272,9 @@ await reconcilePositions();
 // Start streaming live prices for any position we already hold so floating P&L
 // and the profit cap are accurate immediately, not just after the next signal.
 await subscribeOpenPositions();
+// And the conversion pairs for any non-USD-quoted position we just reconciled, so
+// its floating P&L converts to USD from the first monitor tick after restart.
+await subscribeConversionPairs([...state.positions.values()].map((p) => p.symbol));
 evaluateDailyLimits(false);
 await startBot();
     startPoller((signal) => {

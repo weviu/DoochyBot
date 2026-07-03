@@ -34,11 +34,16 @@ export async function fetchSymbols(connection: any): Promise<void> {
         // is why floating P&L read 0 (mark fell back to entry price).
         const name = s.symbolName.toUpperCase();
         state.symbolMap.set(name, Number(s.symbolId));
-        // Record whether the QUOTE currency is USD (only these are safe for the
-        // money model). quoteAssetId is on the light symbol; map it to a name.
-        if (s.quoteAssetId != null && assetName.get(Number(s.quoteAssetId)) === "USD") {
-          state.usdQuotedSymbols.add(name);
-          usdCount++;
+        // Record the QUOTE currency. USD-quoted symbols are valued directly; a
+        // non-USD-quoted one (e.g. JPY for GBPJPY) is converted to USD via its
+        // conversion pair (see quoteToUsd). quoteAssetId is on the light symbol.
+        const quoteName = s.quoteAssetId != null ? assetName.get(Number(s.quoteAssetId)) : undefined;
+        if (quoteName) {
+          state.symbolQuote.set(name, quoteName);
+          if (quoteName === "USD") {
+            state.usdQuotedSymbols.add(name);
+            usdCount++;
+          }
         }
       }
     }

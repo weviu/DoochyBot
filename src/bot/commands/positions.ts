@@ -1,5 +1,5 @@
 import { state } from "../../state";
-import { getMarkPrice } from "../../ctrader/livePrices";
+import { getMarkPrice, quoteToUsd } from "../../ctrader/livePrices";
 
 export async function positionsCmd(ctx: any) {
   if (state.positions.size === 0) {
@@ -17,7 +17,9 @@ export async function positionsCmd(ctx: any) {
     const mark = getMarkPrice(pos.symbol, pos.direction) ?? pos.entryPrice;
     const priceDiff = pos.direction === "BUY" ? mark - pos.entryPrice : pos.entryPrice - mark;
     const units = pos.volumeCents / 100;
-    const pnl = priceDiff * units;
+    // Convert quote-currency P&L to USD (1 for USD-quoted; conversion-pair rate for
+    // JPY/CAD-quoted). Fall back to 1 if a rate isn't available so the row still shows.
+    const pnl = priceDiff * units * (quoteToUsd(pos.symbol) ?? 1);
     totalPnL += pnl;
     const pnlStr = `${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}`;
 

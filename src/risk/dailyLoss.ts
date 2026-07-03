@@ -1,6 +1,6 @@
-import { state, setTradingLock, isUsdQuoted } from "../state";
+import { state, setTradingLock } from "../state";
 import { notify } from "../bot/notify";
-import { getMarkPrice } from "../ctrader/livePrices";
+import { getMarkPrice, quoteToUsd } from "../ctrader/livePrices";
 
 // The hard daily loss threshold in USD. Single source of truth, set via
 // /risk maxloss. (The old percent-based limit was removed — it duplicated this
@@ -9,23 +9,25 @@ export function maxLossUSD(): number {
   return state.settings.maxDailyLossUSD;
 }
 
-// Sum of unrealized P&L across all open positions. Uses the live cTrader spot
-// price (authoritative, matches the broker's Net USD) and only falls back to the
-// stale HTTP-feed price if no spot quote has arrived for that symbol yet.
-// Approximation: no quote-to-USD conversion, accurate enough for XAUUSD/BTCUSD.
+// Sum of unrealized P&L (in USD) across all open positions. Uses the live cTrader
+// spot price (authoritative, matches the broker's Net USD) and converts each
+// position's quote-currency P&L into USD via quoteToUsd (1 for USD-quoted symbols,
+// the live conversion-pair rate for JPY/CAD-quoted ones).
 export function floatingPnL(): number {
   let total = 0;
   for (const pos of state.positions.values()) {
-    // Belt-and-braces: the money model below assumes a USD quote currency. Only
-    // value a position that is BOTH an allowed symbol AND actually USD-quoted — a
-    // JPY/GBP-quoted pair (even one mistakenly on the allowed list) would be
-    // overstated by ~its cross rate and could trip the daily-loss limit.
     if (!state.settings.allowedSymbols.includes(pos.symbol)) continue;
-    if (!isUsdQuoted(pos.symbol)) continue;
+    // Convert the position's quote-currency P&L into USD. If no conversion rate is
+    // available even from the cache (should not happen once the conversion pairs are
+    // pre-subscribed at boot), skip this position rather than count a wrong figure
+    // that could trip the daily-loss limit. Sizing already refuses trades with no
+    // rate, so this is a defensive last resort, not the normal path.
+    const factor = quoteToUsd(pos.symbol);
+    if (factor === null) continue;
     const mark = getMarkPrice(pos.symbol, pos.direction);
     if (!mark || !pos.entryPrice) continue;
     const diff = pos.direction === "BUY" ? mark - pos.entryPrice : pos.entryPrice - mark;
-    total += diff * (pos.volumeCents / 100);
+    total += diff * (pos.volumeCents / 100) * factor;
   }
   return total;
 }

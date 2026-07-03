@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { state } from "../state";
+import { quoteToUsd } from "./livePrices";
 
 let connection: any = null;
 
@@ -133,8 +134,14 @@ export async function amendPositionSLTP(
     // the combined realized still lands at (or under) the cap instead of N× over.
     const openCount = Math.max(1, state.positions.size);
     remaining = remaining / openCount;
-    if (units > 0 && remaining > 0) {
-      const diff = round(remaining / units, digits);
+    // remaining is USD headroom; the price offset is in the symbol's QUOTE currency.
+    // factor converts quote->USD (1 for USD-quoted), so quote-currency headroom is
+    // remaining/factor and the price distance is remaining/(units*factor). Skip the
+    // cap TP if no rate is available rather than place it at a wrong (unconverted)
+    // level — the live cap monitor still protects the position.
+    const factor = quoteToUsd(symbol);
+    if (units > 0 && remaining > 0 && factor != null) {
+      const diff = round(remaining / (units * factor), digits);
       const capTp = round(direction === "BUY" ? entryPrice + diff : entryPrice - diff, digits);
       if (tp === null) {
         tp = capTp;

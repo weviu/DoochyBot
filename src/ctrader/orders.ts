@@ -1,12 +1,12 @@
 import { randomUUID } from "crypto";
-import { state, symbolIdFor, isUsdQuoted } from "../state";
+import { state, symbolIdFor } from "../state";
 import { ParsedSignal } from "../signals/types";
 import { amendPositionSLTP } from "./amend";
 import { updateDailyPnL, floatingPnL } from "../risk/dailyLoss";
 import { fetchTrader } from "./account";
 import { recordStopLoss } from "../risk/cooldown";
 import { recordLoss } from "../risk/reentryCooldown";
-import { subscribeSpots, getMarkPrice } from "./livePrices";
+import { subscribeSpots, getMarkPrice, quoteToUsd, canValueInUsd } from "./livePrices";
 import { notify } from "../bot/notify";
 
 // How close our live mark must be to a feed signal's target (as % of the target)
@@ -219,9 +219,12 @@ export async function reconcilePositions(): Promise<void> {
         console.log(`[RECONCILE] Skipping position #${p.positionId} on ${symbolNameById(symbolId)} — not an allowed bot symbol (manual trade).`);
         continue;
       }
-      // Never adopt a non-USD-quoted position: the money model would mis-value it.
-      if (!isUsdQuoted(symbolNameById(symbolId))) {
-        console.log(`[RECONCILE] Skipping position #${p.positionId} on ${symbolNameById(symbolId)} — not USD-quoted (money model does not support it).`);
+      // Only adopt positions we can value in USD: USD-quoted directly, or non-USD
+      // (JPY/CAD) with a conversion pair. Use the convertibility test (not the live
+      // rate) so a position is still adopted when its conversion rate hasn't streamed
+      // yet at boot; floatingPnL converts it once the rate warms.
+      if (!canValueInUsd(symbolNameById(symbolId))) {
+        console.log(`[RECONCILE] Skipping position #${p.positionId} on ${symbolNameById(symbolId)} — cannot be valued in USD (no conversion pair).`);
         continue;
       }
       const volumeCents = Number(td.volume) || 0;
@@ -352,8 +355,12 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
       ?? (signal.limitPrice && signal.limitPrice > 0 ? signal.limitPrice : null)
       ?? (signal.price && signal.price > 0 ? signal.price : null);
     const entryRef = signal.limitPrice && signal.limitPrice > 0 ? signal.limitPrice : (price ?? 0);
+    // Convert the quote-currency risk to USD for the estimate (1 for USD-quoted).
+    // Manual orders are user-sized, so a missing rate only degrades this display
+    // figure (falls back to 1) — it never blocks the order.
+    const manualFactor = quoteToUsd(signal.symbol) ?? 1;
     actualRisk = signal.sl != null && entryRef > 0
-      ? Math.abs(entryRef - signal.sl) * (orderVolume / 100)
+      ? Math.abs(entryRef - signal.sl) * (orderVolume / 100) * manualFactor
       : 0;
     const snapped = orderVolume !== Math.round(signal.manualLots * spec.lotSize);
     console.log(`[ORDER] Manual ${signal.symbol}: ${signal.manualLots} lots -> ${orderVolume} vol${snapped ? " (snapped to broker grid)" : ""} (~$${actualRisk.toFixed(2)} risk)`);
@@ -393,7 +400,25 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
       return { ok: false, error: `SL equals entry for ${signal.symbol}` };
     }
 
-    const sized = riskBasedVolume(riskUSD, stopDistance, spec);
+    // Quote-currency-to-USD factor for this symbol (1 for USD-quoted; the live
+    // conversion-pair rate for JPY/CAD-quoted). Refuse the trade outright if no rate
+    // is available even from the cache: a non-USD position sized without it would be
+    // mis-sized by ~the cross rate. This is the rare-case guard the boot pre-subscribe
+    // is meant to keep from ever firing.
+    const factor = quoteToUsd(signal.symbol);
+    if (factor === null) {
+      console.log(`[ORDER] ${signal.symbol}: no USD conversion rate available yet — refusing to size (avoids a mis-sized non-USD order)`);
+      if (state.settings.notifyFills) {
+        notify(`Skipped ${signal.direction} ${signal.symbol}: no USD conversion rate yet for its quote currency. It will trade once the rate streams.`);
+      }
+      return { ok: false, error: `No USD conversion rate for ${signal.symbol} yet` };
+    }
+
+    // stopDistance is a price distance in the symbol's QUOTE currency, so size
+    // against the per-trade target expressed in that same currency: riskUSD / factor
+    // (identical to riskUSD when factor is 1 for USD-quoted symbols).
+    const riskQuote = riskUSD / factor;
+    const sized = riskBasedVolume(riskQuote, stopDistance, spec);
     if (!sized) {
       console.log(`[ORDER] Could not compute volume for ${signal.symbol} (lotSize ${spec.lotSize}); skipping`);
       return { ok: false, error: `Could not size ${signal.symbol}` };
@@ -430,9 +455,9 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
       }
     }
 
-    // Report the ACTUAL risk of the final (possibly margin-capped) size, measured
-    // against the real stop distance.
-    actualRisk = stopDistance * (orderVolume / 100);
+    // Report the ACTUAL risk of the final (possibly margin-capped) size in USD,
+    // measured against the real stop distance and converted from quote currency.
+    actualRisk = stopDistance * (orderVolume / 100) * factor;
     console.log(`[ORDER] Risk-sized ${signal.symbol}: ${orderVolume} vol -> ~$${actualRisk.toFixed(2)} at stop ${stopDistance} from ${entryAnchor} (target $${riskUSD})`);
 
     // Overrun guard: a wide stop makes the risk-based size small, and the broker's
@@ -719,8 +744,9 @@ async function placeRestingOrder(
   }
 
   // Actual dollar risk of this order: the stop distance (entry to SL) times the
-  // volume, for the fill notification. 0 if the SL was dropped as wrong-side above.
-  const restRisk = (sl !== null ? Math.abs(entry - sl) : 0) * (orderVolume / 100);
+  // volume, converted from quote currency to USD (1 for USD-quoted), for the fill
+  // notification. 0 if the SL was dropped as wrong-side above.
+  const restRisk = (sl !== null ? Math.abs(entry - sl) : 0) * (orderVolume / 100) * (quoteToUsd(signal.symbol) ?? 1);
 
   let fillListenerId = "";
   let errorListenerId = "";

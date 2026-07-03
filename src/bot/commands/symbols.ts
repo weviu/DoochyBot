@@ -1,11 +1,21 @@
-import { state, persistSettings, DEFAULT_SETTINGS, symbolIdFor, isUsdQuoted } from "../../state";
+import { state, persistSettings, DEFAULT_SETTINGS, symbolIdFor } from "../../state";
+import { subscribeSpots, subscribeConversionPairs, canValueInUsd } from "../../ctrader/livePrices";
 
-// A symbol is unsupported if the broker knows it (resolvable) but its quote
-// currency is not USD — the money model can only value USD-quoted symbols. Symbols
-// the broker doesn't know are left alone here (the gate rejects them at trade time
-// as "not available on broker"), so a typo isn't misreported as non-USD.
-function isNonUsdQuoted(sym: string): boolean {
-  return symbolIdFor(sym) !== undefined && !isUsdQuoted(sym);
+// A symbol is unsupported if the broker knows it (resolvable) but it can't be valued
+// in USD: neither USD-quoted nor a non-USD pair with a conversion pair on the broker.
+// The money model needs one of those to convert P&L/risk into dollars. Symbols the
+// broker doesn't know are left alone here (the gate rejects them at trade time as
+// "not available on broker"), so a typo isn't misreported as unsupported.
+function isUnsupported(sym: string): boolean {
+  return symbolIdFor(sym) !== undefined && !canValueInUsd(sym);
+}
+
+// Warm the spot and USD-conversion streams for freshly added symbols, so a JPY/CAD
+// pair can be valued (and traded) without waiting for a bot restart to pre-subscribe.
+async function warmStreams(symbols: string[]): Promise<void> {
+  const ids = symbols.map(symbolIdFor).filter((id): id is number => id !== undefined);
+  if (ids.length) await subscribeSpots(ids);
+  await subscribeConversionPairs(symbols);
 }
 
 const SYMBOL_ALIASES: Record<string, string> = {
@@ -66,16 +76,19 @@ export async function symbolsCmd(ctx: any) {
         }
       }
       let added = 0;
-      const skippedNonUsd: string[] = [];
+      const addedSyms: string[] = [];
+      const skippedUnsupported: string[] = [];
       for (const sym of symbols) {
-        if (isNonUsdQuoted(sym)) { skippedNonUsd.push(sym); continue; }
+        if (isUnsupported(sym)) { skippedUnsupported.push(sym); continue; }
         if (!state.settings.allowedSymbols.includes(sym)) {
           state.settings.allowedSymbols.push(sym);
+          addedSyms.push(sym);
           added++;
         }
       }
       persistSettings();
-      const skipNote = skippedNonUsd.length ? `\nSkipped ${skippedNonUsd.length} non-USD-quoted (unsupported): ${skippedNonUsd.join(", ")}` : "";
+      await warmStreams(addedSyms);
+      const skipNote = skippedUnsupported.length ? `\nSkipped ${skippedUnsupported.length} unsupported (cannot be valued in USD): ${skippedUnsupported.join(", ")}` : "";
       await ctx.reply(`Added ${added} symbols with confidence >= 50. Total allowed: ${state.settings.allowedSymbols.length}${skipNote}`);
     } catch (err: any) {
       await ctx.reply(`Failed to fetch feed: ${err.message}`);
@@ -88,17 +101,17 @@ export async function symbolsCmd(ctx: any) {
     const syms = parseSymbols(parts);
     const added: string[] = [];
     const already: string[] = [];
-    const nonUsd: string[] = [];
+    const unsupported: string[] = [];
     for (const sym of syms) {
-      if (isNonUsdQuoted(sym)) nonUsd.push(sym);
+      if (isUnsupported(sym)) unsupported.push(sym);
       else if (state.settings.allowedSymbols.includes(sym)) already.push(sym);
       else { state.settings.allowedSymbols.push(sym); added.push(sym); }
     }
-    if (added.length) persistSettings();
+    if (added.length) { persistSettings(); await warmStreams(added); }
     const out: string[] = [];
     if (added.length) out.push(`Added: ${added.join(", ")}`);
     if (already.length) out.push(`Already present: ${already.join(", ")}`);
-    if (nonUsd.length) out.push(`Not added (not USD-quoted, unsupported): ${nonUsd.join(", ")}`);
+    if (unsupported.length) out.push(`Not added (cannot be valued in USD, unsupported): ${unsupported.join(", ")}`);
     out.push(`Allowed: ${state.settings.allowedSymbols.join(", ")}`);
     await ctx.reply(out.join("\n"));
     return;

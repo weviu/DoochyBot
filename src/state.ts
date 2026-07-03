@@ -58,7 +58,8 @@ export interface BotState {
   lastSignalTime: Map<string, number>;
   accountInfo: AccountInfo;
   symbolMap: Map<string, number>;
-  usdQuotedSymbols: Set<string>; // broker symbol names (same keys as symbolMap) whose QUOTE currency is USD. The money model (risk sizing, floating P&L, daily limits) only holds for these; a JPY/GBP/etc-quoted pair would be mis-valued by ~the cross rate. Empty until the asset+symbol lists load (then isUsdQuoted fails open).
+  usdQuotedSymbols: Set<string>; // broker symbol names (same keys as symbolMap) whose QUOTE currency is USD. The money model (risk sizing, floating P&L, daily limits) is exact for these; a non-USD-quoted pair is valued via quoteToUsd() instead. Empty until the asset+symbol lists load (then isUsdQuoted fails open).
+  symbolQuote: Map<string, string>; // broker symbol name -> its QUOTE currency asset name ("USD","JPY","CAD",...). Populated alongside usdQuotedSymbols; drives quoteToUsd() so a non-USD-quoted symbol's P&L/risk can be converted into USD via the matching conversion pair (USDJPY/USDCAD/etc).
   lossReentry: Map<string, number>; // "SYMBOL:DIRECTION" -> epoch ms of the losing close, for the re-entry cooldown
   symbolCooldowns: Map<string, { until: number; triggerHits: number }>; // per-symbol consecutive-loss cooldowns (until = epoch ms)
 }
@@ -101,6 +102,7 @@ export const state: BotState = {
   accountInfo: { balance: 0, equity: 0, currency: "USD" },
   symbolMap: new Map(),
   usdQuotedSymbols: new Set(),
+  symbolQuote: new Map(),
   lossReentry: new Map(),
   symbolCooldowns: new Map(),
 };
