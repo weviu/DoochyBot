@@ -30,6 +30,7 @@ import { startLossMonitor } from "./risk/lossMonitor";
 import { startStopLossWatchdog } from "./risk/slWatchdog";
 import { setNotifier } from "./bot/notify";
 import { startWebhookServer } from "./webhook";
+import { refreshAccessToken, persistTokens } from "./ctrader/token";
 
 dotenv.config();
 
@@ -81,6 +82,81 @@ function installRequestTimeout(connection: any): void {
   };
 }
 
+// Proactive token-refresh timer. cTrader tells us the token lifetime only in a
+// refresh response, so this is (re)armed after each successful refresh to renew
+// again at ~50% of the remaining life — well before expiry, so the account
+// session never silently dies between health checks.
+let tokenRefreshTimer: NodeJS.Timeout | null = null;
+
+// Refresh the access token on `connection`, update the live (mutable) config so
+// every subsequent auth uses the new token, persist the rotated pair to .env, and
+// re-arm the proactive timer from the reported lifetime.
+async function doRefresh(connection: any): Promise<void> {
+  const r = await refreshAccessToken(connection, config.ctrader.refreshToken);
+  config.ctrader.accessToken = r.accessToken;
+  config.ctrader.refreshToken = r.refreshToken;
+  persistTokens(r.accessToken, r.refreshToken);
+  console.log(`[CTRADER] Access token refreshed (expires in ~${Math.round(r.expiresInSec / 3600)}h)`);
+  scheduleProactiveRefresh(connection, r.expiresInSec);
+}
+
+// (Re)arm the proactive refresh at half the remaining lifetime (floor 5 min, cap
+// 24h). Skipped when the broker reports no/unknown expiry. Kept independent of the
+// health check so a healthy-but-aging token is renewed before it can lapse.
+function scheduleProactiveRefresh(connection: any, expiresInSec: number): void {
+  if (tokenRefreshTimer) { clearTimeout(tokenRefreshTimer); tokenRefreshTimer = null; }
+  if (!expiresInSec || expiresInSec <= 0) return;
+  const delayMs = Math.min(24 * 3600_000, Math.max(300_000, (expiresInSec * 1000) / 2));
+  tokenRefreshTimer = setTimeout(async () => {
+    try {
+      // Refresh on the current live connection, not the (possibly stale) one this
+      // timer was armed with — a reconnect may have replaced it since.
+      await doRefresh(ctrader ?? connection);
+    } catch (err: any) {
+      console.warn(`[CTRADER] Proactive token refresh failed: ${err.errorCode || err.message || err}. Health check will recover via reconnect if the session dies.`);
+    }
+  }, delayMs);
+}
+
+// Authenticate the account, refreshing the access token once if the broker rejects
+// it as expired/invalid. This is the recovery hinge: on reconnect after a token
+// expiry, the first account-auth fails, we refresh with the (still-valid) refresh
+// token, and retry — so the session comes back without a manual token re-issue.
+async function authenticateAccount(connection: any): Promise<void> {
+  const authOnce = () => connection.sendCommand("ProtoOAAccountAuthReq", {
+    ctidTraderAccountId: parseInt(config.ctrader.accountId),
+    accessToken: config.ctrader.accessToken,
+  });
+  try {
+    await authOnce();
+  } catch (err: any) {
+    // Only refresh on a broker-reported auth/token error (errorCode/description),
+    // not a bare socket timeout — a timeout means a dead link that a refresh can't
+    // fix, so let it propagate and have reconnect() rebuild the socket instead.
+    const reason = `${err?.errorCode || ""} ${err?.description || ""}`.trim();
+    if (!reason || !/token|auth|expire|invalid/i.test(reason)) throw err;
+    console.warn(`[CTRADER] Account auth rejected (${reason}); refreshing access token and retrying`);
+    await doRefresh(connection);
+    await authOnce();
+  }
+  console.log("[CTRADER] Account authenticated");
+}
+
+// The broker announces a dying account session with these push events (rather than
+// dropping the socket). Catch them and drive a refresh+reconnect immediately —
+// otherwise the session stays dead until the next health check notices.
+function installSessionListeners(connection: any): void {
+  connection.on("ProtoOAAccountsTokenInvalidatedEvent", (event: any) => {
+    const d = event.descriptor ?? event;
+    console.warn(`[CTRADER] Broker invalidated the token: ${d?.reason || "no reason given"} — refreshing + reconnecting`);
+    reconnect("token invalidated by broker");
+  });
+  connection.on("ProtoOAAccountDisconnectEvent", (event: any) => {
+    console.warn("[CTRADER] Broker disconnected the account session — reconnecting");
+    reconnect("account disconnected by broker");
+  });
+}
+
 // Open a socket, authenticate the application and account, and return the ready
 // connection. Used for the first connect and every reconnect.
 async function buildConnection(): Promise<any> {
@@ -99,11 +175,8 @@ async function buildConnection(): Promise<any> {
   });
   console.log("[CTRADER] Application authenticated");
 
-  await connection.sendCommand("ProtoOAAccountAuthReq", {
-    ctidTraderAccountId: parseInt(config.ctrader.accountId),
-    accessToken: config.ctrader.accessToken,
-  });
-  console.log("[CTRADER] Account authenticated");
+  await authenticateAccount(connection);
+  installSessionListeners(connection);
 
   return connection;
 }
@@ -174,20 +247,25 @@ async function reconnect(reason: string): Promise<void> {
   reconnecting = false;
 }
 
-// Periodically prove the connection can still round-trip a request. ProtoOAVersionReq
-// is trivial and needs no account context; if it times out (the wrapped sendCommand
-// rejects) the link is dead and we reconnect. Market-independent, so it won't false-
-// trigger on a quiet symbol with no ticks.
+// Periodically prove the connection can still round-trip an ACCOUNT-scoped request.
+// ProtoOATraderReq is market-independent (so it won't false-trigger on a quiet
+// symbol) but, unlike the old app-level ProtoOAVersionReq, it exercises the account
+// session itself: if the access token has expired the socket stays up and a version
+// ping still succeeds, yet every real request (reconcile, margin, orders) fails. A
+// failure here — timeout OR an auth/invalid error — triggers reconnect(), which
+// re-auths and refreshes the token, bringing trading back without a manual restart.
 function startConnectionWatchdog(): void {
   setInterval(async () => {
     if (reconnecting || !ctrader) return;
     try {
-      await ctrader.sendCommand("ProtoOAVersionReq", {});
+      await ctrader.sendCommand("ProtoOATraderReq", {
+        ctidTraderAccountId: parseInt(config.ctrader.accountId),
+      });
     } catch (err: any) {
-      await reconnect(`health check failed: ${err.message || err}`);
+      await reconnect(`health check failed: ${err.errorCode || err.message || err}`);
     }
   }, HEALTH_CHECK_MS);
-  console.log(`[CTRADER] Connection watchdog active (health check every ${HEALTH_CHECK_MS / 1000}s)`);
+  console.log(`[CTRADER] Connection watchdog active (account health check every ${HEALTH_CHECK_MS / 1000}s)`);
 }
 
 async function startBot() {
