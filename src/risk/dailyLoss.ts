@@ -1,6 +1,6 @@
 import { state, setTradingLock } from "../state";
 import { notify } from "../bot/notify";
-import { getMarkPrice, quoteToUsd } from "../ctrader/livePrices";
+import { getMarkPrice, quoteToUsd, hasLiveQuote } from "../ctrader/livePrices";
 
 // The hard daily loss threshold in USD. Single source of truth, set via
 // /risk maxloss. (The old percent-based limit was removed — it duplicated this
@@ -32,22 +32,44 @@ export function floatingPnL(): number {
   return total;
 }
 
+// True only when every open (allowed) position has a live quote, so floatingPnL()
+// is a COMPLETE sum. When false, floatingPnL() silently omits the unquoted
+// positions, so any realized+floating decision built on it is untrustworthy.
+function allPositionsQuoted(): boolean {
+  for (const pos of state.positions.values()) {
+    if (!state.settings.allowedSymbols.includes(pos.symbol)) continue;
+    if (!hasLiveQuote(pos.symbol)) return false;
+  }
+  return true;
+}
+
 // If a daily limit is currently breached, return a human-readable reason for the
 // lock; otherwise null. The profit cap uses realized + floating so an account
 // already at +$390 realized won't open more positions while floating +$50.
-// The loss limit stays realized-only — unrealized dips shouldn't lock you out.
+//
+// Floating is only trusted when EVERY open position has a live quote. Otherwise
+// floatingPnL() omits the unquoted ones (understating a loser's loss, so the cap
+// could false-trip; or a winner's gain, so the loss limit could false-trip), which
+// is the same incomplete-data trap the cap/loss monitors guard against. When
+// incomplete we fall back to a realized-only check: a realized-alone breach is
+// unambiguous and still locks, but we never SET a lock on a floating figure we
+// can't trust. The full realized+floating check resumes once quotes are complete.
 function breachedLimit(): string | null {
+  const complete = allPositionsQuoted();
+  const floating = complete ? floatingPnL() : 0;
+  const note = complete ? "" : " [realized only; awaiting quotes]";
+
   const cap = state.settings.dailyProfitCapUSD;
   if (cap > 0) {
-    const total = state.dailyRealizedPnL + floatingPnL();
+    const total = state.dailyRealizedPnL + floating;
     if (total >= cap) {
-      return `Daily profit cap reached: +${total.toFixed(2)} USD (cap ${cap.toFixed(2)})`;
+      return `Daily profit cap reached: +${total.toFixed(2)} USD (cap ${cap.toFixed(2)})${note}`;
     }
   }
   const loss = maxLossUSD();
-  const totalPnL = state.dailyRealizedPnL + floatingPnL();
+  const totalPnL = state.dailyRealizedPnL + floating;
   if (totalPnL < -loss) {
-    return `Daily loss limit hit: ${totalPnL.toFixed(2)} USD (limit -${loss.toFixed(2)})`;
+    return `Daily loss limit hit: ${totalPnL.toFixed(2)} USD (limit -${loss.toFixed(2)})${note}`;
   }
   return null;
 }
