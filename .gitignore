@@ -2,7 +2,7 @@
 .env.docker
 
 # node stuff
-node_modules
+node_modules/
 pnpm-lock.yaml
 
 data/

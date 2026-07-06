@@ -48,6 +48,14 @@ export function setLivePriceConnection(conn: any): void {
   });
 }
 
+// Forget which symbolIds we've told the broker to stream. A reconnect opens a new
+// socket and the broker forgets every subscription, so this must be called before
+// re-subscribing — otherwise subscribeSpots skips ids still in `subscribed` and no
+// spot data flows on the new connection (leaving floating P&L and sizing blind).
+export function resetSpotSubscriptions(): void {
+  subscribed.clear();
+}
+
 // Subscribe to spot updates for the given symbolIds (idempotent). Safe to call
 // repeatedly — already-subscribed ids are skipped.
 export async function subscribeSpots(symbolIds: number[]): Promise<void> {

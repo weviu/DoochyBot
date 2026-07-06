@@ -14,12 +14,14 @@
 // (npm run dev, enter the Telegram code) so session/session.txt exists. PM2 runs
 // it non-interactively and cannot answer the login prompt on a cold session.
 
+const path = require("path");
+
 module.exports = {
   apps: [
     {
       name: "doochybot",
-      cwd: "/home/san/doochybot",
-      script: "dist/index.js",
+      cwd: __dirname,
+      script: path.join(__dirname, "dist", "index.js"),
       interpreter: "node",
       autorestart: true,
       watch: false,
@@ -32,8 +34,8 @@ module.exports = {
     },
     {
       name: "channel-listener",
-      cwd: "/home/san/doochybot/channel-listener",
-      script: "dist/index.js",
+      cwd: path.join(__dirname, "channel-listener"),
+      script: path.join(__dirname, "channel-listener", "dist", "index.js"),
       interpreter: "node",
       autorestart: true,
       watch: false,
