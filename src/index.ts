@@ -23,7 +23,7 @@ import { fetchSymbols } from "./ctrader/symbols";
 import { setConnection, reconcilePositions } from "./ctrader/orders";
 import { setLivePriceConnection, subscribeOpenPositions, subscribeSpots, subscribeConversionPairs, resetSpotSubscriptions } from "./ctrader/livePrices";
 import { setAmendConnection } from "./ctrader/amend";
-import { setMidnightConnection, startMidnightCheck } from "./risk/midnightClose";
+import { setMidnightConnection } from "./risk/midnightClose";
 import { loadNewsConfig, startNewsMonitor } from "./risk/news";
 import { loadTimeExitConfig, restoreTimedPositions, startTimeExitMonitor } from "./risk/timeExit";
 import { startDailyReset } from "./risk/dailyLoss";
@@ -405,12 +405,11 @@ async function main() {
   loadTimeExitConfig();
 const connection = await buildConnection();
 wireConnection(connection);
-startMidnightCheck();
 startDailyReset();
 startCapMonitor();
 startLossMonitor();
 startStopLossWatchdog();
-console.log("[SAFETY] Midnight closer, daily reset, loss monitor, and SL watchdog active");
+console.log("[SAFETY] Daily reset, loss monitor, and SL watchdog active");
 await fetchAccountInfo(ctrader);
 await fetchSymbols(ctrader);
 
