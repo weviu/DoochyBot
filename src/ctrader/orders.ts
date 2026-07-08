@@ -8,6 +8,8 @@ import { recordStopLoss } from "../risk/cooldown";
 import { recordLoss } from "../risk/reentryCooldown";
 import { subscribeSpots, getMarkPrice, quoteToUsd, canValueInUsd } from "./livePrices";
 import { notify } from "../bot/notify";
+import { inEntryBlackout } from "../risk/news/calendar";
+import { effectiveTimeExitMin, recordTimedPosition, clearTimedPosition, restingExpiryMs } from "../risk/timeExit";
 
 // How close our live mark must be to a feed signal's target (as % of the target)
 // to fill at market instead of resting an order at the target and waiting for
@@ -102,6 +104,10 @@ export function setConnection(conn: any): void {
       if (state.positions.delete(positionId)) {
         console.log(`[POSITIONS] Closed #${positionId}. Open now: ${state.positions.size}`);
       }
+      // Forget any time-exit timer for this position however it closed (SL, TP,
+      // stop-out, manual, timer, news flatten) so a stale timer can't act on a
+      // re-used id later. Idempotent (no-op if it wasn't a timed position).
+      clearTimedPosition(positionId);
 
       // When a position closes, realized P&L changes — the remaining cap headroom
       // shifts. Re-amend all remaining positions so their cap TPs tighten (or
@@ -119,6 +125,52 @@ export function setConnection(conn: any): void {
       }
     }
   });
+}
+
+// Cancel every resting (unfilled) order at the broker for `symbol`. Used by the
+// pre-news flatten: closing open positions isn't enough if a stop/limit is resting
+// that would fill INTO the news spike. We can't cancel from state.pendingOrders
+// (it never stored the broker orderId), so we reconcile to learn the live order
+// ids and cancel each one, then drop our in-memory pending markers for the symbol.
+// Returns how many cancels were sent. Never throws.
+export async function cancelRestingOrdersForSymbol(symbol: string): Promise<number> {
+  if (!connection) return 0;
+  const symbolId = symbolIdFor(symbol);
+  if (!symbolId) return 0;
+
+  let res: any;
+  try {
+    res = await connection.sendCommand("ProtoOAReconcileReq", {
+      ctidTraderAccountId: parseInt(process.env.ACCOUNT_ID || "0"),
+    });
+  } catch (err: any) {
+    console.warn(`[news] reconcile (for order-cancel) failed: ${err.errorCode || err.message || "request failed"}`);
+    return 0;
+  }
+
+  let cancelled = 0;
+  for (const o of res.order || []) {
+    if (Number(o.tradeData?.symbolId) !== Number(symbolId)) continue;
+    const orderId = Number(o.orderId);
+    if (!orderId) continue;
+    try {
+      await connection.sendCommand("ProtoOACancelOrderReq", {
+        ctidTraderAccountId: parseInt(process.env.ACCOUNT_ID || "0"),
+        orderId,
+      });
+      cancelled++;
+      console.log(`[news] cancelled resting ${symbol} order ${orderId}`);
+    } catch (err: any) {
+      console.warn(`[news] cancel order ${orderId} (${symbol}) failed: ${err.message}`);
+    }
+  }
+
+  // Drop our own pending markers for this symbol so the duplicate gate doesn't keep
+  // treating a now-cancelled order as "pending fill".
+  for (const [label, p] of state.pendingOrders.entries()) {
+    if (p.symbol === symbol) state.pendingOrders.delete(label);
+  }
+  return cancelled;
 }
 
 interface SymbolSpec {
@@ -315,6 +367,25 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
     return { ok: false, error: `Symbol ${signal.symbol} not available on this broker` };
   }
   console.log(`[ORDER] Resolved ${signal.symbol} → symbolId ${symbolId}`);
+
+  // Belt-and-braces scheduled-news blackout. The gate (processSignal) is the
+  // primary block and runs before the reversal path, so an in-scope gold signal
+  // never reaches here during a blackout via the normal flow. This guards any
+  // OTHER caller that reaches executeSignal directly (matches the SL belt-and-
+  // braces below) so an in-scope entry can't slip through the news window.
+  const blackout = inEntryBlackout(Date.now(), signal.symbol, signal.signalSource);
+  if (blackout.blocked) {
+    console.log(`[news] blocked ${signal.symbol} ${signal.direction} entry (order path) - ${blackout.reason}`);
+    return { ok: false, error: `News blackout: ${blackout.reason}` };
+  }
+
+  // Effective per-signal time-based exit (minutes from fill), scoped to the
+  // configured symbols/sources and clamped to maxTimeExitMin. 0 for everything else
+  // (all existing sources omit time_exit_min, so they are unaffected). Recorded on
+  // the position at fill (below) and enforced by the time-exit monitor; a resting
+  // order for a timed signal is also given a matching expiry so it can't fill past
+  // the hold window.
+  const timeExitMin = effectiveTimeExitMin(signal.symbol, signal.signalSource, signal.timeExitMin);
 
   // Size the order using the symbol's real contract specs. A hardcoded
   // multiplier produces wildly wrong volumes for non-FX symbols (e.g. BTC),
@@ -554,7 +625,12 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
         const bars = state.settings.staleOrderBars;
         const barMs = timeframeMs(signal.timeframe);
         if (bars > 0 && barMs) restStaleMs = bars * barMs;
-        console.log(`[ORDER] ${signal.symbol}: live ${live} is ${driftPct.toFixed(2)}% from target ${signal.price} (> ${tolPct}% tol) - resting ${signal.direction}-${kind} @ ${signal.price} (SL ${signal.sl ?? "-"} / TP ${signal.tp ?? "-"})${restStaleMs > 0 ? ` [cancel in ${bars}x${signal.timeframe}=${Math.round(restStaleMs / 60_000)}m if unfilled]` : ""}`);
+        // Time-exit signals: don't enter a position that's already past its hold
+        // window. Cap the resting order's expiry at time_exit_min from placement so
+        // an unfilled order is cancelled by then (the broker enforces it via
+        // GOOD_TILL_DATE, surviving a restart). Whichever expiry is shorter wins.
+        restStaleMs = restingExpiryMs(restStaleMs, timeExitMin);
+        console.log(`[ORDER] ${signal.symbol}: live ${live} is ${driftPct.toFixed(2)}% from target ${signal.price} (> ${tolPct}% tol) - resting ${signal.direction}-${kind} @ ${signal.price} (SL ${signal.sl ?? "-"} / TP ${signal.tp ?? "-"})${restStaleMs > 0 ? ` [cancel in ${Math.round(restStaleMs / 60_000)}m if unfilled]` : ""}`);
       }
     }
   }
@@ -566,10 +642,10 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
   // Handled by placeRestingOrder, separate from the immediate market fill path
   // below; sizing/volume above is shared.
   if (signal.orderType === "LIMIT" && signal.limitPrice && signal.limitPrice > 0) {
-    return await placeRestingOrder(signal, symbolId, orderVolume, lots, label, "LIMIT", restStaleMs);
+    return await placeRestingOrder(signal, symbolId, orderVolume, lots, label, "LIMIT", restStaleMs, timeExitMin);
   }
   if (signal.orderType === "STOP" && signal.stopPrice && signal.stopPrice > 0) {
-    return await placeRestingOrder(signal, symbolId, orderVolume, lots, label, "STOP", restStaleMs);
+    return await placeRestingOrder(signal, symbolId, orderVolume, lots, label, "STOP", restStaleMs, timeExitMin);
   }
 
   try {
@@ -639,6 +715,7 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
           const deal = data.deal;
           const positionId = Number(pos.positionId);
           const entryPrice = deal?.executionPrice || pos.price || 0;
+          const fillTime = Date.now();
 
           state.positions.set(positionId, {
             symbol: signal.symbol,
@@ -646,9 +723,13 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
             volume: lots,
             volumeCents: orderVolume,
             entryPrice,
-            openTime: Date.now(),
+            openTime: fillTime,
             confidence: signal.confidence,
+            timeExitMin: timeExitMin > 0 ? timeExitMin : null,
           });
+          // Arm the time-based exit (persisted so it survives a restart). No-op when
+          // timeExitMin is 0, so non-timed signals are unaffected.
+          recordTimedPosition(positionId, signal.symbol, timeExitMin, fillTime);
 
           console.log(`[ORDER] Filled: ${signal.direction} ${lots} lots ${signal.symbol} @ ${entryPrice} | Position #${positionId}`);
           notifyFill("Order filled", signal, lots, entryPrice, positionId, actualRisk);
@@ -716,7 +797,8 @@ async function placeRestingOrder(
   lots: number,
   label: string,
   kind: "LIMIT" | "STOP",
-  staleMs: number
+  staleMs: number,
+  timeExitMin: number = 0
 ): Promise<OrderResult> {
   if (!connection) {
     console.log("[ORDER] No cTrader connection");
@@ -814,6 +896,7 @@ async function placeRestingOrder(
       if (data.executionType === "ORDER_FILLED" && data.position?.positionId) {
         const positionId = Number(data.position.positionId);
         const entryPrice = data.deal?.executionPrice || data.position.price || entry;
+        const fillTime = Date.now();
         // SL/TP are already attached to the order broker-side; mirror them onto
         // the in-memory position for display and live monitoring.
         state.positions.set(positionId, {
@@ -822,11 +905,15 @@ async function placeRestingOrder(
           volume: lots,
           volumeCents: orderVolume,
           entryPrice,
-          openTime: Date.now(),
+          openTime: fillTime,
           confidence: signal.confidence,
           sl,
           tp,
+          timeExitMin: timeExitMin > 0 ? timeExitMin : null,
         });
+        // Arm the time-based exit from the ACTUAL fill (a resting order may fill
+        // hours after placement); the timer counts from here, not from placement.
+        recordTimedPosition(positionId, signal.symbol, timeExitMin, fillTime);
         subscribeSpots([symbolId]);
         connection.removeEventListener(fillListenerId);
         state.pendingOrders.delete(label);

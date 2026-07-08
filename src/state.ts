@@ -10,6 +10,12 @@ export interface Position {
   confidence?: number;  // signal confidence at entry; used for reversal gating
   sl?: number | null;
   tp?: number | null;
+  // Effective time-based exit in minutes from fill (openTime), for in-scope timed
+  // signals (gold Connors-RSI). > 0 => the time-exit monitor market-closes this
+  // position at openTime + timeExitMin. Absent/null/0 => no time exit (SL/TP only).
+  // The authoritative copy is persisted separately (data/time-exits.json) so the
+  // timer survives a restart even though positions are rebuilt from the broker.
+  timeExitMin?: number | null;
 }
 
 // An order that has been submitted to the broker but not yet filled, cancelled,

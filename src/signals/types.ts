@@ -30,6 +30,13 @@ export interface RawAlert {
   sl?: number;
   tp?: number;
   signal_source?: string;
+  // Optional per-signal time-based exit (wall-clock minutes from FILL). The gold
+  // Connors-RSI strategy's edge is time-bounded, so a position opened from an alert
+  // carrying this closes at market once its hold window elapses (SL/TP still armed;
+  // whichever fires first wins). Present and > 0 activates it; absent/null means
+  // "no time exit" and the position behaves exactly as today (SL/TP only). For a
+  // time-exit signal `tp` may also be null (manage on SL + time only).
+  time_exit_min?: number | null;
   // BTC macro state for crypto alerts; null for non-crypto. Optional too, so
   // alerts that predate this feed field parse as "not applicable" (same as null).
   btc_state?: BtcState | null;
@@ -80,6 +87,16 @@ export interface ParsedSignal {
   // Where the signal came from, for notifications: "Feed" for the RSI poller, or
   // the channel title for webhook signals from the channel-listener.
   source?: string;
+  // The scanner's signal_source tag (alert.signal_source), e.g. "gold_scanner".
+  // Distinct from `source` (the human-facing origin label): this is the machine
+  // tag the news-calendar guard and the time-based exit scope on (in-scope =
+  // gold_scanner + XAUUSD). Absent for channel/manual orders, no scanner tag.
+  signalSource?: string;
+  // Per-signal time-based exit in wall-clock minutes from fill (alert.time_exit_min).
+  // Raw value from the feed; scoped to the configured symbols/sources and clamped to
+  // maxTimeExitMin at execution time (see effectiveTimeExitMin). Absent/null/<=0 =>
+  // no time exit (position managed on SL/TP only, exactly as today).
+  timeExitMin?: number | null;
   // BTC macro state carried from the feed (alert.btc_state). Non-null only for
   // crypto; null/undefined means non-crypto or a signal source that doesn't
   // report it (webhook). Drives the crypto BTC-bias gate and is shown in

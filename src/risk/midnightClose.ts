@@ -1,4 +1,5 @@
 import { state } from "../state";
+import { clearTimedPosition } from "./timeExit";
 
 let connection: any = null;
 
@@ -20,6 +21,7 @@ export async function closePosition(positionId: number): Promise<boolean> {
     });
     console.log(`[CLOSE] Closed position #${positionId} ${pos.symbol}`);
     state.positions.delete(positionId);
+    clearTimedPosition(positionId);
     return true;
   } catch (err: any) {
     console.log(`[CLOSE] Failed to close position #${positionId} ${pos.symbol} — ${err.message}`);

@@ -26,11 +26,20 @@ export async function positionsCmd(ctx: any) {
     const fmt = (v: number | null | undefined) =>
       v != null ? String(v) : "—";
 
+    // Time-exit countdown, only for positions that carry a timer.
+    let timeLine = "";
+    if (pos.timeExitMin && pos.timeExitMin > 0) {
+      const remainMin = Math.round((pos.openTime + pos.timeExitMin * 60_000 - Date.now()) / 60_000);
+      timeLine = remainMin > 0
+        ? `\n  Time exit: ${remainMin}m left (of ${pos.timeExitMin}m)`
+        : `\n  Time exit: due now (closing)`;
+    }
+
     lines.push(
       `${pos.direction} ${pos.symbol} ${pos.volume}L\n` +
       `  Entry: ${pos.entryPrice}  Mark: ${mark}\n` +
       `  SL: ${fmt(sl)}  TP: ${fmt(tp)}\n` +
-      `  P&L: ${pnlStr}`
+      `  P&L: ${pnlStr}` + timeLine
     );
   }
 

@@ -24,6 +24,8 @@ import { setConnection, reconcilePositions } from "./ctrader/orders";
 import { setLivePriceConnection, subscribeOpenPositions, subscribeSpots, subscribeConversionPairs, resetSpotSubscriptions } from "./ctrader/livePrices";
 import { setAmendConnection } from "./ctrader/amend";
 import { setMidnightConnection, startMidnightCheck } from "./risk/midnightClose";
+import { loadNewsConfig, startNewsMonitor } from "./risk/news";
+import { loadTimeExitConfig, restoreTimedPositions, startTimeExitMonitor } from "./risk/timeExit";
 import { startDailyReset } from "./risk/dailyLoss";
 import { startCapMonitor } from "./risk/capMonitor";
 import { startLossMonitor } from "./risk/lossMonitor";
@@ -399,6 +401,8 @@ bot.command("help", async (ctx) => {
 async function main() {
   console.log("[BOOT] Starting DoochyBot...");
   initSettings();
+  loadNewsConfig();
+  loadTimeExitConfig();
 const connection = await buildConnection();
 wireConnection(connection);
 startMidnightCheck();
@@ -409,6 +413,12 @@ startStopLossWatchdog();
 console.log("[SAFETY] Midnight closer, daily reset, loss monitor, and SL watchdog active");
 await fetchAccountInfo(ctrader);
 await fetchSymbols(ctrader);
+
+// Scheduled-news guard (gold today): fetch the economic calendar and start the
+// refresh + pre-news flatten loop. After fetchSymbols so cancelRestingOrdersForSymbol
+// can resolve symbolIds; the connection is already wired (wireConnection above), so
+// the flatten's closes/cancels can reach the broker.
+await startNewsMonitor();
 
 // Pre-subscribe spot streams for every allowed symbol so a live quote is already
 // flowing before the first signal arrives. Without this, the first trade on a
@@ -447,6 +457,11 @@ for (let attempt = 1; attempt <= 2; attempt++) {
 }
 
 await reconcilePositions();
+// Re-attach persisted time-exit timers to positions the broker just gave us back,
+// so a timed position opened before a restart still time-closes on schedule (the
+// broker doesn't return our time_exit_min metadata). Must run AFTER reconcile.
+restoreTimedPositions();
+startTimeExitMonitor();
 // Start streaming live prices for any position we already hold so floating P&L
 // and the profit cap are accurate immediately, not just after the next signal.
 await subscribeOpenPositions();

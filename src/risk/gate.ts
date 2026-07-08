@@ -8,6 +8,8 @@ import { existingCombinedRisk } from "./combinedRisk";
 import { executeSignal } from "../ctrader/orders";
 import { executeReversal } from "./reversal";
 import { maybeNotifySignal } from "../bot/signalNotify";
+import { inEntryBlackout } from "./news/calendar";
+import { effectiveTimeExitMin } from "./timeExit";
 
 // Outcome of running a signal through the gate. The poller ignores this; the
 // webhook uses it to tell the caller whether the signal executed or why it was
@@ -29,13 +31,15 @@ export function processSignal(signal: ParsedSignal): GateResult {
     return { accepted: false, reason: "Trading paused" };
   }
 
-  // Check 1a: SL and TP are mandatory. Both drive execution now: the SL sets the
-  // position size (risk-based sizing measures entry-to-SL distance) and the TP is
-  // the exit. A signal missing either can't be sized or protected, so reject it
-  // rather than fall back to a guessed stop. Feed and channel signals both carry
-  // real levels; a missing one means a malformed/incomplete signal.
-  if (signal.sl == null || signal.tp == null) {
-    const reason = `Missing ${signal.sl == null ? "SL" : ""}${signal.sl == null && signal.tp == null ? " and " : ""}${signal.tp == null ? "TP" : ""}`;
+  // Check 1a: SL is always mandatory (it sets the risk-based position size). TP is
+  // normally mandatory too (it's the exit), EXCEPT for an in-scope time-exit signal:
+  // the gold time-based strategy manages on SL + timer and may carry a null TP, so
+  // the timer is the exit and no TP is required. A missing SL, or a missing TP on a
+  // non-timed signal, means a malformed/incomplete signal and is rejected.
+  const timeExit = effectiveTimeExitMin(signal.symbol, signal.signalSource, signal.timeExitMin);
+  if (signal.sl == null || (signal.tp == null && timeExit <= 0)) {
+    const needTp = signal.tp == null && timeExit <= 0;
+    const reason = `Missing ${signal.sl == null ? "SL" : ""}${signal.sl == null && needTp ? " and " : ""}${needTp ? "TP" : ""}`;
     console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - ${reason}`);
     return { accepted: false, reason };
   }
@@ -124,6 +128,20 @@ export function processSignal(signal: ParsedSignal): GateResult {
       console.log(`[GATE] Rejected: ${signal.direction} ${signal.symbol} - ${reason}`);
       return { accepted: false, reason };
     }
+  }
+
+  // Check 2e: Scheduled-news blackout (gold today). Do not OPEN a new in-scope
+  // position within the blackout window of a USD/High economic release - gold
+  // flash-moves through the stop on those prints, and on a $300/day prop account
+  // one gap-through can breach the day. Scoped to in-scope symbol + signal_source
+  // (XAUUSD + gold_scanner by default); everything else passes untouched. Placed
+  // before the reversal logic so a gold reversal isn't closed-then-left-flat by a
+  // blocked re-open. The signal can re-fire and trade once the window clears
+  // (event + postBlackoutMin). failClosed also blocks here on a stale calendar.
+  const blackout = inEntryBlackout(Date.now(), signal.symbol, signal.signalSource);
+  if (blackout.blocked) {
+    console.log(`[news] blocked ${signal.symbol} ${signal.direction} entry - ${blackout.reason}`);
+    return { accepted: false, reason: `News blackout: ${blackout.reason}` };
   }
 
   // Check 3: Per-symbol consecutive-loss cooldown.

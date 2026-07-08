@@ -48,5 +48,9 @@ export function parseSignal(alert: RawAlert): ParsedSignal | null {
     // BTC macro state for crypto (null for non-crypto, or absent on older alerts).
     btcState: alert.btc_state ?? null,
     source: "Signal-scanner",
+    // Scanner tag ("gold_scanner", ...); scopes the news-calendar guard + time exit.
+    signalSource: alert.signal_source,
+    // Optional per-signal time-based exit (minutes from fill); scoped/clamped later.
+    timeExitMin: alert.time_exit_min ?? null,
   };
 }
