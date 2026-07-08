@@ -79,7 +79,11 @@ async function fetchJson(url: string): Promise<FFItem[]> {
     // scheduled tick. On abort/timeout fetch rejects and the caller keeps cache.
     signal: AbortSignal.timeout(10_000),
   });
-  if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(`${url} -> HTTP ${res.status}`) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
+  }
   const text = await res.text();
   const trimmed = text.trimStart();
   if (!trimmed.startsWith("[")) {
@@ -104,7 +108,15 @@ export class ForexFactorySource implements CalendarSource {
         items.push(...(await fetchJson(url)));
         anyOk = true;
       } catch (err: any) {
-        console.warn(`[news] ${this.name}: ${err.message}`);
+        // A 404 is expected, not an error: the mirror only publishes next week's
+        // file later in the week (and occasionally rotates this week's), so log it
+        // quietly. Real problems (network, Cloudflare challenge, bad shape) warn.
+        if (err?.status === 404) {
+          const file = url.slice(url.lastIndexOf("/") + 1);
+          console.log(`[news] ${this.name}: ${file} not published yet (404) - skipping`);
+        } else {
+          console.warn(`[news] ${this.name}: ${err.message}`);
+        }
       }
     }
     if (!anyOk) throw new Error("both weekly calendar fetches failed");
