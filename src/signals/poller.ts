@@ -11,7 +11,7 @@ export function startPoller(onSignal: (signal: ParsedSignal) => void): void {
 
   const poll = async () => {
     try {
-      const res = await fetch(FEED_URL);
+      const res = await fetch(FEED_URL, { signal: AbortSignal.timeout(8_000) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const alerts = (await res.json()) as any[];
@@ -41,7 +41,8 @@ export function startPoller(onSignal: (signal: ParsedSignal) => void): void {
 
       lastTimestamp = newAlerts[newAlerts.length - 1].timestamp;
     } catch (err: any) {
-      console.warn(`[POLLER] Fetch failed: ${err.message}`);
+      const cause = err.cause?.code || err.cause?.message || err.message;
+      console.warn(`[POLLER] Fetch failed: ${err.message}${cause !== err.message ? ` (${cause})` : ""}`);
     }
   };
 
