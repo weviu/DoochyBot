@@ -1,0 +1,82 @@
+# UI design system — "Dark Notion"
+
+Build the UI to match this design system exactly. It's a neutral, warm-leaning **dark theme** with subtle hairline borders, a single restrained blue accent, crisp Inter typography, and quiet, non-bouncy motion. The north star is Notion's dark mode: calm, dense, content-first. No gradients, no glassmorphism, no bright color washes, no playful springs.
+
+## Stack
+- **Tailwind CSS** with semantic color tokens backed by CSS variables (so a light theme is a drop-in later).
+- **Framer Motion** for entrance animation only.
+- **lucide-react** for icons (thin, 16–20px, `h-4 w-4` typical).
+- **Inter** via `next/font` (or any clean grotesk/system font), exposed as `--font-inter`.
+
+## Color tokens
+Define CSS variables as **space-separated RGB channels** (not hex) so Tailwind opacity modifiers work (e.g. `border-accent/20`). Dark theme values:
+
+```css
+:root {
+  color-scheme: dark;
+  --canvas: 25 25 25;          /* #191919 app background */
+  --surface: 32 32 32;         /* #202020 cards, panels */
+  --surface-hover: 38 38 38;   /* #262626 hover step */
+  --surface-active: 45 45 45;  /* #2d2d2d pressed/selected */
+  --line: 255 255 255;         /* white, used at low alpha for hairlines */
+  --text: 255 255 255;
+  --accent: 30 77 143;         /* #1e4d8f the one accent — muted navy */
+  --accent-hover: 42 94 168;   /* #2a5ea8 */
+  --accent-deep: 20 50 79;     /* #14324f deeper navy backing soft panels */
+  --accent-fg: 255 255 255;
+  --success: 48 163 108;       /* #30a46c */
+  --danger: 229 72 77;         /* #e5484d */
+}
+```
+
+Map them to **semantic Tailwind colors** (never hardcode gray-800/blue-700 in components):
+- `canvas` → app bg
+- `surface` / `surface-hover` / `surface-active` → panels
+- `hairline` = `--line / 0.09`, `hairline-strong` = `--line / 0.14` → borders
+- `fg` = `--text / 0.90`, `fg-muted` = `/ 0.56`, `fg-faint` = `/ 0.40` → text hierarchy
+- `accent` / `accent-hover`, `accent-soft` = `--accent-deep / 0.22`, `accent-fg`
+- `success` / `success-soft` = `/ 0.14`, `danger` / `danger-soft` = `/ 0.14`
+
+Body: `background: canvas; color: text/0.9`. Text selection: `accent / 0.22`.
+
+## Typography
+Inter / system sans. Tight tracking on headings (`tracking-tight`). Sizes: page title `text-2xl font-semibold`, section heading `text-lg font-semibold`, body `text-sm`, secondary/help `text-xs`. Body text uses `fg`; descriptions/labels use `fg-muted`; hints/timestamps use `fg-faint`.
+
+## Borders, radius, elevation
+- Borders are **hairlines** (`border border-hairline`), strengthening to `hairline-strong` on hover.
+- Radius: `rounded-md` (inputs, buttons, small), `rounded-lg` (cards, panels).
+- Shadows are subtle and reserved for overlays:
+  - `subtle`: `0 1px 2px rgba(0,0,0,.20)`
+  - `card`: `0 1px 3px rgba(0,0,0,.25), 0 1px 2px rgba(0,0,0,.15)`
+  - `overlay`: `0 12px 48px rgba(0,0,0,.55)`
+
+## Motion (critical to the feel)
+- **No springs. No scale/lift on hover** — hover only shifts background up one step and/or strengthens the border.
+- Default interactive transition: **200ms ease-in-out** (`cubic-bezier(0.4,0,0.2,1)`). Subtle hover bg shifts: 150ms.
+- **Entrances**: blocks fade in and rise — `opacity 0→1`, `translateY 12px→0`, **300ms ease-out** using `cubic-bezier(0.16,1,0.3,1)`.
+- **Lists stagger** children by **40ms**.
+- Modals: 250ms.
+- **Respect `prefers-reduced-motion`**: drop the translate (keep a near-instant fade), globally via CSS and in JS via `useReducedMotion()`.
+
+## Core components (build these primitives)
+- **Button** — variants: `primary` (bg-accent, text-accent-fg, hover:bg-accent-hover), `secondary` (bg-surface, border-hairline, hover:bg-surface-hover + hairline-strong), `ghost` (transparent, fg-muted, hover:bg-surface-hover), `danger` (transparent, text-danger, hover:bg-danger-soft). Sizes sm/md/lg (`h-8/h-9/h-11`). Focus ring: `ring-2 ring-accent/60 ring-offset-1 ring-offset-canvas`. Disabled: `opacity-50`. **Loading floor**: when an async click is in flight, show a `Loader2` spinner + disabled state for **≥400ms** so it never flickers.
+- **Card** — `rounded-lg border border-hairline bg-surface`; optional `interactive` adds `hover:bg-surface-hover hover:border-hairline-strong cursor-pointer`. Padding is passed by the caller (e.g. `p-6`), not baked in.
+- **Inputs** — `rounded-md border border-hairline bg-surface px-3 py-2 text-sm`, placeholder `fg-faint`, focus `border-accent/60 ring-2 ring-accent/40`, `disabled:opacity-50`. Labels are `text-sm font-medium text-fg-muted`; help text `text-xs text-fg-faint`.
+- **Skeleton** — `animate-pulse rounded-md bg-surface-hover`; used to hold layout during load (no spinners for content).
+- **Modal** — centered surface with `shadow-overlay`, hairline border, 250ms entrance, backdrop dim.
+- **Motion primitives** — `FadeRise` (single block, optional delay), `Stagger` + `StaggerItem` (list container that staggers children 40ms, animates on enter-viewport once).
+
+## Status & feedback patterns
+- Success: `text-success` with a check icon; soft panels `bg-success-soft border-success/30`.
+- Errors: `bg-danger-soft border-danger/30 text-danger` with an alert icon.
+- Accent info panels: `bg-accent-soft border-accent/20`, heading `text-accent`.
+- Connected/configured states use a small `CheckCircle` in `text-success`.
+
+## Layout conventions
+- Page wrapper `min-h-screen bg-canvas`; a top `Header`; main content `mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8`.
+- Vertical rhythm via `space-y-6` between sections, `space-y-3/4` within.
+- Selectable chips/toggles: bordered buttons that turn `border-accent bg-accent-soft text-accent` when selected, otherwise `border-hairline bg-surface text-fg-muted hover:text-fg`.
+
+## Overall principles
+Restraint over decoration. One accent color, used sparingly. Hairlines over heavy borders. Background-step hover instead of motion. Dense but breathable. Everything responsive to reduced-motion. Keep colors semantic so the whole thing could flip to a light theme by swapping the CSS variables.
+

@@ -32,6 +32,8 @@ import { startLossMonitor } from "./risk/lossMonitor";
 import { startStopLossWatchdog } from "./risk/slWatchdog";
 import { setNotifier } from "./bot/notify";
 import { startWebhookServer } from "./webhook";
+import { setMiniAppConnection } from "./miniapp/service";
+import { initMiniAppAuth } from "./miniapp/auth";
 import { refreshAccessToken, persistTokens } from "./ctrader/token";
 
 dotenv.config();
@@ -194,6 +196,7 @@ function wireConnection(connection: any): void {
   setMidnightConnection(connection);
   setExportConnection(connection);
   setStatusConnection(connection);
+  setMiniAppConnection(connection);
 
   // cTrader drops the push channel if no message is sent for ~10s. Keep it alive.
   if (heartbeatTimer) clearInterval(heartbeatTimer);
@@ -273,6 +276,9 @@ function startConnectionWatchdog(): void {
 async function startBot() {
   const bot = new Bot(config.telegram.token);
   setNotifier(bot, config.telegram.allowedUsers);
+  // The Mini App validates its initData signature with the bot token and gates
+  // access to the same allowed users as the chat commands.
+  initMiniAppAuth(config.telegram.token, config.telegram.allowedUsers);
 
   bot.use(async (ctx, next) => {
     const userId = ctx.from?.id;

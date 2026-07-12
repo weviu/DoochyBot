@@ -1,51 +1,82 @@
 import { state } from "../../state";
 import { getMarkPrice, quoteToUsd } from "../../ctrader/livePrices";
 
+export interface PositionRow {
+  posId: number;
+  direction: "BUY" | "SELL";
+  symbol: string;
+  volume: number;
+  entryPrice: number;
+  mark: number;
+  sl: number | null;
+  tp: number | null;
+  pnl: number;
+  timeExitMinLeft: number | null; // minutes left on a time exit, or null if none
+}
+
+// Compute the live open-position rows both /positions (text) and the Mini App
+// API (JSON) render. P&L is quote-converted to USD via the spot streams.
+export function getPositionsData(): { positions: PositionRow[]; totalPnL: number } {
+  const positions: PositionRow[] = [];
+  let totalPnL = 0;
+
+  for (const [posId, pos] of state.positions.entries()) {
+    const mark = getMarkPrice(pos.symbol, pos.direction) ?? pos.entryPrice;
+    const priceDiff = pos.direction === "BUY" ? mark - pos.entryPrice : pos.entryPrice - mark;
+    const units = pos.volumeCents / 100;
+    const pnl = priceDiff * units * (quoteToUsd(pos.symbol) ?? 1);
+    totalPnL += pnl;
+
+    let timeExitMinLeft: number | null = null;
+    if (pos.timeExitMin && pos.timeExitMin > 0) {
+      timeExitMinLeft = Math.round((pos.openTime + pos.timeExitMin * 60_000 - Date.now()) / 60_000);
+    }
+
+    positions.push({
+      posId,
+      direction: pos.direction,
+      symbol: pos.symbol,
+      volume: pos.volume,
+      entryPrice: pos.entryPrice,
+      mark,
+      sl: pos.sl ?? null,
+      tp: pos.tp ?? null,
+      pnl,
+      timeExitMinLeft,
+    });
+  }
+
+  return { positions, totalPnL };
+}
+
 export async function positionsCmd(ctx: any) {
-  if (state.positions.size === 0) {
+  const { positions, totalPnL } = getPositionsData();
+
+  if (positions.length === 0) {
     await ctx.reply("No open positions.");
     return;
   }
 
-  const lines: string[] = [];
-  let totalPnL = 0;
-
-  for (const [posId, pos] of state.positions.entries()) {
-    const sl = pos.sl;
-    const tp = pos.tp;
-
-    const mark = getMarkPrice(pos.symbol, pos.direction) ?? pos.entryPrice;
-    const priceDiff = pos.direction === "BUY" ? mark - pos.entryPrice : pos.entryPrice - mark;
-    const units = pos.volumeCents / 100;
-    // Convert quote-currency P&L to USD (1 for USD-quoted; conversion-pair rate for
-    // JPY/CAD-quoted). Fall back to 1 if a rate isn't available so the row still shows.
-    const pnl = priceDiff * units * (quoteToUsd(pos.symbol) ?? 1);
-    totalPnL += pnl;
-    const pnlStr = `${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}`;
-
-    const fmt = (v: number | null | undefined) =>
-      v != null ? String(v) : "—";
-
-    // Time-exit countdown, only for positions that carry a timer.
+  const fmt = (v: number | null) => (v != null ? String(v) : "—");
+  const lines = positions.map((p) => {
+    const pnlStr = `${p.pnl >= 0 ? "+" : ""}${p.pnl.toFixed(2)}`;
     let timeLine = "";
-    if (pos.timeExitMin && pos.timeExitMin > 0) {
-      const remainMin = Math.round((pos.openTime + pos.timeExitMin * 60_000 - Date.now()) / 60_000);
-      timeLine = remainMin > 0
-        ? `\n  Time exit: ${remainMin}m left (of ${pos.timeExitMin}m)`
+    if (p.timeExitMinLeft != null) {
+      timeLine = p.timeExitMinLeft > 0
+        ? `\n  Time exit: ${p.timeExitMinLeft}m left`
         : `\n  Time exit: due now (closing)`;
     }
-
-    lines.push(
-      `${pos.direction} ${pos.symbol} ${pos.volume}L\n` +
-      `  Entry: ${pos.entryPrice}  Mark: ${mark}\n` +
-      `  SL: ${fmt(sl)}  TP: ${fmt(tp)}\n` +
+    return (
+      `${p.direction} ${p.symbol} ${p.volume}L\n` +
+      `  Entry: ${p.entryPrice}  Mark: ${p.mark}\n` +
+      `  SL: ${fmt(p.sl)}  TP: ${fmt(p.tp)}\n` +
       `  P&L: ${pnlStr}` + timeLine
     );
-  }
+  });
 
-  const summary = `Open positions (${state.positions.size}):\n\n` +
+  const summary = `Open positions (${positions.length}):\n\n` +
     lines.join("\n\n") +
-    (state.positions.size > 1 ? `\n\nTotal P&L: ${totalPnL >= 0 ? "+" : ""}${totalPnL.toFixed(2)}` : "");
+    (positions.length > 1 ? `\n\nTotal P&L: ${totalPnL >= 0 ? "+" : ""}${totalPnL.toFixed(2)}` : "");
 
   await ctx.reply(summary);
 }

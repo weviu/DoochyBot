@@ -9,12 +9,38 @@ export function setStatusConnection(conn: any): void {
   connection = conn;
 }
 
-export async function statusCmd(ctx: any) {
+export interface StatusData {
+  connected: boolean;
+  accountId: string;
+  balance: number;
+  currency: string;
+  paused: boolean;
+  locked: boolean;
+  openPositions: number;
+  maxPositions: number;
+  dailyRealizedPnL: number;
+  floatingPnL: number;
+  profitCapUSD: number;      // 0 = off
+  capUsed: number;           // realized + floating, for cap progress
+  maxLossUSD: number;
+  riskPerTradeUSD: number;
+  minConfidence: number;
+  btcBiasGate: boolean;
+  marginAware: boolean;
+  allowedSymbols: string[];
+  cooldowns: { symbol: string; remainingMs: number }[];
+}
+
+// Assemble the live status snapshot both /status (text) and the Mini App API
+// (JSON) render. Uses the passed connection for the authoritative balance and
+// today's realized P&L, falling back to cached/in-memory values if a broker
+// read fails, so it never throws.
+export async function getStatusData(conn: any): Promise<StatusData> {
   let connOk = false;
   let info = state.accountInfo;
-  if (connection) {
+  if (conn) {
     try {
-      info = await fetchTrader(connection);
+      info = await fetchTrader(conn);
       connOk = true;
     } catch {
       connOk = false;
@@ -24,36 +50,57 @@ export async function statusCmd(ctx: any) {
   let dailyPnL = state.dailyRealizedPnL;
   if (connOk) {
     try {
-      dailyPnL = await fetchTodayRealizedPnL(connection);
+      dailyPnL = await fetchTodayRealizedPnL(conn);
     } catch {
       dailyPnL = state.dailyRealizedPnL;
     }
   }
 
-  // Feed prices (recordPrice) are updated on every signal that passes through gate.
-  // Immediately after restart they're seeded with entry prices until the first
-  // signal for each symbol arrives, so floating may show ~0 briefly.
   const liveFloating = floatingPnL();
+  const cooldowns = activeCooldowns().map((c) => ({ symbol: c.symbol, remainingMs: c.remainingMs }));
 
-  const cap = state.settings.dailyProfitCapUSD;
-  const cooldowns = activeCooldowns();
+  return {
+    connected: connOk,
+    accountId: process.env.ACCOUNT_ID || "?",
+    balance: info.balance,
+    currency: info.currency,
+    paused: state.paused,
+    locked: state.tradingLocked,
+    openPositions: state.positions.size,
+    maxPositions: state.settings.maxPositions,
+    dailyRealizedPnL: dailyPnL,
+    floatingPnL: liveFloating,
+    profitCapUSD: state.settings.dailyProfitCapUSD,
+    capUsed: dailyPnL + liveFloating,
+    maxLossUSD: maxLossUSD(),
+    riskPerTradeUSD: state.settings.riskPerTradeUSD,
+    minConfidence: state.settings.minConfidence,
+    btcBiasGate: state.settings.btcBiasGate,
+    marginAware: state.settings.marginAware,
+    allowedSymbols: state.settings.allowedSymbols,
+    cooldowns,
+  };
+}
+
+export async function statusCmd(ctx: any) {
+  const s = await getStatusData(connection);
 
   const lines = [
-    `cTrader: ${connOk ? "connected" : "not connected"}`,
-    `Account: ${process.env.ACCOUNT_ID || "?"}`,
-    `Balance: ${info.balance.toFixed(2)} ${info.currency}`,
-    `Trading: ${state.paused ? "paused" : "active"}${state.tradingLocked ? " (locked)" : ""}`,
-    `Open positions: ${state.positions.size}/${state.settings.maxPositions}`,
-    `Daily realized P&L: ${dailyPnL >= 0 ? "+" : ""}${dailyPnL.toFixed(2)} ${info.currency}`,
-    `Floating P&L: ${liveFloating >= 0 ? "+" : ""}${liveFloating.toFixed(2)} ${info.currency}`,
-    `Profit cap: ${cap > 0 ? `$${cap.toFixed(2)} (total ${(dailyPnL + liveFloating).toFixed(2)} used)` : "off"}`,
-    `Daily loss limit: -$${maxLossUSD().toFixed(2)} (force-close all)`,
-    `Min confidence: ${state.settings.minConfidence > 0 ? `${state.settings.minConfidence} (feed signals; channel bypasses)` : "off"}`,
-    `BTC-bias gate: ${state.settings.btcBiasGate ? `on (crypto BUY needs >=${state.settings.btcBiasMinConfBearish} BEARISH / >=${state.settings.btcBiasMinConfStrongBearish} BEARISH_STRONG)` : "off"}`,
-    `Margin-aware sizing: ${state.settings.marginAware ? "on" : "off"}`,
-    `Sizing: ${state.settings.riskPerTradeUSD > 0 ? `$${state.settings.riskPerTradeUSD.toFixed(2)} risk/trade, sized to the signal's own SL (TP from signal)` : "not set - /risk pertrade required to trade"}`,
-    `Cooldowns: ${cooldowns.length === 0 ? "none" : cooldowns.map((c) => `${c.symbol} ${Math.ceil(c.remainingMs / 60_000)}m`).join(", ")}`,
-    `Allowed symbols: ${state.settings.allowedSymbols.length}`,
+    `cTrader: ${s.connected ? "connected" : "not connected"}`,
+    `Account: ${s.accountId}`,
+    `Balance: ${s.balance.toFixed(2)} ${s.currency}`,
+    `Trading: ${s.paused ? "paused" : "active"}${s.locked ? " (locked)" : ""}`,
+    `Open positions: ${s.openPositions}/${s.maxPositions}`,
+    `Daily realized P&L: ${s.dailyRealizedPnL >= 0 ? "+" : ""}${s.dailyRealizedPnL.toFixed(2)} ${s.currency}`,
+    `Floating P&L: ${s.floatingPnL >= 0 ? "+" : ""}${s.floatingPnL.toFixed(2)} ${s.currency}`,
+    `Profit cap: ${s.profitCapUSD > 0 ? `$${s.profitCapUSD.toFixed(2)} (total ${s.capUsed.toFixed(2)} used)` : "off"}`,
+    `Daily loss limit: -$${s.maxLossUSD.toFixed(2)} (force-close all)`,
+    `Min confidence: ${s.minConfidence > 0 ? `${s.minConfidence} (feed signals; channel bypasses)` : "off"}`,
+    `BTC-bias gate: ${s.btcBiasGate ? `on (crypto BUY needs >=${state.settings.btcBiasMinConfBearish} BEARISH / >=${state.settings.btcBiasMinConfStrongBearish} BEARISH_STRONG)` : "off"}`,
+    `Margin-aware sizing: ${s.marginAware ? "on" : "off"}`,
+    `Sizing: ${s.riskPerTradeUSD > 0 ? `$${s.riskPerTradeUSD.toFixed(2)} risk/trade, sized to the signal's own SL (TP from signal)` : "not set - /risk pertrade required to trade"}`,
+    `Cooldowns: ${s.cooldowns.length === 0 ? "none" : s.cooldowns.map((c) => `${c.symbol} ${Math.ceil(c.remainingMs / 60_000)}m`).join(", ")}`,
+    `Allowed symbols: ${s.allowedSymbols.length}`,
   ];
   await ctx.reply(lines.join("\n"));
 }

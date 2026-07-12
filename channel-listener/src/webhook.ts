@@ -32,10 +32,19 @@ export async function sendSignal(signal: Signal, webhookUrl: string, source: str
 
   const safeSource = sanitizeHeaderValue(source);
 
+  // Shared secret that authenticates this POST to DoochyBot's now-public /webhook.
+  // Must match WEBHOOK_SECRET in DoochyBot's .env; omitted only if unset locally.
+  const secret = process.env.WEBHOOK_SECRET || "";
+  const headers: Record<string, string> = {
+    "Content-Type": "text/plain",
+    "X-Signal-Source": safeSource,
+  };
+  if (secret) headers["X-Webhook-Secret"] = secret;
+
   try {
     const res = await fetch(webhookUrl, {
       method: "POST",
-      headers: { "Content-Type": "text/plain", "X-Signal-Source": safeSource },
+      headers,
       body,
     });
 

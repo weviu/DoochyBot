@@ -1,9 +1,20 @@
 import express from "express";
+import crypto from "crypto";
 import { ParsedSignal } from "./signals/types";
 import { processSignal } from "./risk/gate";
 import { state } from "./state";
+import { mountMiniApp } from "./miniapp/api";
 
 const PORT = 9009;
+
+// Constant-time string equality for the webhook secret, so a mismatch can't be
+// probed by timing. Returns false on any length mismatch (timingSafeEqual throws
+// otherwise).
+function secretEquals(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ab.length === bb.length && crypto.timingSafeEqual(ab, bb);
+}
 
 /**
  * Parse DoochyBot's plain-text signal format into a ParsedSignal:
@@ -55,9 +66,30 @@ function parseTextSignal(text: string, source: string): ParsedSignal | null {
  */
 export function startWebhookServer(): void {
   const app = express();
-  app.use(express.text({ type: "*/*" }));
 
-  app.post("/webhook", (req, res) => {
+  // The Mini App API/UI now share this server (the Cloudflare tunnel forwards
+  // 9009). Mount it BEFORE the /webhook text parser so /api gets JSON bodies.
+  mountMiniApp(app);
+
+  // Shared-secret guard for /webhook. Because this server is now reachable
+  // through the Cloudflare tunnel, an unauthenticated /webhook would let anyone
+  // on the internet inject trades. When WEBHOOK_SECRET is set we require the
+  // channel-listener's X-Webhook-Secret header to match. It is left optional only
+  // so an operator who hasn't rolled the secret to the listener yet isn't broken
+  // by a silent change; set it in production. Tunnel ingress should also be
+  // restricted to /app and /api as defence in depth.
+  const webhookSecret = process.env.WEBHOOK_SECRET || "";
+  if (!webhookSecret) {
+    console.warn("[WEBHOOK] No WEBHOOK_SECRET set. /webhook is unauthenticated; set WEBHOOK_SECRET (and match it in the channel-listener) and restrict the tunnel to /app and /api.");
+  }
+
+  // Text body parser scoped to /webhook only (the API needs JSON, parsed by its
+  // own router).
+  app.post("/webhook", express.text({ type: "*/*" }), (req, res) => {
+    if (webhookSecret && !secretEquals(req.get("X-Webhook-Secret") || "", webhookSecret)) {
+      console.log("[WEBHOOK] Rejected: missing/invalid secret");
+      return res.status(401).send("Unauthorized");
+    }
     const body = typeof req.body === "string" ? req.body : "";
     // The channel-listener labels each POST with the channel title; default to a
     // generic "Channel" if the header is absent (e.g. a manual curl).
@@ -77,8 +109,18 @@ export function startWebhookServer(): void {
     return res.status(200).send(`Signal accepted: ${signal.direction} ${signal.symbol} executing`);
   });
 
-  // Bind to loopback only — the webhook is never exposed to the internet.
+  // Explicit surface: the ONLY reachable routes are /webhook (secret-gated),
+  // /api/* (Telegram initData gated, mounted above) and /app (static UI). Anything
+  // else — root, probes, stray paths — gets a flat 404. This must be the last
+  // handler registered so it only catches what nothing above matched.
+  app.use((_req, res) => {
+    res.status(404).send("Not found");
+  });
+
+  // Bind to loopback only. Public reach comes solely via the Cloudflare tunnel
+  // forwarding to 127.0.0.1:9009; the process itself never listens on a public
+  // interface.
   app.listen(PORT, "127.0.0.1", () => {
-    console.log(`[WEBHOOK] Listening on http://127.0.0.1:${PORT}/webhook`);
+    console.log(`[WEBHOOK] Listening on http://127.0.0.1:${PORT} (/webhook, /api, /app)`);
   });
 }
