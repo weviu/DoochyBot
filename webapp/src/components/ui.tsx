@@ -30,6 +30,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   // When set, the button shows a spinner + disabled state for >=400ms so a fast
   // async action never flickers.
   onClickAsync?: () => Promise<void>;
+  // A leading icon rendered in a single fixed slot that becomes the spinner
+  // while loading (so the button never grows a second icon / changes width).
+  // Prefer this over putting an icon in children when the button can be busy.
+  icon?: ReactNode;
 }
 
 export function Button({
@@ -40,6 +44,7 @@ export function Button({
   className = "",
   children,
   disabled,
+  icon,
   ...rest
 }: ButtonProps) {
   const [loading, setLoading] = useState(false);
@@ -68,7 +73,12 @@ export function Button({
       disabled={disabled || loading}
       {...rest}
     >
-      {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+      {/* One fixed leading slot: the icon becomes the spinner while loading, so
+          the button keeps its width instead of growing a second icon. When no
+          `icon` is given, a bare spinner still prepends (legacy behaviour). */}
+      {icon !== undefined
+        ? (loading ? <Loader2 className="h-4 w-4 animate-spin" /> : icon)
+        : loading && <Loader2 className="h-4 w-4 animate-spin" />}
       {children}
     </button>
   );

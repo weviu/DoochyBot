@@ -165,10 +165,11 @@ export function Settings({ status }: { status: StatusData | null }) {
           <Button
             size="md"
             variant="primary"
+            icon={<Plus className="h-4 w-4" />}
             disabled={!addSym.trim()}
             onClickAsync={addSym.trim() ? addSymbol : undefined}
           >
-            <Plus className="h-4 w-4" /> Add
+            Add
           </Button>
         </div>
         <div className="flex flex-wrap gap-2 pt-1">
@@ -330,7 +331,7 @@ export function Settings({ status }: { status: StatusData | null }) {
         showSymMsg("danger", `${sym} is already in the list.`);
       } else {
         notify("error");
-        showSymMsg("danger", `${sym} is not a valid tradable symbol. Check the ticker (e.g. XAUUSD, BTCUSD).`);
+        showSymMsg("danger", `${sym} is not a valid symbol. Check the spelling (e.g. XAUUSD, BTCUSD).`);
         // Keep the input so the user can correct the typo.
       }
     } catch (e: any) {
