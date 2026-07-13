@@ -1,4 +1,5 @@
 import { Check, ChevronDown, Loader2 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { haptic } from "../lib/telegram";
 
@@ -152,13 +153,13 @@ export function NumberField({
   const changed = valid && parsed !== value;
 
   return (
-    <div className="flex items-end justify-between gap-3">
-      <div className="min-w-0 flex-1">
+    <div>
+      <div className="mb-2">
         <label className="text-sm font-medium text-fg-muted">{label}</label>
         {help && <p className="mt-0.5 text-xs text-fg-faint">{help}</p>}
       </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <div className="relative">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
           <input
             type="number"
             inputMode="decimal"
@@ -168,20 +169,20 @@ export function NumberField({
             step={step}
             onChange={(e) => setDraft(e.target.value)}
             className={
-              "w-24 rounded-md border bg-surface px-3 py-2 text-sm tabular-nums text-fg " +
+              "w-full rounded-md border bg-surface px-3 py-2 text-sm tabular-nums text-fg " +
               "placeholder:text-fg-faint focus:outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/40 " +
               (valid ? "border-hairline" : "border-danger/50") +
               (suffix ? " pr-8" : "")
             }
           />
           {suffix && (
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-fg-faint">
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-fg-faint">
               {suffix}
             </span>
           )}
         </div>
         <Button
-          size="sm"
+          size="md"
           variant={changed ? "primary" : "secondary"}
           disabled={!changed}
           onClickAsync={changed ? () => onSave(parsed) : undefined}
@@ -250,13 +251,14 @@ export function Toggle({
   );
 }
 
-// A collapsible settings section. Starts open; the header toggles it. Purely a
-// layout container for a group of NumberField/Toggle/chip controls.
+// A collapsible settings section. Collapsed by default; the header toggles it.
+// The open/close is animated (height + fade) via framer-motion so it glides
+// instead of snapping. Purely a layout container for a group of controls.
 export function SectionCard({
   title,
   description,
   children,
-  defaultOpen = true,
+  defaultOpen = false,
 }: {
   title: string;
   description?: string;
@@ -264,6 +266,7 @@ export function SectionCard({
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const reduce = useReducedMotion();
   return (
     <Card className="overflow-hidden">
       <button
@@ -275,9 +278,22 @@ export function SectionCard({
           <span className="block text-sm font-semibold text-fg">{title}</span>
           {description && <span className="mt-0.5 block text-xs text-fg-faint">{description}</span>}
         </span>
-        <ChevronDown className={"h-4 w-4 shrink-0 text-fg-muted transition " + (open ? "rotate-180" : "")} />
+        <ChevronDown className={"h-4 w-4 shrink-0 text-fg-muted transition duration-300 " + (open ? "rotate-180" : "")} />
       </button>
-      {open && <div className="space-y-5 border-t border-hairline px-5 py-5">{children}</div>}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="body"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: reduce ? 0.01 : 0.3, ease: [0.16, 1, 0.3, 1] }}
+            style={{ overflow: "hidden" }}
+          >
+            <div className="space-y-5 border-t border-hairline px-5 py-5">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Card>
   );
 }

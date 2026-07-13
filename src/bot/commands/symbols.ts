@@ -102,8 +102,12 @@ export async function symbolsCmd(ctx: any) {
     const added: string[] = [];
     const already: string[] = [];
     const unsupported: string[] = [];
+    const unknown: string[] = [];
     for (const sym of syms) {
-      if (isUnsupported(sym)) unsupported.push(sym);
+      // A symbol the broker doesn't know at all (typo like "BTCUS") must be
+      // rejected here, not silently accepted and left to fail at trade time.
+      if (symbolIdFor(sym) === undefined) unknown.push(sym);
+      else if (isUnsupported(sym)) unsupported.push(sym);
       else if (state.settings.allowedSymbols.includes(sym)) already.push(sym);
       else { state.settings.allowedSymbols.push(sym); added.push(sym); }
     }
@@ -111,6 +115,7 @@ export async function symbolsCmd(ctx: any) {
     const out: string[] = [];
     if (added.length) out.push(`Added: ${added.join(", ")}`);
     if (already.length) out.push(`Already present: ${already.join(", ")}`);
+    if (unknown.length) out.push(`Not added (not a symbol on this broker): ${unknown.join(", ")}`);
     if (unsupported.length) out.push(`Not added (cannot be valued in USD, unsupported): ${unsupported.join(", ")}`);
     out.push(`Allowed: ${state.settings.allowedSymbols.join(", ")}`);
     await ctx.reply(out.join("\n"));

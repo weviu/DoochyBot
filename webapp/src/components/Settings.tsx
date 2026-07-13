@@ -44,8 +44,12 @@ export function Settings({ status }: { status: StatusData | null }) {
       const res = await api.command(cmd, args);
       if (res.settings) setS(res.settings);
       else await load();
-      notify("success");
-      showFlash("success", res.text);
+      // The relay returns 200 even when a handler declines the change (e.g. an
+      // unknown symbol, an out-of-range value). Treat a "not added / not a /
+      // must be" style reply as a soft failure so it flashes red, not green.
+      const rejected = /\bnot added\b|\bnot a\b|\bmust be\b|\bunknown\b|\binvalid\b|\bfailed\b/i.test(res.text);
+      notify(rejected ? "error" : "success");
+      showFlash(rejected ? "danger" : "success", res.text);
     } catch (e: any) {
       notify("error");
       showFlash("danger", e?.message || "Command failed");
@@ -96,18 +100,10 @@ export function Settings({ status }: { status: StatusData | null }) {
           max={3600}
           onSave={(n) => run("minhold", [String(n)])}
         />
-        <NumberField
-          label="Risk overrun"
-          help="How far the min lot may exceed your per-trade risk (0 = strict)."
-          value={s.riskOverrunPercent}
-          suffix="%"
-          min={0}
-          onSave={(n) => run("risk", ["overrun", String(n)])}
-        />
       </SectionCard>
 
       {/* ---- Daily limits ---------------------------------------------------*/}
-      <SectionCard title="Daily limits" description="Force-close-all guards.">
+      <SectionCard title="Daily limits" description="Force close all guards.">
         <NumberField
           label="Daily loss limit"
           help="Closes everything and stops for the day when hit."
@@ -162,9 +158,6 @@ export function Settings({ status }: { status: StatusData | null }) {
           </Button>
         </div>
         <div className="flex flex-wrap gap-2 pt-1">
-          <Button size="sm" variant="secondary" onClickAsync={() => run("symbols", ["add", "all"])}>
-            Add feed symbols
-          </Button>
           <Button size="sm" variant="ghost" onClick={() => setConfirmReset(true)}>
             <RotateCcw className="h-3.5 w-3.5" /> Reset to defaults
           </Button>
@@ -174,8 +167,7 @@ export function Settings({ status }: { status: StatusData | null }) {
       {/* ---- Cooldowns & prop rules -----------------------------------------*/}
       <SectionCard
         title="Cooldowns & prop rules"
-        description="Consecutive-loss and per-trade-idea protections."
-        defaultOpen={false}
+        description="Consecutive loss and per trade idea protections."
       >
         {cooldowns.length > 0 && (
           <div>
@@ -254,14 +246,6 @@ export function Settings({ status }: { status: StatusData | null }) {
           onSave={(n) => run("risk", ["minconfidence", String(n)])}
         />
         <NumberField
-          label="Channel confidence"
-          help="Confidence assigned to channel signals (they carry none)."
-          value={s.webhookConfidence}
-          min={0}
-          max={100}
-          onSave={(n) => run("risk", ["confidence", String(n)])}
-        />
-        <NumberField
           label="Stale-order bars"
           help="Cancel an unfilled feed stop/limit after this many bars (0 = never)."
           value={s.staleOrderBars}
@@ -275,32 +259,6 @@ export function Settings({ status }: { status: StatusData | null }) {
           checked={s.marginAware}
           onToggle={(on) => run("risk", ["marginaware", on ? "on" : "off"])}
         />
-        <Toggle
-          label="BTC-bias gate"
-          help="Suppress crypto BUYs during BTC bearishness unless confidence clears the floor."
-          checked={s.btcBiasGate}
-          onToggle={(on) => run("risk", ["btcbias", on ? "on" : "off"])}
-        />
-        {s.btcBiasGate && (
-          <>
-            <NumberField
-              label="BEARISH floor"
-              help="Crypto BUY confidence needed when BTC is BEARISH."
-              value={s.btcBiasMinConfBearish}
-              min={0}
-              max={100}
-              onSave={(n) => run("risk", ["btcbias", "bearish", String(n)])}
-            />
-            <NumberField
-              label="BEARISH_STRONG floor"
-              help="Crypto BUY confidence needed when BTC is BEARISH_STRONG."
-              value={s.btcBiasMinConfStrongBearish}
-              min={0}
-              max={100}
-              onSave={(n) => run("risk", ["btcbias", "strongbearish", String(n)])}
-            />
-          </>
-        )}
       </SectionCard>
 
       {/* ---- Notifications --------------------------------------------------*/}
