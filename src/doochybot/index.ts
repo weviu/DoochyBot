@@ -32,16 +32,54 @@ const HUB_WS_URL = process.env.HUB_WS_URL || "ws://127.0.0.1:9009/ws";
 const codeArgIdx = process.argv.indexOf("--code");
 const PAIR_CODE = (codeArgIdx !== -1 ? process.argv[codeArgIdx + 1] : "") || process.env.AGENT_PAIR_CODE || "";
 
+// Pair codes are 6 chars from an unambiguous alphabet (no 0/O/1/I); see the
+// Hub's registry. Validate against it so a mistyped or half-captured line is
+// rejected at the prompt instead of sent to the Hub as an "invalid code".
+const PAIR_CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/;
+
 // First run in a terminal: no saved token, no code given. Ask instead of
 // erroring out, so setup is just "start it and type the code from /pair".
 // Non-interactive runs (pm2) never prompt; they still need --code or the env.
+//
+// Readline under tsx (notably on Windows) can resolve rl.question with an empty
+// string when a line isn't captured cleanly, which used to silently start the
+// agent unpaired. So we loop: an empty or malformed answer re-asks rather than
+// falling through, and end-of-input (Ctrl-D / closed stdin) returns "" so the
+// caller can print the env-var fallback and exit instead of hanging.
 async function promptForPairCode(): Promise<string> {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const answer: string = await new Promise((resolve) =>
-    rl.question("Not paired yet. Send /pair to @DoochyBot in Telegram, then enter the code here: ", resolve)
-  );
-  rl.close();
-  return answer.trim().toUpperCase();
+  try {
+    for (;;) {
+      const raw: string | null = await new Promise((resolve) => {
+        rl.question(
+          "Send /pair to @DoochyBot in Telegram, then enter the 6-character code here: ",
+          (a) => resolve(a)
+        );
+        // If stdin closes (piped input exhausted, Ctrl-D), question never fires;
+        // resolve null so we don't await forever.
+        rl.once("close", () => resolve(null));
+      });
+
+      if (raw === null) {
+        console.error(
+          "\n[HUB-LINK] No code entered (input closed). Restart with the code from /pair, e.g.\n" +
+          "  AGENT_PAIR_CODE=YOURCODE pnpm doochybot:start   (or --code YOURCODE)"
+        );
+        return "";
+      }
+
+      const code = raw.trim().toUpperCase();
+      if (PAIR_CODE_RE.test(code)) return code;
+
+      if (code.length === 0) {
+        console.log("Nothing entered. Paste the 6-character code from /pair (it expires after 5 minutes).");
+      } else {
+        console.log(`"${code}" is not a valid pairing code (expected 6 characters: A-Z and 2-9). Try again.`);
+      }
+    }
+  } finally {
+    rl.close();
+  }
 }
 
 async function main() {
@@ -59,16 +97,30 @@ async function main() {
   }
 
   let pairCode = PAIR_CODE;
-  if (!hasSavedToken() && !pairCode && process.stdin.isTTY) {
+  const needsPairing = !hasSavedToken() && !pairCode;
+  if (needsPairing && process.stdin.isTTY) {
     pairCode = await promptForPairCode();
   }
 
   // The Hub link starts before the broker connection so pairing/auth and
   // command relays work even while cTrader is still coming up; handlers that
-  // need the connection degrade gracefully until it is wired.
-  const hub = new HubClient(HUB_WS_URL, pairCode, handleHubRequest);
-  setNotifySink((message) => hub.notify(message));
-  hub.start();
+  // need the connection degrade gracefully until it is wired. But if we still
+  // have no way to authenticate (no token, no code, and either non-interactive
+  // or the prompt yielded nothing), don't start the link: it would just loop on
+  // "no saved token and no pair code". Say how to fix it and skip the hub link
+  // so the local trading engine still runs.
+  let hub: HubClient | null = null;
+  if (hasSavedToken() || pairCode) {
+    hub = new HubClient(HUB_WS_URL, pairCode, handleHubRequest);
+    setNotifySink((message) => hub!.notify(message));
+    hub.start();
+  } else {
+    console.error(
+      "[HUB-LINK] Not paired and no code provided; the Hub link is OFF (Telegram control and the mini-app will not reach this agent).\n" +
+      "  Get a code with /pair in @DoochyBot, then restart within 5 minutes:\n" +
+      "  AGENT_PAIR_CODE=YOURCODE pnpm doochybot:start   (or --code YOURCODE)"
+    );
+  }
 
   const connection = await startCTrader();
   startDailyReset();
