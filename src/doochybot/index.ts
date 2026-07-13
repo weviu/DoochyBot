@@ -41,24 +41,38 @@ const PAIR_CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/;
 // erroring out, so setup is just "start it and type the code from /pair".
 // Non-interactive runs (pm2) never prompt; they still need --code or the env.
 //
-// Readline under tsx (notably on Windows) can resolve rl.question with an empty
-// string when a line isn't captured cleanly, which used to silently start the
-// agent unpaired. So we loop: an empty or malformed answer re-asks rather than
-// falling through, and end-of-input (Ctrl-D / closed stdin) returns "" so the
-// caller can print the env-var fallback and exit instead of hanging.
+// We do NOT use rl.question: under tsx (notably on Windows, and after the
+// wizard's `pnpm build` runs first) a line typed before we start awaiting is
+// flushed while question isn't listening and is silently lost, so the code line
+// vanishes and only a later blank line is seen. Instead a persistent line
+// listener queues every line the moment it arrives, and readLine() hands them
+// out one at a time. An empty/malformed entry re-asks; closed stdin returns ""
+// so the caller can print the env-var fallback instead of hanging.
 async function promptForPairCode(): Promise<string> {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const queued: string[] = [];
+  let waiter: ((line: string | null) => void) | null = null;
+  let closed = false;
+
+  rl.on("line", (line) => {
+    if (waiter) { const w = waiter; waiter = null; w(line); }
+    else queued.push(line);
+  });
+  rl.on("close", () => {
+    closed = true;
+    if (waiter) { const w = waiter; waiter = null; w(null); }
+  });
+
+  const readLine = (): Promise<string | null> => {
+    if (queued.length > 0) return Promise.resolve(queued.shift()!);
+    if (closed) return Promise.resolve(null);
+    return new Promise((resolve) => { waiter = resolve; });
+  };
+
   try {
     for (;;) {
-      const raw: string | null = await new Promise((resolve) => {
-        rl.question(
-          "Send /pair to @DoochyBot in Telegram, then enter the 6-character code here: ",
-          (a) => resolve(a)
-        );
-        // If stdin closes (piped input exhausted, Ctrl-D), question never fires;
-        // resolve null so we don't await forever.
-        rl.once("close", () => resolve(null));
-      });
+      process.stdout.write("Send /pair to @DoochyBot in Telegram, then enter the 6-character code here: ");
+      const raw = await readLine();
 
       if (raw === null) {
         console.error(
