@@ -1,19 +1,31 @@
 /**
  * Signal extraction for the SureShot Gold channel.
  *
- * The channel posts a single trade across several messages. A signal begins with
- * a line like:
+ * The channel posts a single trade, either as one message or spread across
+ * several. Two layouts are supported:
  *
- *     XAUUSD SELL LIMIT 4345.82
+ *   1. Inline entry:
+ *          XAUUSD SELL LIMIT 4345.82
+ *          SL: 4350.00
+ *          TP: 4340.00
  *
- * and is only complete once both an `SL: <price>` and a `TP: <price>` line have
- * been seen. Everything in between (signatures, blank lines, dashes) is noise and
- * is ignored. The parser buffers messages from the start line until SL and TP are
- * both found, then emits the finished signal.
+ *   2. Labelled entry with numbered take-profits (emoji decoration is ignored):
+ *          BTCUSD BUY
+ *          Entry: 64246.76
+ *          TP1: 64322.62
+ *          TP2: 64398.48
+ *          SL: 64095.04
+ *
+ * A signal begins with a symbol + direction line and is complete once both an
+ * `SL` and a `TP` price have been seen. When several take-profits are listed the
+ * first (nearest) one is used. Everything in between (signatures, blank lines,
+ * dashes) is noise and is ignored. The parser buffers from the start line until
+ * SL and TP are both found, then emits the finished signal.
  *
  * Trade-management / promotional messages (CLOSE PARTIAL, MOVE SL TO ENTRY, VIP
  * offers, "running in profit", etc.) are filtered out by keyword before any
- * buffering happens. Handling those as a real feature is left for later.
+ * buffering happens. Messages signed off by "William" (e.g. "--Trade by
+ * William") are likewise skipped: we only trade the other analysts' calls.
  */
 
 export interface Signal {
@@ -29,16 +41,22 @@ export interface Signal {
 }
 
 // Words that mark a message as trade-management or promo noise. If any appears
-// (case-insensitive) the whole message is skipped — never buffered.
-const NOISE_KEYWORDS = ["CLOSE", "PIPS", "VIP", "MOVE SL", "PROFIT", "RUNNING"];
+// (case-insensitive) the whole message is skipped — never buffered. "WILLIAM"
+// skips that analyst's signals, which are signed "--Trade by William".
+const NOISE_KEYWORDS = ["CLOSE", "PIPS", "VIP", "MOVE SL", "PROFIT", "RUNNING", "WILLIAM"];
 
-// Start of a new signal: symbol + direction (+ optional LIMIT) + entry price.
-// The symbol is captured rather than assumed, so a future format change is
-// picked up automatically even though today it is always XAUUSD. Group 3 is the
-// optional "LIMIT" keyword — present means a resting limit order at the price.
-const START_RE = /\b([A-Z]{3,8})\s+(BUY|SELL)(\s+LIMIT)?\s+(\d+(?:\.\d+)?)/i;
+// Start of a new signal: symbol + direction (+ optional LIMIT) + optional inline
+// entry price. The symbol is captured rather than assumed, so a future format
+// change is picked up automatically even though today it is always XAUUSD/BTCUSD.
+// Group 3 is the optional "LIMIT" keyword — present means a resting limit order.
+// Group 4 is the entry price when given inline; when absent it is read from a
+// separate "Entry:" line via ENTRY_RE.
+const START_RE = /\b([A-Z]{3,8})\s+(BUY|SELL)(\s+LIMIT)?(?:\s+(\d+(?:\.\d+)?))?/i;
+const ENTRY_RE = /\bEntry\s*[:=]?\s*(\d+(?:\.\d+)?)/i;
 const SL_RE = /\bSL\s*[:=]?\s*(\d+(?:\.\d+)?)/i;
-const TP_RE = /\bTP\s*[:=]?\s*(\d+(?:\.\d+)?)/i;
+// Matches "TP", "TP1", "TP2", ... — the optional digits let numbered take-profit
+// lists parse correctly; the first match seen (nearest target) is the one kept.
+const TP_RE = /\bTP\d*\s*[:=]?\s*(\d+(?:\.\d+)?)/i;
 
 // Discard an incomplete buffer if the channel goes quiet for this long.
 const BUFFER_TIMEOUT_MS = 30_000;
@@ -47,7 +65,7 @@ interface Buffer {
   symbol: string;
   direction: "BUY" | "SELL";
   orderType: "MARKET" | "LIMIT";
-  entry: number;
+  entry: number | null;
   sl: number | null;
   tp: number | null;
 }
@@ -76,7 +94,7 @@ export class SignalParser {
         symbol: start[1].toUpperCase(),
         direction: start[2].toUpperCase() as "BUY" | "SELL",
         orderType: start[3] ? "LIMIT" : "MARKET",
-        entry: parseFloat(start[4]),
+        entry: start[4] ? parseFloat(start[4]) : null,
         sl: null,
         tp: null,
       };
@@ -96,11 +114,20 @@ export class SignalParser {
       const line = rawLine.trim();
       if (!line || line.startsWith("--")) continue; // "--Trade by ..." signature
 
+      // Entry from a separate "Entry:" line, only if not already set inline.
+      if (this.buffer.entry === null) {
+        const entry = line.match(ENTRY_RE);
+        if (entry) this.buffer.entry = parseFloat(entry[1]);
+      }
+
       const sl = line.match(SL_RE);
       if (sl) this.buffer.sl = parseFloat(sl[1]);
 
-      const tp = line.match(TP_RE);
-      if (tp) this.buffer.tp = parseFloat(tp[1]);
+      // Keep the first TP seen (nearest target); ignore later TP2/TP3 lines.
+      if (this.buffer.tp === null) {
+        const tp = line.match(TP_RE);
+        if (tp) this.buffer.tp = parseFloat(tp[1]);
+      }
     }
 
     // 6. Emit once all four values are present.
