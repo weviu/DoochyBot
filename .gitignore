@@ -9,3 +9,4 @@ data/
 tradeHistory/
 dist/
 docs/
+.env.hub

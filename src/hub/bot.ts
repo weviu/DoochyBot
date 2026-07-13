@@ -1,0 +1,108 @@
+import { Bot, Context } from "grammy";
+import { Registry } from "./registry";
+import { isKnownUser } from "./db";
+import { persistSettingsSnapshot } from "./server";
+
+// The Hub's Telegram bot. It owns exactly three things itself: the whitelist,
+// /pair, and static help text. Every trading command is relayed verbatim to
+// the user's agent, owner and friends alike; there is no local trading path.
+
+// Commands relayed to the agent. The Hub does not parse their arguments; the
+// agent runs its existing handler and returns the text to display, so command
+// semantics live in exactly one place.
+const RELAYED_COMMANDS = [
+  "status", "pause", "resume", "symbols", "risk", "minhold", "closeall",
+  "export", "settings", "notifications", "cooldown", "positions", "guide",
+] as const;
+
+export function startHubBot(token: string, registry: Registry): Bot {
+  const bot = new Bot(token);
+
+  // Notifications (fills, safety alerts) arrive from agents over WS and are
+  // routed here by the socket's authenticated user binding.
+  registry.setNotifySink((userId, message) => {
+    bot.api.sendMessage(userId, message).catch((err) =>
+      console.warn(`[HUB] Could not notify user ${userId}: ${err.message}`)
+    );
+  });
+
+  bot.use(async (ctx, next) => {
+    const userId = ctx.from?.id;
+    if (!userId || !isKnownUser(userId)) {
+      if (userId) await ctx.reply("Unauthorized");
+      return;
+    }
+    await next();
+  });
+
+  bot.command("start", async (ctx) => {
+    await ctx.reply(
+      "DoochyBot Hub.\n" +
+      "Link your local agent with /pair, then use the usual commands.\n" +
+      "/help for the command list."
+    );
+  });
+
+  bot.command("help", async (ctx) => {
+    await ctx.reply(
+      "HUB\n" +
+      "/pair: get a code to link your local agent\n" +
+      "\n" +
+      "TRADING (relayed to your agent)\n" +
+      "/status /positions /pause /resume /closeall\n" +
+      "/risk /symbols /minhold /cooldown /settings /notifications /export /guide\n" +
+      "Manual orders: BUY|SELL <symbol> <lots> <TP> <SL>\n" +
+      "\n" +
+      "All trading commands need your agent online. If it is offline you will be told."
+    );
+  });
+
+  bot.command("pair", async (ctx) => {
+    const code = registry.issuePairCode(ctx.from!.id);
+    await ctx.reply(
+      `Pairing code: ${code}\n` +
+      "Enter it in your agent within 5 minutes. The code is single-use; run /pair again if it expires."
+    );
+  });
+
+  const relay = async (ctx: Context, cmd: string, args: string[]) => {
+    const userId = ctx.from!.id;
+    const socket = registry.socketFor(userId);
+    if (!socket) {
+      await ctx.reply("Your agent is offline. Start it on your machine, or /pair to link one first.");
+      return;
+    }
+    try {
+      const reply = await registry.request(socket, { type: "cmd", cmd, args });
+      if (reply.data?.settings) persistSettingsSnapshot(userId, reply.data.settings);
+      await ctx.reply(reply.data?.text || (reply.ok ? "OK" : `Agent error: ${reply.error || "unknown"}`));
+    } catch {
+      await ctx.reply("Agent offline or not responding.");
+    }
+  };
+
+  for (const cmd of RELAYED_COMMANDS) {
+    bot.command(cmd, (ctx) => {
+      const argText = typeof ctx.match === "string" ? ctx.match.trim() : "";
+      return relay(ctx, cmd, argText ? argText.split(/\s+/) : []);
+    });
+  }
+
+  // Manual orders are typed without a slash ("SELL XAUUSD 0.02 3950 4010");
+  // forward the whole line and let the agent's order parser deal with it.
+  bot.hears(/^\s*(buy|sell)\b/i, (ctx) =>
+    relay(ctx, "order", (ctx.message?.text || "").trim().split(/\s+/))
+  );
+
+  // start() rejects asynchronously on a bad/unreachable token. Catch it here so
+  // a wrong HUB_BOT_TOKEN degrades to a warning instead of an unhandled
+  // rejection killing the Hub: WS and the API must stay up regardless.
+  bot.start({
+    drop_pending_updates: true,
+    onStart: (me) => console.log(`[HUB] Telegram bot started as @${me.username}`),
+  }).catch((err) => {
+    console.warn(`[HUB] Telegram bot failed to start: ${err.message}. WS and API stay up; fix HUB_BOT_TOKEN and restart.`);
+  });
+
+  return bot;
+}

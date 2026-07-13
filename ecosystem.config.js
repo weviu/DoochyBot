@@ -32,6 +32,24 @@ module.exports = {
         NODE_ENV: "production",
       },
     },
+    // Multi-user Hub. COMMENTED OUT until the phase 3 cutover: uncommenting and
+    // restarting the ecosystem would start it, and in production trim it must
+    // own port 9009 and the real bot token, which conflicts with "doochybot"
+    // above. During phase 1 run it manually: pnpm hub:dev (reads .env.hub).
+    // {
+    //   name: "hub",
+    //   cwd: __dirname,
+    //   script: path.join(__dirname, "dist", "hub", "index.js"),
+    //   interpreter: "node",
+    //   autorestart: true,
+    //   watch: false,
+    //   max_restarts: 10,
+    //   restart_delay: 3000,
+    //   time: true,
+    //   env: {
+    //     NODE_ENV: "production",
+    //   },
+    // },
     {
       name: "channel-listener",
       cwd: path.join(__dirname, "channel-listener"),
