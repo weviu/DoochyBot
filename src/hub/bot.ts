@@ -36,6 +36,17 @@ export function startHubBot(token: string, registry: Registry): Bot {
   });
 
   bot.command("start", async (ctx) => {
+    // Give every user the "Open App" menu button next to the message box.
+    // Set per chat because the bot-level default is unreliable to read back
+    // and BotFather settings can override it; per-chat always wins.
+    await ctx.api.setChatMenuButton({
+      chat_id: ctx.chat.id,
+      menu_button: {
+        type: "web_app",
+        text: "Open App",
+        web_app: { url: "https://doochy.route07.com/app" },
+      },
+    }).catch((err) => console.warn(`[HUB] Could not set menu button: ${err.message}`));
     await ctx.reply(
       "DoochyBot Hub.\n" +
       "Link your local agent with /pair, then use the usual commands.\n" +
