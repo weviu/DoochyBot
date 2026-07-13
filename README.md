@@ -1,65 +1,85 @@
 # DoochyBot
 
-Telegram-controlled cTrader auto-trader. It takes trade signals, runs them through a risk gate, and places orders on a Spotware (cTrader Open API) account, demo or live.
+Telegram-controlled cTrader auto-trader, multi-user. Every user runs their own DoochyBot on their own machine, trading their own cTrader account (demo or live); a central hub connects them all to one Telegram bot (@DoochyBot), the mini-app, and the shared signal sources. Signals go through each user's own risk gate before any order is placed.
 
-**Signal sources (both feed into the same risk gate and order flow):**
-- An RSI signal feed, polled automatically.
-- A Telegram channel listener (runs as a separate process) that reads signals from the SureShot Gold channel and forwards them in.
+```
+Telegram + mini-app
+        |
+       HUB (VPS): relay, pairing, user whitelist
+        |  WebSocket
+   +----+--------------------+
+   |                         |
+ your DoochyBot        friend's DoochyBot
+ (your machine,        (their machine,
+  your account)         their account)
+```
 
-New here? Send `/guide` in Telegram for a step-by-step setup.
+**Signal sources (fed to every connected DoochyBot, through each user's own risk gate):**
+- An RSI signal feed, polled by each DoochyBot itself.
+- A Telegram channel listener (server-side only) that reads the SureShot Gold channel; the hub fans its signals out to all connected users.
+
+**Want to run DoochyBot as a user? Read [SETUP.md](SETUP.md).** Short version: `pnpm install`, `pnpm doochybot:setup`, pair with a code from /pair, done.
+
+New here? Send `/guide` in Telegram for a step-by-step trading setup.
 
 ---
 
-## Setup
+## Repo layout
 
-**Requirements:** Node 20+, pnpm, a cTrader account (demo or live) plus Open API app credentials, a Telegram bot token.
+- `src/doochybot/` - the local agent every user runs (trading engine + hub link)
+- `src/hub/` - the central server (Telegram bot, mini-app, WebSocket relay); VPS only
+- `src/` (rest) - the shared trading core: risk gate, cTrader layer, monitors
+- `channel-listener/` - server-side Telegram channel reader; VPS only
+- `webapp/` - the mini-app frontend
+
+## Run (server / development)
 
 ```bash
-pnpm install
-```
-
-### Run
-
-```bash
-pnpm dev      # tsx, live from src/ (local development)
-pnpm build    # tsc, builds to dist/
-pnpm start    # node dist/index.js
+pnpm doochybot:dev    # the local agent, live from src/
+pnpm hub:dev          # the hub, live from src/ (reads .env.hub)
+pnpm build            # tsc, builds to dist/
 ```
 
 ### Deploy and gotchas (read me, future self)
 
 - **pm2 runs the compiled `dist/`.** After any code change you MUST rebuild before restarting:
   ```bash
-  pnpm build && pm2 restart doochybot
+  pnpm build && pm2 restart hub doochybot
   ```
 - **The channel listener is a separate process** with its own folder and build:
   ```bash
   cd channel-listener && pnpm build && pm2 restart channel-listener
   ```
 - **The host must match the account type.** Use `CTRADER_HOST=demo.ctraderapi.com` for a demo account and `live.ctraderapi.com` for a live one. If they mismatch, app auth still succeeds but account auth fails with `CANT_ROUTE_REQUEST` and the bot crash-loops. Going live needs real live credentials, not just a host change.
+- **Public routing:** nginx serves doochy.route07.com and forwards /app, /api and /ws to the hub on 127.0.0.1:9009. /webhook is loopback-only on purpose.
 
 ---
 
-## Getting started
+## Getting started (trading)
 
 The bot will not place any trade until you set a per-trade risk. The quickest path:
 
 ```
 /risk pertrade 50      # max $ you lose if a trade's stop is hit
-/risk sl 0.5           # where the stop sits, as % from entry
-/risk tp 0.75          # where the target sits, as % from entry
 /symbols add XAUUSD    # choose what to trade
 /resume                # make sure trading is active
 /status                # confirm everything looks right
 ```
 
-Send `/guide` any time for the full walkthrough.
+SL and TP come from each signal itself; the bot sizes the trade so a stop hit loses about your pertrade amount. Send `/guide` any time for the full walkthrough.
 
 ---
 
 ## Telegram Commands
 
-Only `ALLOWED_USERS` may issue commands.
+Only whitelisted users (the hub's user list) may issue commands. Trading commands are answered by YOUR DoochyBot; if it is offline you are told so.
+
+### Hub
+
+| Command | Description |
+|---------|-------------|
+| `/pair` | Get a one-time code to link your local DoochyBot |
+| `/adduser <id> [name]` | Whitelist a new user (owner only) |
 
 ### Trading control
 
@@ -84,9 +104,7 @@ Only `ALLOWED_USERS` may issue commands.
 
 | Command | Description |
 |---------|-------------|
-| `/risk pertrade <usd>` | Max $ you lose if a trade's stop is hit. The bot sizes each trade to match. Required to trade (`0` = trading off). |
-| `/risk sl <pct>` | Where the stop sits, as % from entry (default `0.5`). Also drives trade size together with pertrade. |
-| `/risk tp <pct>` | Where the target sits, as % from entry (default `0.75`). |
+| `/risk pertrade <usd>` | Max $ you lose if a trade's stop is hit. The bot sizes each trade to match. Required to trade (`0` = trading off). SL/TP themselves come from the signal. |
 | `/risk maxpos <n>` | Max concurrent open positions (default `3`). |
 | `/minhold <secs>` | Seconds to hold a position before the TP is set (default `60`; `0` = immediate). |
 
@@ -180,16 +198,19 @@ Every 60 seconds the bot asks the broker for the real stop loss on each open pos
 
 ## Environment variables
 
+`.env` (every DoochyBot, see `.env.example`; the setup wizard writes this):
+
 | Variable | Description |
 |----------|-------------|
 | `CTRADER_HOST` | `demo.ctraderapi.com` or `live.ctraderapi.com` (must match the account) |
 | `CTRADER_PORT` | `5035` |
-| `CLIENT_ID` | cTrader Open API app client ID |
-| `CLIENT_SECRET` | cTrader Open API app client secret |
-| `ACCESS_TOKEN` | OAuth access token for the account |
+| `CLIENT_ID` | Your own cTrader Open API app's client ID |
+| `CLIENT_SECRET` | Your own cTrader Open API app's client secret |
+| `ACCESS_TOKEN` | OAuth access token for your account |
 | `REFRESH_TOKEN` | OAuth refresh token |
-| `ACCOUNT_ID` | cTrader trader account ID (numeric) |
-| `TELEGRAM_BOT_TOKEN` | Telegram bot token from @BotFather |
-| `ALLOWED_USERS` | Comma-separated Telegram user IDs allowed to send commands |
+| `ACCOUNT_ID` | Internal ctidTraderAccountId (the wizard finds it) |
+| `HUB_WS_URL` | `wss://doochy.route07.com/ws` for users; loopback on the VPS |
 
-The channel listener has its own `channel-listener/.env` (Telegram API id and hash, the account phone number, the channel username or invite link, and the webhook URL). Each person running a listener needs their own Telegram account and session.
+`.env.hub` (VPS only): `HUB_BOT_TOKEN`, `HUB_PORT`, `WEBHOOK_SECRET`. The old `TELEGRAM_BOT_TOKEN`/`ALLOWED_USERS`/`WEBHOOK_SECRET` entries in the VPS `.env` exist only for the retired legacy entrypoint.
+
+The channel listener has its own `channel-listener/.env` and runs only on the VPS with the owner's Telegram session.

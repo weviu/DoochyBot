@@ -67,6 +67,17 @@ export function getOwnerId(): number | undefined {
   return owner?.telegramId;
 }
 
+// Add a user to the whitelist. Returns false if they already exist. Role
+// "owner" is only ever assigned by the boot-time seed (HUB_OWNER_ID); the
+// /adduser command always adds friends.
+export function addUser(userId: number, name: string, role: "owner" | "friend" = "friend"): boolean {
+  const users = getUsers();
+  if (users[String(userId)]) return false;
+  users[String(userId)] = { telegramId: userId, name, role, settings: null };
+  writeJsonAtomic(USERS_FILE, users);
+  return true;
+}
+
 export function setUserSettings(userId: number, settings: Record<string, any>): void {
   const users = getUsers();
   const rec = users[String(userId)];

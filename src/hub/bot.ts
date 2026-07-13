@@ -1,6 +1,6 @@
 import { Bot, Context } from "grammy";
 import { Registry } from "./registry";
-import { isKnownUser } from "./db";
+import { addUser, getUser, isKnownUser } from "./db";
 import { persistSettingsSnapshot } from "./server";
 
 // The Hub's Telegram bot. It owns exactly three things itself: the whitelist,
@@ -47,6 +47,7 @@ export function startHubBot(token: string, registry: Registry): Bot {
     await ctx.reply(
       "HUB\n" +
       "/pair: get a code to link your local agent\n" +
+      "/adduser <id> [name]: whitelist a friend (owner only)\n" +
       "\n" +
       "TRADING (relayed to your agent)\n" +
       "/status /positions /pause /resume /closeall\n" +
@@ -55,6 +56,28 @@ export function startHubBot(token: string, registry: Registry): Bot {
       "\n" +
       "All trading commands need your agent online. If it is offline you will be told."
     );
+  });
+
+  // Owner-only onboarding: /adduser <telegram id> [name]. The friend gets
+  // their ID from @userinfobot and sends it to the owner; removal stays a
+  // users.json edit (rare, and deliberately not one typo away).
+  bot.command("adduser", async (ctx) => {
+    if (getUser(ctx.from!.id)?.role !== "owner") {
+      await ctx.reply("Owner only.");
+      return;
+    }
+    const parts = (typeof ctx.match === "string" ? ctx.match : "").trim().split(/\s+/).filter(Boolean);
+    const id = Number(parts[0]);
+    if (!Number.isInteger(id) || id <= 0) {
+      await ctx.reply("Usage: /adduser <telegram id> [name]\nThe friend can get their id from @userinfobot.");
+      return;
+    }
+    const name = parts.slice(1).join(" ") || `Friend-${String(id).slice(-4)}`;
+    if (!addUser(id, name)) {
+      await ctx.reply(`User ${id} is already added.`);
+      return;
+    }
+    await ctx.reply(`Added ${name} (${id}). They can now /pair with this bot.`);
   });
 
   bot.command("pair", async (ctx) => {

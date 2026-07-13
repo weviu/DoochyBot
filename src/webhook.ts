@@ -28,7 +28,7 @@ function secretEquals(a: string, b: string): boolean {
  * order pipeline applies directly. The optional LIMIT=<price> selects a resting
  * limit order at that price; without it the signal is a market order.
  */
-function parseTextSignal(text: string, source: string): ParsedSignal | null {
+export function parseTextSignal(text: string, source: string): ParsedSignal | null {
   const m = text.trim().match(/^(BUY|SELL)\s+(\S+)\s+(?:LIMIT=([\d.]+)\s+)?SL=([\d.]+)\s+TP=([\d.]+)/i);
   if (!m) return null;
 

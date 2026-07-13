@@ -6,7 +6,7 @@ import http from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { Registry, REQUEST_TIMEOUT_MS } from "./registry";
 import { requireAuth } from "./auth";
-import { getOwnerId, setUserSettings } from "./db";
+import { getUsers, setUserSettings } from "./db";
 import { AgentMsg } from "./protocol";
 
 // The Hub's HTTP + WebSocket surface, mirroring the routes the single-user bot
@@ -114,21 +114,33 @@ export function startHubServer(registry: Registry, port: number): http.Server {
       return res.status(400).send("Could not parse signal");
     }
 
-    const ownerId = getOwnerId();
-    const socket = ownerId !== undefined ? registry.socketFor(ownerId) : undefined;
-    if (!socket) {
-      console.warn("[HUB] Owner agent offline; signal dropped");
-      return res.status(503).send("Owner agent offline");
+    // Fan the signal out to EVERY connected agent; each user's own risk gate,
+    // symbol list, and pause state decide what to do with it. Users never run
+    // the channel-listener themselves: this hub-side broadcast is how channel
+    // signals reach them.
+    const users = getUsers();
+    const targets = registry.connectedUserIds()
+      .map((userId) => ({ userId, socket: registry.socketFor(userId)! }))
+      .filter((t) => t.socket);
+    if (targets.length === 0) {
+      console.warn("[HUB] No agents online; signal dropped");
+      return res.status(503).send("No agents online");
     }
 
-    try {
-      const reply = await registry.request(socket, { type: "signal", text: body, source }, REQUEST_TIMEOUT_MS);
-      // Mirror the old endpoint's contract: 200 for both accepted and
-      // gate-rejected signals, with the agent's text as the body.
-      return res.status(200).send(reply.data?.text || (reply.ok ? "Signal accepted" : `Signal rejected: ${reply.error || "unknown"}`));
-    } catch {
-      return res.status(503).send("Owner agent not responding");
-    }
+    const results = await Promise.all(targets.map(async ({ userId, socket }) => {
+      const name = users[String(userId)]?.name || String(userId);
+      try {
+        const reply = await registry.request(socket, { type: "signal", text: body, source }, REQUEST_TIMEOUT_MS);
+        return `${name}: ${reply.data?.text || (reply.ok ? "accepted" : `rejected: ${reply.error || "unknown"}`)}`;
+      } catch {
+        return `${name}: agent not responding`;
+      }
+    }));
+
+    console.log(`[HUB] Signal fanned out to ${targets.length} agent(s)`);
+    // 200 regardless of individual outcomes, same contract as the old
+    // endpoint; the body carries the per-user results for the listener's log.
+    return res.status(200).send(results.join("\n"));
   });
 
   // Everything else is a flat 404, same explicit surface as the old server.

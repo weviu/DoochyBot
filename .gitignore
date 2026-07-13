@@ -1,5 +1,6 @@
 .env
 .env.docker
+.env.hub
 
 # node stuff
 node_modules/
@@ -9,4 +10,4 @@ data/
 tradeHistory/
 dist/
 docs/
-.env.hub
+x.env
