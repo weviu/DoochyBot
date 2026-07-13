@@ -16,7 +16,11 @@ export function Settings({ status }: { status: StatusData | null }) {
   const [flash, setFlash] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   const [addSym, setAddSym] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
+  // A message shown inline in the Symbols section (the add/remove result),
+  // separate from the page-top flash so it's visible right where you're typing.
+  const [symMsg, setSymMsg] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const symMsgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -28,13 +32,22 @@ export function Settings({ status }: { status: StatusData | null }) {
 
   useEffect(() => {
     load();
-    return () => { if (flashTimer.current) clearTimeout(flashTimer.current); };
+    return () => {
+      if (flashTimer.current) clearTimeout(flashTimer.current);
+      if (symMsgTimer.current) clearTimeout(symMsgTimer.current);
+    };
   }, [load]);
 
   function showFlash(tone: "success" | "danger", text: string) {
     setFlash({ tone, text });
     if (flashTimer.current) clearTimeout(flashTimer.current);
     flashTimer.current = setTimeout(() => setFlash(null), 5000);
+  }
+
+  function showSymMsg(tone: "success" | "danger", text: string) {
+    setSymMsg({ tone, text });
+    if (symMsgTimer.current) clearTimeout(symMsgTimer.current);
+    symMsgTimer.current = setTimeout(() => setSymMsg(null), 5000);
   }
 
   // Run one command, surface its reply, and refresh settings from the snapshot
@@ -132,6 +145,7 @@ export function Settings({ status }: { status: StatusData | null }) {
 
       {/* ---- Symbols --------------------------------------------------------*/}
       <SectionCard title="Symbols" description={`${s.allowedSymbols.length} allowed.`}>
+        {symMsg && <Flash tone={symMsg.tone}>{symMsg.text}</Flash>}
         <div className="flex flex-wrap gap-2">
           {s.allowedSymbols.length === 0 && (
             <span className="text-xs text-fg-faint">None. Add one below.</span>
@@ -309,19 +323,19 @@ export function Settings({ status }: { status: StatusData | null }) {
       const nowPresent = res.settings?.allowedSymbols?.includes(sym);
       if (nowPresent && !wasPresent) {
         notify("success");
-        showFlash("success", `Added ${sym}.`);
+        showSymMsg("success", `Added ${sym}.`);
         setAddSym("");
       } else if (nowPresent) {
         notify("warning");
-        showFlash("danger", `${sym} is already in the list.`);
+        showSymMsg("danger", `${sym} is already in the list.`);
       } else {
         notify("error");
-        showFlash("danger", `${sym} is not a valid tradable symbol. Check the ticker (e.g. XAUUSD, BTCUSD).`);
+        showSymMsg("danger", `${sym} is not a valid tradable symbol. Check the ticker (e.g. XAUUSD, BTCUSD).`);
         // Keep the input so the user can correct the typo.
       }
     } catch (e: any) {
       notify("error");
-      showFlash("danger", e?.message || "Could not add symbol");
+      showSymMsg("danger", e?.message || "Could not add symbol");
     }
   }
 }
