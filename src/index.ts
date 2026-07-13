@@ -169,7 +169,18 @@ async function buildConnection(): Promise<any> {
     port: config.ctrader.port,
   });
 
-  await connection.open();
+  // open() is NOT covered by installRequestTimeout (that wraps sendCommand, and is
+  // applied below). The cTrader layer's open() can hang forever if the socket
+  // half-opens during a network drop mid-reconnect, wedging reconnect() on this
+  // attempt with reconnecting=true — which also disables the watchdog, so the bot
+  // never recovers without a restart. Bound it so a stalled open rejects and the
+  // reconnect loop retries with backoff instead.
+  await Promise.race([
+    connection.open(),
+    new Promise((_resolve, reject) =>
+      setTimeout(() => reject(new Error("socket open timed out")), REQUEST_TIMEOUT_MS)
+    ),
+  ]);
   installRequestTimeout(connection);
   console.log("[CTRADER] Socket opened");
 
