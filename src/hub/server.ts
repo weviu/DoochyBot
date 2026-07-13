@@ -66,6 +66,41 @@ async function relayApi(
   }
 }
 
+// Relay a settings/command mutation to the user's agent via the cmd path (the
+// same one Telegram uses), so the panel and the chat share one code path. The
+// agent runs its existing handler and returns { text, settings }; we persist
+// the settings snapshot and hand the panel back { text, settings } to refresh
+// its forms. HTTP mapping matches relayApi: 503 offline, 502 agent error.
+async function relayCommand(
+  registry: Registry,
+  userId: number,
+  body: any,
+  res: express.Response
+): Promise<void> {
+  const cmd = typeof body?.cmd === "string" ? body.cmd.trim() : "";
+  const args = Array.isArray(body?.args) ? body.args.map((a: any) => String(a)) : [];
+  if (!cmd) {
+    res.status(400).json({ error: "cmd required" });
+    return;
+  }
+  const socket = registry.socketFor(userId);
+  if (!socket) {
+    res.status(503).json({ error: "agent offline" });
+    return;
+  }
+  try {
+    const reply = await registry.request(socket, { type: "cmd", cmd, args });
+    if (!reply.ok) {
+      res.status(502).json({ error: reply.error || "agent error" });
+      return;
+    }
+    if (reply.data?.settings) setUserSettings(userId, reply.data.settings);
+    res.json({ text: reply.data?.text ?? "OK", settings: reply.data?.settings ?? null });
+  } catch {
+    res.status(503).json({ error: "agent offline or not responding" });
+  }
+}
+
 export function startHubServer(registry: Registry, port: number): http.Server {
   const app = express();
 
@@ -78,9 +113,18 @@ export function startHubServer(registry: Registry, port: number): http.Server {
   // with the agent offline, but every live route goes through the agent.
   api.get("/status", (req: any, res) => relayApi(registry, req.telegramUserId, "status", {}, res));
   api.get("/positions", (req: any, res) => relayApi(registry, req.telegramUserId, "positions", {}, res));
+  api.get("/settings", (req: any, res) => relayApi(registry, req.telegramUserId, "settings", {}, res));
   api.post("/pause", (req: any, res) => relayApi(registry, req.telegramUserId, "pause", {}, res));
   api.post("/resume", (req: any, res) => relayApi(registry, req.telegramUserId, "resume", {}, res));
   api.post("/closeall", (req: any, res) => relayApi(registry, req.telegramUserId, "closeall", {}, res));
+
+  // Generic command relay: the mini-app's settings panel POSTs { cmd, args }
+  // and it runs through the very same agent handler a Telegram command would,
+  // so the two surfaces can never drift. The agent's reply carries the display
+  // text and a fresh settings snapshot, which we persist as the last-known copy
+  // (mirroring bot.ts's relay()). userId comes from the authenticated socket,
+  // never the body.
+  api.post("/command", (req: any, res) => relayCommand(registry, req.telegramUserId, req.body, res));
   app.use("/api", api);
 
   // ---- /app: static mini-app (unchanged from the single-user server) ---------

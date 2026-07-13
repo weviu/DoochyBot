@@ -41,13 +41,55 @@ export interface PositionsData {
   totalPnL: number;
 }
 
-async function request<T>(path: string, method: "GET" | "POST" = "GET"): Promise<T> {
+// The full agent-side settings object (src/state.ts BotSettings). Every field is
+// editable from the panel by relaying the matching Telegram command.
+export interface Settings {
+  allowedSymbols: string[];
+  maxPositions: number;
+  maxDailyLossUSD: number;
+  minHoldSeconds: number;
+  riskPerTradeUSD: number;
+  riskOverrunPercent: number;
+  dailyProfitCapUSD: number;
+  capBufferUSD: number;
+  maxConsecutiveLosses: number;
+  lossWindowMinutes: number;
+  cooldownMinutes: number;
+  reentryCooldownMinutes: number;
+  maxCombinedRiskUSD: number;
+  notifyFills: boolean;
+  signalNotify: boolean;
+  signalNotifyMinConfidence: number;
+  webhookConfidence: number;
+  minConfidence: number;
+  staleOrderBars: number;
+  marginAware: boolean;
+  btcBiasGate: boolean;
+  btcBiasMinConfBearish: number;
+  btcBiasMinConfStrongBearish: number;
+}
+
+// A command relay always returns the display text plus a fresh settings
+// snapshot, so the panel can refresh its forms from the authoritative agent
+// state after every change.
+export interface CommandResult {
+  text: string;
+  settings: Settings | null;
+}
+
+async function request<T>(
+  path: string,
+  method: "GET" | "POST" = "GET",
+  body?: unknown
+): Promise<T> {
   const res = await fetch(`/api${path}`, {
     method,
     headers: {
       // Signed Telegram payload; the server validates it against the bot token.
       Authorization: `tma ${initData()}`,
+      ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
     },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;
@@ -65,7 +107,12 @@ async function request<T>(path: string, method: "GET" | "POST" = "GET"): Promise
 export const api = {
   status: () => request<StatusData>("/status"),
   positions: () => request<PositionsData>("/positions"),
+  settings: () => request<Settings>("/settings"),
   pause: () => request<{ paused: boolean }>("/pause", "POST"),
   resume: () => request<{ paused: boolean; lockCleared: boolean }>("/resume", "POST"),
   closeall: () => request<{ closed: number; failed: number; total: number }>("/closeall", "POST"),
+  // Run a Telegram command (e.g. command("risk", ["pertrade", "50"])) through
+  // the agent and get back its reply text and refreshed settings.
+  command: (cmd: string, args: string[] = []) =>
+    request<CommandResult>("/command", "POST", { cmd, args }),
 };

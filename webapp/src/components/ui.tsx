@@ -1,5 +1,5 @@
-import { Loader2 } from "lucide-react";
-import { useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { Check, ChevronDown, Loader2 } from "lucide-react";
+import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { haptic } from "../lib/telegram";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
@@ -116,5 +116,216 @@ export function Badge({
     <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${tones[tone]}`}>
       {children}
     </span>
+  );
+}
+
+// A labelled numeric setting with an inline Save that only enables when the
+// value has actually changed. On save it runs the async commit (which relays
+// the command and returns fresh settings); the ">=400ms loading floor lives in
+// Button so a fast round-trip never flickers. `value` is the authoritative
+// current setting; local edits reset to it whenever it changes upstream.
+export function NumberField({
+  label,
+  help,
+  value,
+  suffix,
+  min,
+  max,
+  step = 1,
+  onSave,
+}: {
+  label: string;
+  help?: string;
+  value: number;
+  suffix?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  onSave: (next: number) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => setDraft(String(value)), [value]);
+
+  const parsed = Number(draft);
+  const valid = draft.trim() !== "" && Number.isFinite(parsed) &&
+    (min === undefined || parsed >= min) && (max === undefined || parsed <= max);
+  const changed = valid && parsed !== value;
+
+  return (
+    <div className="flex items-end justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <label className="text-sm font-medium text-fg-muted">{label}</label>
+        {help && <p className="mt-0.5 text-xs text-fg-faint">{help}</p>}
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <div className="relative">
+          <input
+            type="number"
+            inputMode="decimal"
+            value={draft}
+            min={min}
+            max={max}
+            step={step}
+            onChange={(e) => setDraft(e.target.value)}
+            className={
+              "w-24 rounded-md border bg-surface px-3 py-2 text-sm tabular-nums text-fg " +
+              "placeholder:text-fg-faint focus:outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/40 " +
+              (valid ? "border-hairline" : "border-danger/50") +
+              (suffix ? " pr-8" : "")
+            }
+          />
+          {suffix && (
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-fg-faint">
+              {suffix}
+            </span>
+          )}
+        </div>
+        <Button
+          size="sm"
+          variant={changed ? "primary" : "secondary"}
+          disabled={!changed}
+          onClickAsync={changed ? () => onSave(parsed) : undefined}
+        >
+          Save
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// A boolean setting rendered as a switch. The whole row is the hit target; the
+// async commit shows a small spinner in place of the knob transition.
+export function Toggle({
+  label,
+  help,
+  checked,
+  onToggle,
+}: {
+  label: string;
+  help?: string;
+  checked: boolean;
+  onToggle: (next: boolean) => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  async function flip() {
+    if (busy) return;
+    haptic("light");
+    setBusy(true);
+    const started = Date.now();
+    try {
+      await onToggle(!checked);
+    } finally {
+      const elapsed = Date.now() - started;
+      if (elapsed < 400) await new Promise((r) => setTimeout(r, 400 - elapsed));
+      setBusy(false);
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={flip}
+      disabled={busy}
+      className="flex w-full items-center justify-between gap-3 text-left disabled:opacity-60"
+    >
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium text-fg-muted">{label}</span>
+        {help && <span className="mt-0.5 block text-xs text-fg-faint">{help}</span>}
+      </span>
+      <span
+        className={
+          "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition " +
+          (checked ? "bg-accent" : "bg-surface-active")
+        }
+      >
+        <span
+          className={
+            "inline-flex h-4 w-4 items-center justify-center rounded-full bg-white transition " +
+            (checked ? "translate-x-4" : "translate-x-0.5")
+          }
+        >
+          {busy && <Loader2 className="h-3 w-3 animate-spin text-accent" />}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+// A collapsible settings section. Starts open; the header toggles it. Purely a
+// layout container for a group of NumberField/Toggle/chip controls.
+export function SectionCard({
+  title,
+  description,
+  children,
+  defaultOpen = true,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Card className="overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition hover:bg-surface-hover"
+      >
+        <span>
+          <span className="block text-sm font-semibold text-fg">{title}</span>
+          {description && <span className="mt-0.5 block text-xs text-fg-faint">{description}</span>}
+        </span>
+        <ChevronDown className={"h-4 w-4 shrink-0 text-fg-muted transition " + (open ? "rotate-180" : "")} />
+      </button>
+      {open && <div className="space-y-5 border-t border-hairline px-5 py-5">{children}</div>}
+    </Card>
+  );
+}
+
+// A save-state flash used after a command relay: shows the agent's reply text
+// briefly, tinted by success/error. Auto-clears after a few seconds.
+export function Flash({ tone, children }: { tone: "success" | "danger"; children: ReactNode }) {
+  const cls = tone === "success"
+    ? "border-success/30 bg-success-soft text-success"
+    : "border-danger/30 bg-danger-soft text-danger";
+  return (
+    <div className={`flex items-start gap-2 rounded-md border px-3 py-2 text-xs ${cls}`}>
+      {tone === "success" && <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" />}
+      <span className="min-w-0">{children}</span>
+    </div>
+  );
+}
+
+// Selectable/removable symbol chip. In "remove" mode the whole chip is a button
+// that removes the symbol; a plain chip is display-only.
+export function Chip({
+  children,
+  onRemove,
+}: {
+  children: ReactNode;
+  onRemove?: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  if (!onRemove) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-md border border-hairline bg-surface px-2 py-1 text-xs font-medium text-fg-muted">
+        {children}
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={async () => {
+        haptic("light");
+        setBusy(true);
+        try { await onRemove(); } finally { setBusy(false); }
+      }}
+      className="inline-flex items-center gap-1 rounded-md border border-hairline bg-surface px-2 py-1 text-xs font-medium text-fg-muted transition hover:border-danger/40 hover:text-danger disabled:opacity-50"
+    >
+      {children}
+      {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <span className="text-fg-faint">×</span>}
+    </button>
   );
 }

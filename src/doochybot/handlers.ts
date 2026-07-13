@@ -110,6 +110,10 @@ async function runApi(endpoint: string): Promise<{ ok: boolean; data?: any; erro
       return { ok: true, data: await getStatusData(getConnection()) };
     case "positions":
       return { ok: true, data: getPositionsData() };
+    case "settings":
+      // The full settings object, for the mini-app's control panel to pre-fill
+      // its forms. The text /settings command isn't machine-readable; this is.
+      return { ok: true, data: { ...state.settings } };
     case "pause":
       pauseTrading();
       return { ok: true, data: { paused: true } };
