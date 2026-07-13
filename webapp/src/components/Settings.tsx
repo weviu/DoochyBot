@@ -245,14 +245,6 @@ export function Settings({ status }: { status: StatusData | null }) {
           max={100}
           onSave={(n) => run("risk", ["minconfidence", String(n)])}
         />
-        <NumberField
-          label="Stale-order bars"
-          help="Cancel an unfilled feed stop/limit after this many bars (0 = never)."
-          value={s.staleOrderBars}
-          min={0}
-          max={100}
-          onSave={(n) => run("risk", ["stalebars", String(n)])}
-        />
         <Toggle
           label="Margin-aware sizing"
           help="Cap each order to fit free margin."
@@ -306,7 +298,30 @@ export function Settings({ status }: { status: StatusData | null }) {
   async function addSymbol() {
     const sym = addSym.trim().toUpperCase();
     if (!sym) return;
-    await run("symbols", ["add", sym]);
-    setAddSym("");
+    const wasPresent = s?.allowedSymbols?.includes(sym) ?? false;
+    try {
+      const res = await api.command("symbols", ["add", sym]);
+      if (res.settings) setS(res.settings);
+      else await load();
+      // Source of truth: did the symbol actually land in the allowed list? If
+      // the agent refused it (unknown symbol, can't value in USD), it won't be
+      // there, so show a clear warning instead of the verbose relay text.
+      const nowPresent = res.settings?.allowedSymbols?.includes(sym);
+      if (nowPresent && !wasPresent) {
+        notify("success");
+        showFlash("success", `Added ${sym}.`);
+        setAddSym("");
+      } else if (nowPresent) {
+        notify("warning");
+        showFlash("danger", `${sym} is already in the list.`);
+      } else {
+        notify("error");
+        showFlash("danger", `${sym} is not a valid tradable symbol. Check the ticker (e.g. XAUUSD, BTCUSD).`);
+        // Keep the input so the user can correct the typo.
+      }
+    } catch (e: any) {
+      notify("error");
+      showFlash("danger", e?.message || "Could not add symbol");
+    }
   }
 }
