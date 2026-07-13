@@ -16,7 +16,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@11.12.0",
+  "packageManager": "pnpm@10.34.5",
   "dependencies": {
     "@reiryoku/ctrader-layer": "^2.2.0",
     "dotenv": "^17.4.2",
