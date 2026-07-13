@@ -56,9 +56,13 @@ async function askRequired(question: string): Promise<string> {
   }
 }
 
-function run(cmd: string, args: string[]): number {
+function run(cmd: string, args: string[], extraEnv?: Record<string, string>): number {
   // shell:true so this works on Windows too (pnpm is a .cmd shim there).
-  const r = spawnSync(cmd, args, { stdio: "inherit", shell: true });
+  const r = spawnSync(cmd, args, {
+    stdio: "inherit",
+    shell: true,
+    env: extraEnv ? { ...process.env, ...extraEnv } : process.env,
+  });
   return r.status ?? 1;
 }
 
@@ -185,12 +189,54 @@ async function main() {
   }
 
   const start = (await ask("Start DoochyBot now? (y/n)", "y")).toLowerCase();
-  rl.close();
+
   if (start.startsWith("y")) {
-    // First start prompts for the pairing code from /pair in @DoochyBot.
-    process.exit(run("node", [path.join("dist", "doochybot", "index.js")]));
+    // If not paired yet, collect the /pair code HERE, in the wizard's own
+    // (working) readline, and pass it to the agent via AGENT_PAIR_CODE. We do
+    // NOT let the agent prompt for it: the agent runs as a shell grandchild of
+    // this wizard, and on Windows that inherited/closed stdin often never
+    // delivers lines to the grandchild's readline, so a code typed there is
+    // silently lost. An env var needs no readline and always works.
+    const tokenFile = path.join(process.cwd(), "data", "doochybot-token.json");
+    let alreadyPaired = false;
+    try { alreadyPaired = !!JSON.parse(fs.readFileSync(tokenFile, "utf-8")).token; } catch { /* not paired */ }
+
+    const env: Record<string, string> = {};
+    if (!alreadyPaired) {
+      console.log("");
+      console.log("Send /pair to @DoochyBot in Telegram to get a 6-character code.");
+      const code = await askPairCode();
+      rl.close();
+      if (!code) {
+        console.log("No code entered. Start later with: pnpm doochybot:start (it will ask again),");
+        console.log("or:  AGENT_PAIR_CODE=YOURCODE pnpm doochybot:start");
+        process.exit(0);
+      }
+      env.AGENT_PAIR_CODE = code;
+    } else {
+      rl.close();
+    }
+
+    process.exit(run("node", [path.join("dist", "doochybot", "index.js")], env));
   }
+  rl.close();
   console.log("Done. Start any time with: pnpm doochybot:start");
+}
+
+// Pair codes are 6 chars from the Hub's unambiguous alphabet (no 0/O/1/I).
+const PAIR_CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/;
+
+// Ask for the pairing code using the wizard's own readline (which works, since
+// the user already answered the credential questions through it). Re-asks on a
+// malformed entry; returns "" if input ends so the caller can fall back.
+async function askPairCode(): Promise<string> {
+  for (;;) {
+    const raw = (await ask("Pairing code")).trim().toUpperCase();
+    if (PAIR_CODE_RE.test(raw)) return raw;
+    if (stdinClosed && pendingLines.length === 0) return "";
+    if (raw.length === 0) console.log("  Paste the 6-character code from /pair.");
+    else console.log(`  "${raw}" is not a valid code (6 characters, A-Z and 2-9). Try again.`);
+  }
 }
 
 main();
