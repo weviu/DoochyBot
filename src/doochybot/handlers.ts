@@ -1,6 +1,8 @@
-import { state } from "../state";
+import { state, symbolIdFor } from "../state";
 import { processSignal } from "../risk/gate";
 import { parseTextSignal } from "../webhook";
+import { getSymbolSpec, previewOrder } from "../ctrader/orders";
+import { canValueInUsd, getQuote } from "../ctrader/livePrices";
 import { pauseCmd } from "../bot/commands/pause";
 import { resumeCmd } from "../bot/commands/resume";
 import { symbolsCmd } from "../bot/commands/symbols";
@@ -104,7 +106,7 @@ async function runCommand(cmd: string, args: string[]): Promise<{ ok: boolean; d
 }
 
 // The mini-app API surface, same endpoints the old in-process /api served.
-async function runApi(endpoint: string): Promise<{ ok: boolean; data?: any; error?: string }> {
+async function runApi(endpoint: string, params: Record<string, any> = {}): Promise<{ ok: boolean; data?: any; error?: string }> {
   switch (endpoint) {
     case "status":
       return { ok: true, data: await getStatusData(getConnection()) };
@@ -114,6 +116,55 @@ async function runApi(endpoint: string): Promise<{ ok: boolean; data?: any; erro
       // The full settings object, for the mini-app's control panel to pre-fill
       // its forms. The text /settings command isn't machine-readable; this is.
       return { ok: true, data: { ...state.settings } };
+
+    // Live two-sided prices plus each symbol's tradable size grid, for the
+    // manual-order panel's selector and price header. Only allowed symbols:
+    // those are the ones already pre-subscribed at boot (so this is an
+    // in-memory read) and the only ones an order would be accepted for.
+    case "quotes": {
+      const rows = await Promise.all(state.settings.allowedSymbols.map(async (symbol) => {
+        const q = getQuote(symbol);
+        const symId = symbolIdFor(symbol);
+        let minLots: number | null = null;
+        let lotStep: number | null = null;
+        if (symId !== undefined) {
+          try {
+            const spec = await getSymbolSpec(symId);
+            if (spec?.lotSize) {
+              minLots = spec.minVolume ? spec.minVolume / spec.lotSize : null;
+              lotStep = spec.stepVolume ? spec.stepVolume / spec.lotSize : null;
+            }
+          } catch { /* spec unavailable; the panel falls back to free-form input */ }
+        }
+        return {
+          symbol,
+          bid: q?.bid ?? null,
+          ask: q?.ask ?? null,
+          hasQuote: !!q,
+          tradable: symId !== undefined && canValueInUsd(symbol),
+          minLots,
+          lotStep,
+        };
+      }));
+      return { ok: true, data: { quotes: rows } };
+    }
+
+    // What a given size (or a given risk) would actually mean, computed by the
+    // same code that sizes the real order.
+    case "order_preview": {
+      const res = await previewOrder({
+        symbol: String(params.symbol || ""),
+        direction: params.direction === "SELL" ? "SELL" : "BUY",
+        orderType: params.orderType === "LIMIT" ? "LIMIT" : "MARKET",
+        entry: params.entry != null ? Number(params.entry) : null,
+        sl: params.sl != null ? Number(params.sl) : null,
+        tp: params.tp != null ? Number(params.tp) : null,
+        mode: params.mode === "risk" ? "risk" : "size",
+        lots: params.lots != null ? Number(params.lots) : null,
+        riskUSD: params.riskUSD != null ? Number(params.riskUSD) : null,
+      });
+      return res.ok ? { ok: true, data: res.preview } : { ok: false, error: res.error };
+    }
     case "pause":
       pauseTrading();
       return { ok: true, data: { paused: true } };
@@ -149,7 +200,7 @@ export async function handleHubRequest(msg: HubRequest): Promise<{ ok: boolean; 
     case "cmd":
       return runCommand(String(msg.cmd || ""), msg.args || []);
     case "api":
-      return runApi(String(msg.endpoint || ""));
+      return runApi(String(msg.endpoint || ""), msg.params || {});
     case "signal":
       return runSignal(String(msg.text || ""), String(msg.source || "Channel"));
     default:

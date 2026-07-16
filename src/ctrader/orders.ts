@@ -220,6 +220,137 @@ function riskBasedVolume(riskUSD: number, stopDistance: number, spec: SymbolSpec
   return vol > 0 ? vol : null;
 }
 
+// ---------------------------------------------------------------------------
+// Mini-app order preview
+//
+// The manual-order panel needs to show, before anything is placed, what a given
+// size would risk (or what a given risk implies as a size). Both directions use
+// the SAME model and the SAME broker-grid snapping as executeSignal's manual
+// path, so the figure on screen is the one the order actually gets — deliberately
+// computed here rather than re-derived in the browser, where it would silently
+// drift from the money model the moment either changes.
+
+export interface OrderPreviewParams {
+  symbol: string;
+  direction: "BUY" | "SELL";
+  orderType: "MARKET" | "LIMIT";
+  entry?: number | null;   // resting level; required for LIMIT
+  sl?: number | null;
+  tp?: number | null;
+  mode: "size" | "risk";
+  lots?: number | null;    // mode = "size"
+  riskUSD?: number | null; // mode = "risk"
+}
+
+export interface OrderPreview {
+  symbol: string;
+  markPrice: number | null;
+  entryRef: number | null;   // what the risk/reward is measured from
+  lots: number | null;       // final lots, after snapping to the broker grid
+  volumeCents: number | null;
+  riskUSD: number | null;    // loss if the SL is hit, at the FINAL size
+  rewardUSD: number | null;  // gain if the TP is hit, at the FINAL size
+  rr: number | null;
+  snapped: boolean;          // the broker grid moved the size off what was asked
+  minLots: number | null;
+  lotStep: number | null;
+  warnings: string[];
+}
+
+export async function previewOrder(p: OrderPreviewParams): Promise<{ ok: boolean; error?: string; preview?: OrderPreview }> {
+  const symbol = String(p.symbol || "").toUpperCase();
+  const direction = p.direction === "SELL" ? "SELL" : "BUY";
+  const warnings: string[] = [];
+
+  const symId = symbolIdFor(symbol);
+  if (symId === undefined) return { ok: false, error: `${symbol} is not available on this broker` };
+  if (!canValueInUsd(symbol)) return { ok: false, error: `${symbol} cannot be valued in USD (no conversion pair)` };
+  if (!state.settings.allowedSymbols.includes(symbol)) {
+    warnings.push(`${symbol} is not in your allowed symbols; the order would be refused.`);
+  }
+
+  const spec = await getSymbolSpec(symId);
+  if (!spec?.lotSize) return { ok: false, error: `No contract spec for ${symbol}` };
+
+  const markPrice = getMarkPrice(symbol, direction);
+  if (markPrice === null) warnings.push("No live quote yet for this symbol.");
+
+  // Same anchor executeSignal uses: an explicit resting level for a limit,
+  // otherwise the live mark.
+  const entryRef = p.orderType === "LIMIT"
+    ? (p.entry && p.entry > 0 ? p.entry : null)
+    : markPrice;
+
+  // quoteToUsd is 1 for USD-quoted symbols; a missing rate only degrades this
+  // display figure (executeSignal's manual path falls back to 1 the same way).
+  const factorRaw = quoteToUsd(symbol);
+  if (factorRaw === null) warnings.push("No USD conversion rate yet; figures are approximate.");
+  const factor = factorRaw ?? 1;
+
+  const sl = p.sl != null && p.sl > 0 ? p.sl : null;
+  const tp = p.tp != null && p.tp > 0 ? p.tp : null;
+  const stopDistance = sl != null && entryRef != null ? Math.abs(entryRef - sl) : null;
+
+  // Resolve the size, from either direction of the switch.
+  let requestedVol: number | null = null;
+  if (p.mode === "risk") {
+    const riskUSD = p.riskUSD != null && p.riskUSD > 0 ? p.riskUSD : null;
+    if (riskUSD === null) return { ok: false, error: "Enter the amount you are willing to risk" };
+    if (stopDistance === null || stopDistance <= 0) {
+      return { ok: false, error: entryRef === null ? "No entry price to size against yet" : "Set a stop loss away from the entry to size by risk" };
+    }
+    // Risk is expressed in the symbol's quote currency for sizing, exactly as
+    // executeSignal does (riskUSD / factor), then snapped below.
+    requestedVol = (riskUSD / factor) * 100 / stopDistance;
+  } else {
+    const lots = p.lots != null && p.lots > 0 ? p.lots : null;
+    if (lots === null) return { ok: false, error: "Enter a size in lots" };
+    requestedVol = lots * spec.lotSize;
+  }
+
+  // The broker's volume grid, applied identically to executeSignal's manual path.
+  let vol = Math.round(requestedVol);
+  if (spec.stepVolume > 0) vol = Math.round(vol / spec.stepVolume) * spec.stepVolume;
+  if (spec.minVolume && vol < spec.minVolume) vol = spec.minVolume;
+  if (spec.maxVolume && vol > spec.maxVolume) vol = spec.maxVolume;
+  if (vol <= 0) return { ok: false, error: "That size rounds to zero on this symbol" };
+
+  // Same test executeSignal's manual path uses: did the grid move the size off
+  // what was asked for at all? (A tolerance of half a step would never fire —
+  // rounding to the nearest step can't differ by more than that.)
+  const snapped = vol !== Math.round(requestedVol);
+  const lots = vol / spec.lotSize;
+
+  // Risk/reward at the FINAL (snapped) size, so the number shown is the number
+  // that will actually be at stake.
+  const riskUSD = stopDistance != null ? stopDistance * (vol / 100) * factor : null;
+  const rewardUSD = tp != null && entryRef != null ? Math.abs(tp - entryRef) * (vol / 100) * factor : null;
+  const rr = riskUSD && riskUSD > 0 && rewardUSD != null ? rewardUSD / riskUSD : null;
+
+  if (p.mode === "risk" && riskUSD != null && p.riskUSD != null && riskUSD > p.riskUSD * 1.05) {
+    warnings.push(`The broker's minimum size risks $${riskUSD.toFixed(2)}, above your $${p.riskUSD.toFixed(2)} target.`);
+  }
+  if (sl === null) warnings.push("No stop loss set: risk is unbounded.");
+
+  return {
+    ok: true,
+    preview: {
+      symbol,
+      markPrice,
+      entryRef,
+      lots,
+      volumeCents: vol,
+      riskUSD,
+      rewardUSD,
+      rr,
+      snapped,
+      minLots: spec.minVolume ? spec.minVolume / spec.lotSize : null,
+      lotStep: spec.stepVolume ? spec.stepVolume / spec.lotSize : null,
+      warnings,
+    },
+  };
+}
+
 // Reverse lookup of a symbolId to its name using the cached symbolMap.
 function symbolNameById(symbolId: number): string {
   const target = String(symbolId);

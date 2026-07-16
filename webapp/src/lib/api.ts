@@ -77,6 +77,51 @@ export interface CommandResult {
   settings: Settings | null;
 }
 
+// Live price + tradable size grid for one allowed symbol (manual-order panel).
+export interface Quote {
+  symbol: string;
+  bid: number | null;
+  ask: number | null;
+  hasQuote: boolean;
+  tradable: boolean;
+  minLots: number | null;
+  lotStep: number | null;
+}
+
+export interface QuotesData {
+  quotes: Quote[];
+}
+
+// What a size (or a risk) actually means, computed agent-side by the same code
+// that sizes the real order. riskUSD/lots are the FINAL values after the
+// broker's grid snapping, not what was requested.
+export interface OrderPreview {
+  symbol: string;
+  markPrice: number | null;
+  entryRef: number | null;
+  lots: number | null;
+  volumeCents: number | null;
+  riskUSD: number | null;
+  rewardUSD: number | null;
+  rr: number | null;
+  snapped: boolean;
+  minLots: number | null;
+  lotStep: number | null;
+  warnings: string[];
+}
+
+export interface OrderPreviewParams {
+  symbol: string;
+  direction: "BUY" | "SELL";
+  orderType: "MARKET" | "LIMIT";
+  entry?: number | null;
+  sl?: number | null;
+  tp?: number | null;
+  mode: "size" | "risk";
+  lots?: number | null;
+  riskUSD?: number | null;
+}
+
 async function request<T>(
   path: string,
   method: "GET" | "POST" = "GET",
@@ -115,4 +160,11 @@ export const api = {
   // the agent and get back its reply text and refreshed settings.
   command: (cmd: string, args: string[] = []) =>
     request<CommandResult>("/command", "POST", { cmd, args }),
+  quotes: () => request<QuotesData>("/quotes"),
+  orderPreview: (p: OrderPreviewParams) => request<OrderPreview>("/order/preview", "POST", p),
+  // Placing the order reuses the command relay: same handler the chat uses, so
+  // a manual order from the app and from Telegram are literally the same path.
+  //   market: BUY XAUUSD 0.02 <TP> <SL>
+  //   limit:  BUY XAUUSD 0.02 <entry> <TP> <SL>
+  placeOrder: (args: string[]) => request<CommandResult>("/command", "POST", { cmd: "order", args }),
 };

@@ -108,6 +108,16 @@ export function getMarkPrice(symbol: string, direction: "BUY" | "SELL"): number 
   return price > 0 ? price : null;
 }
 
+// The raw two-sided quote, for display (the mini-app's price header shows bid,
+// ask and the spread). getMarkPrice picks a side for valuation; this exposes
+// both without duplicating the symbolId/coercion handling.
+export function getQuote(symbol: string): { bid: number; ask: number; time: number } | null {
+  const symId = symbolIdFor(symbol);
+  if (symId === undefined) return null;
+  const q = quotes.get(Number(symId));
+  return q ? { bid: q.bid, ask: q.ask, time: q.time } : null;
+}
+
 // Has a live quote for this symbol arrived yet?
 export function hasLiveQuote(symbol: string): boolean {
   const symId = symbolIdFor(symbol);

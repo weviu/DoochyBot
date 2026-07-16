@@ -6,9 +6,10 @@ import { Button, Card } from "./components/ui";
 import { Dashboard } from "./components/Dashboard";
 import { Positions } from "./components/Positions";
 import { Settings } from "./components/Settings";
+import { Trade } from "./components/Trade";
 import { ConfirmModal } from "./components/Modal";
 
-type Tab = "dashboard" | "positions" | "settings";
+type Tab = "dashboard" | "positions" | "trade" | "settings";
 
 const POLL_MS = 5000;
 
@@ -79,7 +80,7 @@ export default function App() {
           </div>
         </div>
         <div className="mx-auto flex max-w-2xl gap-1 px-4 pb-2">
-          {(["dashboard", "positions", "settings"] as Tab[]).map((t) => (
+          {(["dashboard", "positions", "trade", "settings"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -108,9 +109,10 @@ export default function App() {
 
         {tab === "dashboard" && <Dashboard status={status} />}
         {tab === "positions" && <Positions data={positions} />}
+        {tab === "trade" && <Trade />}
         {tab === "settings" && <Settings status={status} />}
 
-        {tab !== "settings" && status && status.openPositions > 0 && (
+        {tab !== "settings" && tab !== "trade" && status && status.openPositions > 0 && (
           <div className="mt-6">
             <Button variant="danger" size="lg" className="w-full" onClick={() => setConfirmClose(true)}>
               <XOctagon className="h-4 w-4" /> Close all positions
