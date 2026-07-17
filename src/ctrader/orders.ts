@@ -60,6 +60,13 @@ function notifyFill(
 
 let connection: any = null;
 
+// Closing deals already added to the daily realized counter, so a duplicate
+// execution event (one per live connection after a reconnect) can't count the
+// same close twice. Cleared on the daily reset, which is also when the counter
+// it guards goes back to zero.
+const countedDeals = new Set<string>();
+export function clearCountedDeals(): void { countedDeals.clear(); }
+
 export function getConnection(): any { return connection; }
 
 export function setConnection(conn: any): void {
@@ -81,7 +88,18 @@ export function setConnection(conn: any): void {
       if (cpd) {
         const div = Math.pow(10, Number(cpd.moneyDigits ?? 2));
         net = (Number(cpd.grossProfit || 0) + Number(cpd.swap || 0) + Number(cpd.commission || 0)) / div;
-        updateDailyPnL(net);
+        // Count each closing deal ONCE. A reconnect wires a fresh connection and
+        // registers another listener on it, so without this the same close is
+        // added to the daily counter once per live connection — which silently
+        // walked the daily loss limit past its real value and locked trading on
+        // a loss that had already been counted.
+        const dealId = String(data.deal?.dealId ?? "");
+        if (dealId && countedDeals.has(dealId)) {
+          console.log(`[PNL] Ignoring duplicate close event for deal ${dealId} (already counted)`);
+        } else {
+          if (dealId) countedDeals.add(dealId);
+          updateDailyPnL(net);
+        }
       }
 
       // Per-symbol consecutive-loss protection. A stop-loss exit = the close came

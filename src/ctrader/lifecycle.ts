@@ -1,6 +1,8 @@
 import { CTraderConnection } from "@reiryoku/ctrader-layer";
 import { state, symbolIdFor } from "../state";
 import { setConnection, reconcilePositions } from "./orders";
+import { fetchTodayRealizedPnL } from "./account";
+import { evaluateDailyLimits } from "../risk/dailyLoss";
 import { setLivePriceConnection, subscribeOpenPositions, subscribeSpots, subscribeConversionPairs, resetSpotSubscriptions } from "./livePrices";
 import { setAmendConnection } from "./amend";
 import { setMidnightConnection } from "../risk/midnightClose";
@@ -244,6 +246,21 @@ async function reconnect(reason: string): Promise<void> {
       await resubscribeStreams();
       // Re-adopt open positions and refresh their broker-side SL/TP after the gap.
       await reconcilePositions();
+      // Re-seed today's realized P&L from the broker. Closes that happened while
+      // we were disconnected raise no execution event, so the in-memory counter
+      // would silently understate the day and the loss limit would not bite when
+      // it should. The broker's own figure is authoritative; take it.
+      try {
+        const seeded = await fetchTodayRealizedPnL(connection);
+        if (seeded !== state.dailyRealizedPnL) {
+          console.log(`[PNL] Re-seeded after reconnect: ${state.dailyRealizedPnL.toFixed(2)} -> ${seeded.toFixed(2)}`);
+        }
+        state.dailyRealizedPnL = seeded;
+        state.dailyPnLSeeded = true;
+        evaluateDailyLimits(true);
+      } catch (err: any) {
+        console.warn(`[PNL] Could not re-seed after reconnect: ${err.errorCode || err.message || "request failed"} (keeping in-memory figure)`);
+      }
       console.log(`[CTRADER] Reconnected (attempt ${attempt}); streams and positions re-synced`);
       break;
     } catch (err: any) {

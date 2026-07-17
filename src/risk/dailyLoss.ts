@@ -1,6 +1,7 @@
 import { state, setTradingLock } from "../state";
 import { notify } from "../bot/notify";
 import { getMarkPrice, quoteToUsd, hasLiveQuote } from "../ctrader/livePrices";
+import { clearCountedDeals } from "../ctrader/orders";
 
 // The hard daily loss threshold in USD. Single source of truth, set via
 // /risk maxloss. (The old percent-based limit was removed — it duplicated this
@@ -123,6 +124,9 @@ export function startDailyReset(): void {
       resetToday = true;
       state.dailyRealizedPnL = 0;
       state.dailyPnLSeeded = true; // we just set it to 0 - that is the correct value
+      // Yesterday's deals can never be counted again, and the set must not grow
+      // without bound across days.
+      clearCountedDeals();
       setTradingLock(false);
       console.log("[PNL] New trading day - P&L and lock reset");
     }
