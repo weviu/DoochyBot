@@ -141,8 +141,38 @@ export function setConnection(conn: any): void {
           });
         }
       }
+    } else if (
+      (pos.positionStatus === "POSITION_STATUS_OPEN" || pos.positionStatus === 1) &&
+      !state.positions.has(positionId)
+    ) {
+      // A position we don't already track just opened. Orders WE place are added
+      // to state.positions synchronously by executeSignal, so this only catches
+      // positions opened directly in the cTrader platform (outside the bot). Left
+      // untracked they're invisible to /positions, the mini-app, and the
+      // max-positions gate until the next restart/reconnect. Re-run reconcile
+      // (rather than a second, drift-prone position-builder) so the same
+      // allowed-symbol and USD-valuability rules apply as at boot.
+      console.log(`[POSITIONS] Untracked position #${positionId} opened (external fill); reconciling.`);
+      void adoptExternalPositions();
     }
   });
+}
+
+// Reconcile triggered by an external fill event, guarded so a burst of fills
+// doesn't launch overlapping reconciles. Any position skipped by reconcile's
+// filters (non-allowed symbol, non-USD-valuable) is intentionally left untracked,
+// exactly as at boot.
+let adoptingExternal = false;
+export async function adoptExternalPositions(): Promise<void> {
+  if (adoptingExternal) return;
+  adoptingExternal = true;
+  try {
+    await reconcilePositions();
+  } catch (err: any) {
+    console.warn(`[POSITIONS] External-fill reconcile failed: ${err?.message || err}`);
+  } finally {
+    adoptingExternal = false;
+  }
 }
 
 // Cancel every resting (unfilled) order at the broker for `symbol`. Used by the

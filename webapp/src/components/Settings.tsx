@@ -427,7 +427,6 @@ function ExportSection() {
           <input type="date" value={to} min={from} max={today} onChange={(e) => setTo(e.target.value)} className={dateInput} />
         </div>
       </div>
-      <p className="text-xs text-fg-faint">Both dates are inclusive. Defaults to today.</p>
 
       {rangeError && <Flash tone="danger">{rangeError}</Flash>}
       {msg && <Flash tone={msg.tone}>{msg.text}</Flash>}
