@@ -20,6 +20,7 @@ import { positionsCmd, getPositionsData } from "../bot/commands/positions";
 import { orderCmd } from "../bot/commands/order";
 import { getConnection, pauseTrading, resumeTrading, closeAll } from "../miniapp/service";
 import { HubRequest } from "./hubClient";
+import { DocumentPayload } from "../hub/protocol";
 
 // Translate Hub requests into the existing single-user handlers. The grammY
 // handlers only ever use ctx.message.text, ctx.reply, and (export only)
@@ -89,20 +90,43 @@ async function runCommand(cmd: string, args: string[]): Promise<{ ok: boolean; d
   const text = cmd === "order" ? args.join(" ") : `/${cmd} ${args.join(" ")}`.trim();
 
   const replies: string[] = [];
+  let document: DocumentPayload | undefined;
   const ctx = {
     message: { text },
     reply: async (t: string) => { replies.push(t); },
-    replyWithDocument: async () => {
-      replies.push("(file download is not available through the Hub yet)");
+    // /export hands grammY an InputFile; carry its bytes over the relay as
+    // base64 so the Hub can send the real file to Telegram. Only the last
+    // document survives — no command produces more than one.
+    replyWithDocument: async (file: any, other?: { caption?: string }) => {
+      const bytes: Buffer | undefined = file?.fileData;
+      if (!Buffer.isBuffer(bytes)) {
+        replies.push("(could not attach the file)");
+        return;
+      }
+      document = {
+        filename: file.filename || "export.json",
+        data: bytes.toString("base64"),
+        caption: other?.caption,
+      };
     },
   };
 
   await handler(ctx);
+
+  // Progress chatter ("Fetching trade history…") is written for a live chat: over
+  // the relay every reply is delivered at once, at the END, so it would arrive
+  // after the work it announces. Drop it when a file made it through — the
+  // document and its caption are the real answer.
+  const replyText = document
+    ? replies.filter((r) => !/^Fetching /i.test(r)).join("\n\n")
+    : replies.join("\n\n") || "OK";
+
   return {
     ok: true,
     data: {
-      text: replies.join("\n\n") || "OK",
+      text: replyText,
       settings: { ...state.settings },
+      ...(document ? { document } : {}),
     },
   };
 }

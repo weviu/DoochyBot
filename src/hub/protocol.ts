@@ -19,12 +19,24 @@ export interface ResponseMsg {
   type: "response";
   requestId: string;
   ok: boolean;
-  // For cmd requests: { text, settings? }. `text` is relayed verbatim to the
-  // user; if `settings` is present the Hub persists it to users.json as the
-  // last-known copy for offline display (the agent remains the authority).
+  // For cmd requests: { text, settings?, document? }. `text` is relayed verbatim
+  // to the user; if `settings` is present the Hub persists it to users.json as
+  // the last-known copy for offline display (the agent remains the authority);
+  // if `document` is present the Hub sends it as a Telegram file (this is how
+  // /export's trade history crosses the relay — see DocumentPayload).
   // For api requests: the JSON body to return to the mini-app.
   data?: any;
   error?: string;
+}
+
+// A file produced by a command (today only /export), carried inline as base64.
+// Exports are small — ~286 KB base64 for 1000 trades, against a 100 MiB socket
+// limit — so the simplicity of one JSON message beats a streaming channel.
+export interface DocumentPayload {
+  filename: string;
+  // base64-encoded file contents
+  data: string;
+  caption?: string;
 }
 
 export interface NotifyMsg {

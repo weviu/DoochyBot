@@ -1,7 +1,12 @@
-import { Bot, Context } from "grammy";
+import { Bot, Context, InputFile } from "grammy";
 import { Registry } from "./registry";
 import { addUser, getUser, isKnownUser } from "./db";
 import { persistSettingsSnapshot } from "./server";
+
+// /export walks the broker's deal history in 7-day chunks, so a wide range can
+// take far longer than a normal command's 15s. The agent is doing real work the
+// whole time; time out generously rather than abandon a live request.
+const EXPORT_TIMEOUT_MS = 120_000;
 
 // The Hub's Telegram bot. It owns exactly three things itself: the whitelist,
 // /pair, and static help text. Every trading command is relayed verbatim to
@@ -107,9 +112,26 @@ export function startHubBot(token: string, registry: Registry): Bot {
       return;
     }
     try {
-      const reply = await registry.request(socket, { type: "cmd", cmd, args });
+      // /export builds its file by pulling weeks of deals from the broker, which
+      // can outrun the default relay timeout; give a command that returns a
+      // document more room rather than failing a request that is still working.
+      const reply = await registry.request(socket, { type: "cmd", cmd, args }, EXPORT_TIMEOUT_MS);
       if (reply.data?.settings) persistSettingsSnapshot(userId, reply.data.settings);
-      await ctx.reply(reply.data?.text || (reply.ok ? "OK" : `Agent error: ${reply.error || "unknown"}`));
+
+      const text = reply.data?.text || (reply.ok ? "" : `Agent error: ${reply.error || "unknown"}`);
+      if (text) await ctx.reply(text);
+
+      // A command may return a file (today only /export). Rebuild it from base64
+      // and send it as a real Telegram document.
+      const doc = reply.data?.document;
+      if (doc?.data && doc?.filename) {
+        await ctx.replyWithDocument(
+          new InputFile(Buffer.from(doc.data, "base64"), doc.filename),
+          doc.caption ? { caption: doc.caption } : undefined
+        );
+      } else if (!text) {
+        await ctx.reply("OK");
+      }
     } catch {
       await ctx.reply("Agent offline or not responding.");
     }
