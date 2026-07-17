@@ -3,6 +3,8 @@ import { processSignal } from "../risk/gate";
 import { parseTextSignal } from "../webhook";
 import { getSymbolSpec, previewOrder } from "../ctrader/orders";
 import { canValueInUsd, getQuote } from "../ctrader/livePrices";
+import { closePosition } from "../risk/midnightClose";
+import { amendPositionSLTP } from "../ctrader/amend";
 import { pauseCmd } from "../bot/commands/pause";
 import { resumeCmd } from "../bot/commands/resume";
 import { symbolsCmd } from "../bot/commands/symbols";
@@ -147,6 +149,56 @@ async function runApi(endpoint: string, params: Record<string, any> = {}): Promi
         };
       }));
       return { ok: true, data: { quotes: rows } };
+    }
+
+    // Close one position outright (the mini-app's per-position close). Reuses
+    // the same closePosition the midnight closer and /closeall drive.
+    case "close_position": {
+      const posId = Number(params.posId);
+      const pos = state.positions.get(posId);
+      if (!pos) return { ok: false, error: "position not found (it may have just closed)" };
+      const label = `${pos.direction} ${pos.symbol} ${pos.volume}L`;
+      const ok = await closePosition(posId);
+      return ok
+        ? { ok: true, data: { closed: true, text: `Closed ${label}.` } }
+        : { ok: false, error: `Could not close ${label}` };
+    }
+
+    // Edit an open position's SL/TP. state.positions is updated as well as the
+    // broker: the SL watchdog and the profit-cap re-amend both re-send the
+    // position's stored levels, so without the state write they would quietly
+    // revert this edit on their next pass.
+    case "amend_position": {
+      const posId = Number(params.posId);
+      const pos = state.positions.get(posId);
+      if (!pos) return { ok: false, error: "position not found (it may have just closed)" };
+
+      const sl = params.sl != null && Number(params.sl) > 0 ? Number(params.sl) : null;
+      const tp = params.tp != null && Number(params.tp) > 0 ? Number(params.tp) : null;
+      if (sl === null && tp === null) return { ok: false, error: "nothing to change" };
+
+      // Same rule the manual-order path enforces: levels must sit on the right
+      // side of the entry, or the broker rejects them (or worse, accepts an
+      // instant-loss stop).
+      const ref = pos.entryPrice;
+      if (pos.direction === "BUY") {
+        if (tp != null && tp <= ref) return { ok: false, error: `For a BUY, TP must be above the entry (${ref})` };
+        if (sl != null && sl >= ref) return { ok: false, error: `For a BUY, SL must be below the entry (${ref})` };
+      } else {
+        if (tp != null && tp >= ref) return { ok: false, error: `For a SELL, TP must be below the entry (${ref})` };
+        if (sl != null && sl <= ref) return { ok: false, error: `For a SELL, SL must be above the entry (${ref})` };
+      }
+
+      const nextSl = sl ?? pos.sl ?? undefined;
+      const nextTp = tp ?? pos.tp ?? undefined;
+      try {
+        await amendPositionSLTP(posId, pos.symbol, pos.entryPrice, pos.direction, { sl: nextSl, tp: nextTp });
+      } catch (err: any) {
+        return { ok: false, error: err?.message || "amend failed" };
+      }
+      pos.sl = nextSl ?? null;
+      pos.tp = nextTp ?? null;
+      return { ok: true, data: { text: `Updated ${pos.symbol}: SL ${pos.sl ?? "-"}, TP ${pos.tp ?? "-"}.` } };
     }
 
     // What a given size (or a given risk) would actually mean, computed by the

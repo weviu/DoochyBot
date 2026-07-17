@@ -34,6 +34,12 @@ export interface PositionRow {
   tp: number | null;
   pnl: number;
   timeExitMinLeft: number | null;
+  source: string | null; // "Manual" for a hand-placed order
+  // Booked costs in USD (negative). pnl is GROSS, matching the broker's own
+  // figure; these are shown separately rather than folded into it.
+  commission: number;
+  swap: number;
+  openTime: number;
 }
 
 export interface PositionsData {
@@ -162,6 +168,10 @@ export const api = {
     request<CommandResult>("/command", "POST", { cmd, args }),
   quotes: () => request<QuotesData>("/quotes"),
   orderPreview: (p: OrderPreviewParams) => request<OrderPreview>("/order/preview", "POST", p),
+  closePosition: (posId: number) =>
+    request<{ closed: boolean; text: string }>("/position/close", "POST", { posId }),
+  amendPosition: (posId: number, sl: number | null, tp: number | null) =>
+    request<{ text: string }>("/position/amend", "POST", { posId, sl, tp }),
   // Placing the order reuses the command relay: same handler the chat uses, so
   // a manual order from the app and from Telegram are literally the same path.
   //   market: BUY XAUUSD 0.02 <TP> <SL>

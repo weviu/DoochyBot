@@ -351,6 +351,19 @@ export async function previewOrder(p: OrderPreviewParams): Promise<{ ok: boolean
   };
 }
 
+// Trading costs booked on a freshly filled position, read straight off the
+// execution event. Money fields are integers scaled by moneyDigits (commission
+// "-608" with moneyDigits 2 = -$6.08). Reconcile fills these in for positions
+// that predate the session; this covers the ones opened while we're running,
+// which reconcile (boot/reconnect only) would otherwise leave blank.
+function dealCosts(deal: any, pos: any): { commission: number; swap: number } {
+  const div = Math.pow(10, Number(deal?.moneyDigits ?? pos?.moneyDigits ?? 2));
+  return {
+    commission: Number(deal?.commission ?? 0) / div,
+    swap: Number(pos?.swap ?? 0) / div,
+  };
+}
+
 // Reverse lookup of a symbolId to its name using the cached symbolMap.
 function symbolNameById(symbolId: number): string {
   const target = String(symbolId);
@@ -421,6 +434,9 @@ export async function reconcilePositions(): Promise<void> {
       // Seed the trend price history with the broker's current mark price so
       // floatingPnL() has a value immediately after restart.
       const symName = symbolNameById(symbolId);
+      // Costs are integers scaled by the position's own moneyDigits (e.g.
+      // commission "-608" with moneyDigits 2 = -$6.08).
+      const costDiv = Math.pow(10, Number(p.moneyDigits ?? 2));
       const posSlot = {
         symbol: symName,
         direction,
@@ -428,6 +444,8 @@ export async function reconcilePositions(): Promise<void> {
         volumeCents,
         entryPrice: entry,
         openTime: Number(td.openTimestamp) || Date.now(),
+        commission: Number(p.commission || 0) / costDiv,
+        swap: Number(p.swap || 0) / costDiv,
         sl: p.stopLoss ?? null,
         tp: p.takeProfit ?? null,
       };
@@ -856,6 +874,8 @@ export async function executeSignal(signal: ParsedSignal): Promise<OrderResult> 
             entryPrice,
             openTime: fillTime,
             confidence: signal.confidence,
+            source: signal.source,
+            ...dealCosts(deal, pos),
             timeExitMin: timeExitMin > 0 ? timeExitMin : null,
           });
           // Arm the time-based exit (persisted so it survives a restart). No-op when
@@ -1038,6 +1058,8 @@ async function placeRestingOrder(
           entryPrice,
           openTime: fillTime,
           confidence: signal.confidence,
+          source: signal.source,
+          ...dealCosts(data.deal, data.position),
           sl,
           tp,
           timeExitMin: timeExitMin > 0 ? timeExitMin : null,

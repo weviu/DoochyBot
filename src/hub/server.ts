@@ -119,6 +119,11 @@ export function startHubServer(registry: Registry, port: number): http.Server {
   api.get("/quotes", (req: any, res) => relayApi(registry, req.telegramUserId, "quotes", {}, res));
   api.post("/order/preview", (req: any, res) =>
     relayApi(registry, req.telegramUserId, "order_preview", req.body || {}, res));
+  // Per-position actions from the expanded position card.
+  api.post("/position/close", (req: any, res) =>
+    relayApi(registry, req.telegramUserId, "close_position", req.body || {}, res));
+  api.post("/position/amend", (req: any, res) =>
+    relayApi(registry, req.telegramUserId, "amend_position", req.body || {}, res));
   api.post("/pause", (req: any, res) => relayApi(registry, req.telegramUserId, "pause", {}, res));
   api.post("/resume", (req: any, res) => relayApi(registry, req.telegramUserId, "resume", {}, res));
   api.post("/closeall", (req: any, res) => relayApi(registry, req.telegramUserId, "closeall", {}, res));

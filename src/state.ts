@@ -8,6 +8,18 @@ export interface Position {
   entryPrice: number;
   openTime: number;
   confidence?: number;  // signal confidence at entry; used for reversal gating
+  // Where this position came from ("Manual" for a hand-placed order, otherwise
+  // the feed/channel label). Display only: every risk monitor treats a manual
+  // position exactly like any other. Rebuilt positions (reconcile after a
+  // restart) have no source, since the broker doesn't know who asked.
+  source?: string;
+  // Trading costs the broker has booked on this position so far, in USD.
+  // Display only: the headline P&L stays gross (matching the broker's own
+  // grossProfit exactly), and these are shown alongside so the cost is visible
+  // rather than silently folded in. commission is charged per side, so an open
+  // position carries only the entry side here; the exit is charged on close.
+  commission?: number;
+  swap?: number;
   sl?: number | null;
   tp?: number | null;
   // Effective time-based exit in minutes from fill (openTime), for in-scope timed

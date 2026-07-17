@@ -108,7 +108,7 @@ export default function App() {
         )}
 
         {tab === "dashboard" && <Dashboard status={status} />}
-        {tab === "positions" && <Positions data={positions} />}
+        {tab === "positions" && <Positions data={positions} onChanged={refresh} />}
         {tab === "trade" && <Trade />}
         {tab === "settings" && <Settings status={status} />}
 

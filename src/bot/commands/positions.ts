@@ -12,6 +12,14 @@ export interface PositionRow {
   tp: number | null;
   pnl: number;
   timeExitMinLeft: number | null; // minutes left on a time exit, or null if none
+  source: string | null; // "Manual" for a hand-placed order; null once rebuilt from the broker
+  // Costs booked so far, in USD (negative). pnl above stays GROSS — it matches
+  // the broker's own grossProfit exactly — so these are shown separately rather
+  // than folded in. Commission is per side: an open position carries only the
+  // entry side, and the exit is charged when it closes.
+  commission: number;
+  swap: number;
+  openTime: number; // epoch ms of the fill, for "held for" in the mini-app
 }
 
 // Compute the live open-position rows both /positions (text) and the Mini App
@@ -43,6 +51,10 @@ export function getPositionsData(): { positions: PositionRow[]; totalPnL: number
       tp: pos.tp ?? null,
       pnl,
       timeExitMinLeft,
+      source: pos.source ?? null,
+      commission: pos.commission ?? 0,
+      swap: pos.swap ?? 0,
+      openTime: pos.openTime,
     });
   }
 
@@ -66,11 +78,17 @@ export async function positionsCmd(ctx: any) {
         ? `\n  Time exit: ${p.timeExitMinLeft}m left`
         : `\n  Time exit: due now (closing)`;
     }
+    // Only manual positions carry a tag: signal trades are the norm, so leaving
+    // them unlabelled keeps the common listing unchanged.
+    const tag = p.source === "Manual" ? " (manual)" : "";
+    // Only show costs when there are any, so the common line stays clean.
+    const costs = p.commission + p.swap;
+    const costLine = costs !== 0 ? `\n  Costs: ${costs.toFixed(2)}` : "";
     return (
-      `${p.direction} ${p.symbol} ${p.volume}L\n` +
+      `${p.direction} ${p.symbol} ${p.volume}L${tag}\n` +
       `  Entry: ${p.entryPrice}  Mark: ${p.mark}\n` +
       `  SL: ${fmt(p.sl)}  TP: ${fmt(p.tp)}\n` +
-      `  P&L: ${pnlStr}` + timeLine
+      `  P&L: ${pnlStr}` + costLine + timeLine
     );
   });
 
