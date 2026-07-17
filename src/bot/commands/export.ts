@@ -61,7 +61,9 @@ export async function exportCmd(ctx: any) {
         await ctx.reply("Bad 'to' date. Use 2026-06-05 or 2026-06-05_23:59");
         return;
       }
-      to = t;
+      // A 'to' of today snaps to 23:59:59, which is in the future; the broker
+      // rejects a future toTimestamp (BLOCKED_PAYLOAD_TYPE). Clamp to now.
+      to = Math.min(t, now);
     } else {
       to = now;
     }

@@ -1,10 +1,37 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Plus, RotateCcw, Timer } from "lucide-react";
-import { api, type Settings as SettingsData, type StatusData } from "../lib/api";
+import { Download, Plus, RotateCcw, Timer } from "lucide-react";
+import { api, type CommandDocument, type Settings as SettingsData, type StatusData } from "../lib/api";
 import { notify } from "../lib/telegram";
 import { Button, Chip, Flash, NumberField, SectionCard, Skeleton, Toggle } from "./ui";
 import { FadeRise } from "./motion";
 import { ConfirmModal } from "./Modal";
+
+// Today's date as YYYY-MM-DD in UTC, matching the export command's own day
+// boundaries (it treats the range in UTC).
+function todayUTC(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// Trigger a browser download of a base64 file. Returns false if the environment
+// blocks it (some in-app webviews do), so the caller can fall back to a message.
+function downloadBase64(doc: CommandDocument): boolean {
+  try {
+    const bytes = atob(doc.data);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([arr], { type: "application/json" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = doc.filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // The settings control panel. Every field maps to the exact Telegram command
 // its handler expects (src/bot/commands/*), relayed through /api/command so the
@@ -268,6 +295,11 @@ export function Settings({ status }: { status: StatusData | null }) {
         />
       </SectionCard>
 
+      {/* ---- Export ---------------------------------------------------------*/}
+      <SectionCard title="Export trade history" description="Download closed trades as a file.">
+        <ExportSection />
+      </SectionCard>
+
       {/* ---- Notifications --------------------------------------------------*/}
       <SectionCard
         title="Notifications"
@@ -339,4 +371,77 @@ export function Settings({ status }: { status: StatusData | null }) {
       showSymMsg("danger", e?.message || "Could not add symbol");
     }
   }
+}
+
+// Trade-history export: pick a from/to date (both default to today) and download
+// the JSON the agent builds. Uses native date inputs so mobile gets the OS
+// calendar; the range is inclusive and interpreted in UTC by the agent.
+function ExportSection() {
+  const today = todayUTC();
+  const [from, setFrom] = useState(today);
+  const [to, setTo] = useState(today);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
+
+  const rangeError = from > to ? "The start date must be on or before the end date." : null;
+
+  async function run() {
+    if (rangeError) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await api.exportTrades(from, to);
+      if (res.document?.data) {
+        const ok = downloadBase64(res.document);
+        notify(ok ? "success" : "warning");
+        setMsg(ok
+          ? { tone: "success", text: res.document.caption || "Export ready." }
+          : { tone: "danger", text: "Your browser blocked the download. Use /export in the chat instead." });
+      } else {
+        // No file means no closed trades in range (the agent replies with text).
+        notify("warning");
+        setMsg({ tone: "danger", text: res.text || "No closed trades in that range." });
+      }
+    } catch (e: any) {
+      notify("error");
+      setMsg({ tone: "danger", text: e?.message || "Export failed" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const dateInput =
+    "w-full rounded-md border border-hairline bg-surface px-3 py-2 text-sm tabular-nums text-fg " +
+    "focus:border-accent/60 focus:outline-none focus:ring-2 focus:ring-accent/40 " +
+    "[color-scheme:dark]";
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="mb-2 block text-sm font-medium text-fg-muted">From</label>
+          <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} className={dateInput} />
+        </div>
+        <div>
+          <label className="mb-2 block text-sm font-medium text-fg-muted">To</label>
+          <input type="date" value={to} min={from} max={today} onChange={(e) => setTo(e.target.value)} className={dateInput} />
+        </div>
+      </div>
+      <p className="text-xs text-fg-faint">Both dates are inclusive. Defaults to today.</p>
+
+      {rangeError && <Flash tone="danger">{rangeError}</Flash>}
+      {msg && <Flash tone={msg.tone}>{msg.text}</Flash>}
+
+      <Button
+        size="md"
+        variant="primary"
+        className="w-full"
+        icon={<Download className="h-4 w-4" />}
+        disabled={busy || !!rangeError}
+        onClickAsync={rangeError ? undefined : run}
+      >
+        {busy ? "Preparing…" : "Download trade history"}
+      </Button>
+    </div>
+  );
 }

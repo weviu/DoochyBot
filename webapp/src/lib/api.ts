@@ -78,9 +78,17 @@ export interface Settings {
 // A command relay always returns the display text plus a fresh settings
 // snapshot, so the panel can refresh its forms from the authoritative agent
 // state after every change.
+// A file a command produced (today only /export), carried inline as base64.
+export interface CommandDocument {
+  filename: string;
+  data: string; // base64
+  caption?: string;
+}
+
 export interface CommandResult {
   text: string;
   settings: Settings | null;
+  document?: CommandDocument | null;
 }
 
 // Live price + tradable size grid for one allowed symbol (manual-order panel).
@@ -166,6 +174,13 @@ export const api = {
   // the agent and get back its reply text and refreshed settings.
   command: (cmd: string, args: string[] = []) =>
     request<CommandResult>("/command", "POST", { cmd, args }),
+  // Trade history export. Dates are YYYY-MM-DD (the command's own format);
+  // omit both for the default last-7-days. Returns the JSON file inline.
+  exportTrades: (from?: string, to?: string) =>
+    request<CommandResult>("/command", "POST", {
+      cmd: "export",
+      args: [from, to].filter(Boolean),
+    }),
   quotes: () => request<QuotesData>("/quotes"),
   orderPreview: (p: OrderPreviewParams) => request<OrderPreview>("/order/preview", "POST", p),
   closePosition: (posId: number) =>

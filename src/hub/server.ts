@@ -89,17 +89,31 @@ async function relayCommand(
     return;
   }
   try {
-    const reply = await registry.request(socket, { type: "cmd", cmd, args });
+    // A command that builds a file (/export) can take longer than a normal
+    // command's default timeout while it walks the broker's deal history, so
+    // give the relay the same generous window the Telegram path uses.
+    const timeout = cmd === "export" ? EXPORT_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
+    const reply = await registry.request(socket, { type: "cmd", cmd, args }, timeout);
     if (!reply.ok) {
       res.status(502).json({ error: reply.error || "agent error" });
       return;
     }
     if (reply.data?.settings) setUserSettings(userId, reply.data.settings);
-    res.json({ text: reply.data?.text ?? "OK", settings: reply.data?.settings ?? null });
+    // Pass through a file the command produced (today only /export) so the
+    // mini-app can offer it as a download.
+    res.json({
+      text: reply.data?.text ?? "OK",
+      settings: reply.data?.settings ?? null,
+      document: reply.data?.document ?? null,
+    });
   } catch {
     res.status(503).json({ error: "agent offline or not responding" });
   }
 }
+
+// Matches the Telegram path's export budget: /export chunks weeks of deals in
+// 7-day requests, which can outrun the normal per-request timeout.
+const EXPORT_TIMEOUT_MS = 120_000;
 
 export function startHubServer(registry: Registry, port: number): http.Server {
   const app = express();
