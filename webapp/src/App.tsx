@@ -64,7 +64,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <header className="sticky top-0 z-10 border-b border-hairline bg-canvas/95 backdrop-blur">
+      {/* Solid (not backdrop-blur): backdrop-filter re-blurs everything behind a
+          sticky element on every scroll frame, which stutters badly in the
+          Telegram mobile webview. An opaque header composites for free. */}
+      <header className="sticky top-0 z-10 border-b border-hairline bg-canvas">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="text-base font-semibold tracking-tight">DoochyBot</span>

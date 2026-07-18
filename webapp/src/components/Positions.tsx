@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, ArrowDownRight, Timer, XOctagon } from "lucide-react";
 import type { PositionsData, PositionRow } from "../lib/api";
 import { api } from "../lib/api";
 import { notify } from "../lib/telegram";
 import { pnl, money } from "../lib/format";
-import { Card, Badge, Skeleton, Button, Flash } from "./ui";
+import { Card, Badge, Skeleton, Button, Flash, Collapse } from "./ui";
 import { Stagger, StaggerItem, FadeRise } from "./motion";
 import { ConfirmModal } from "./Modal";
 
@@ -85,7 +84,6 @@ function PositionCard({
   onToggle: () => void;
   onChanged?: () => void;
 }) {
-  const reduce = useReducedMotion();
   const isBuy = p.direction === "BUY";
   const [sl, setSl] = useState("");
   const [tp, setTp] = useState("");
@@ -176,16 +174,8 @@ function PositionCard({
         )}
       </button>
 
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: reduce ? 0.01 : 0.3, ease: [0.16, 1, 0.3, 1] }}
-            style={{ overflow: "hidden" }}
-          >
-            <div className="space-y-4 border-t border-hairline p-4">
+      <Collapse open={open}>
+        <div className="space-y-4 border-t border-hairline p-4">
               {msg && <Flash tone={msg.tone}>{msg.text}</Flash>}
 
               <div className="grid grid-cols-3 gap-3">
@@ -227,10 +217,8 @@ function PositionCard({
                   <XOctagon className="h-4 w-4" /> Close position
                 </Button>
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </div>
+      </Collapse>
 
       <ConfirmModal
         open={confirmClose}

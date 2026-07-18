@@ -1,5 +1,4 @@
 import { Check, ChevronDown, Loader2 } from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { haptic } from "../lib/telegram";
 
@@ -261,9 +260,28 @@ export function Toggle({
   );
 }
 
+// A height collapse animated by interpolating a CSS grid row (0fr -> 1fr) plus
+// an opacity fade. Both are compositor-friendly, unlike animating height:auto
+// (which forces a full reflow every frame and stutters on mobile). The child is
+// overflow-hidden, which is what lets the 0fr track shrink it fully. Content
+// stays mounted while collapsed, so no remount cost on toggle. The global
+// prefers-reduced-motion rule in index.css shortens the transition to ~instant.
+export function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
+  return (
+    <div
+      className="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+      style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
+    >
+      <div className={"overflow-hidden transition-opacity duration-300 " + (open ? "opacity-100" : "opacity-0")}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 // A collapsible settings section. Collapsed by default; the header toggles it.
-// The open/close is animated (height + fade) via framer-motion so it glides
-// instead of snapping. Purely a layout container for a group of controls.
+// The open/close glides via Collapse (CSS grid, not JS height). Purely a layout
+// container for a group of controls.
 export function SectionCard({
   title,
   description,
@@ -276,7 +294,6 @@ export function SectionCard({
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
-  const reduce = useReducedMotion();
   return (
     <Card className="overflow-hidden">
       <button
@@ -290,20 +307,9 @@ export function SectionCard({
         </span>
         <ChevronDown className={"h-4 w-4 shrink-0 text-fg-muted transition duration-300 " + (open ? "rotate-180" : "")} />
       </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            key="body"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: reduce ? 0.01 : 0.3, ease: [0.16, 1, 0.3, 1] }}
-            style={{ overflow: "hidden" }}
-          >
-            <div className="space-y-5 border-t border-hairline px-5 py-5">{children}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Collapse open={open}>
+        <div className="space-y-5 border-t border-hairline px-5 py-5">{children}</div>
+      </Collapse>
     </Card>
   );
 }
