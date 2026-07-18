@@ -1,7 +1,7 @@
 import { state, symbolIdFor } from "../state";
 import { processSignal } from "../risk/gate";
 import { parseTextSignal } from "../webhook";
-import { getSymbolSpec, previewOrder } from "../ctrader/orders";
+import { getSymbolSpec, previewOrder, getPendingOrders, cancelOrder } from "../ctrader/orders";
 import { canValueInUsd, getQuote } from "../ctrader/livePrices";
 import { closePosition } from "../risk/midnightClose";
 import { amendPositionSLTP } from "../ctrader/amend";
@@ -138,6 +138,22 @@ async function runApi(endpoint: string, params: Record<string, any> = {}): Promi
       return { ok: true, data: await getStatusData(getConnection()) };
     case "positions":
       return { ok: true, data: getPositionsData() };
+
+    // Resting (unfilled) LIMIT/STOP entry orders sitting at the broker. Read via
+    // reconcile so it's authoritative and includes orders placed outside the bot.
+    case "pending_orders":
+      return { ok: true, data: { orders: await getPendingOrders() } };
+
+    // Cancel one resting order by its broker orderId (the mini-app's per-order
+    // cancel). Reuses the same ProtoOACancelOrderReq the news guard uses.
+    case "cancel_order": {
+      const orderId = Number(params.orderId);
+      if (!orderId) return { ok: false, error: "no order id" };
+      const r = await cancelOrder(orderId);
+      return r.ok
+        ? { ok: true, data: { cancelled: true, text: `Cancelled order #${orderId}.` } }
+        : { ok: false, error: r.error || "cancel failed" };
+    }
     case "settings":
       // The full settings object, for the mini-app's control panel to pre-fill
       // its forms. The text /settings command isn't machine-readable; this is.

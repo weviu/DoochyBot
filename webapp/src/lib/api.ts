@@ -47,6 +47,26 @@ export interface PositionsData {
   totalPnL: number;
 }
 
+// A resting (unfilled) LIMIT/STOP entry order sitting at the broker. Placed from
+// the Trade tab (or in cTrader directly), it isn't a position until price reaches
+// its level, so it needs its own list separate from open positions.
+export interface PendingOrderRow {
+  orderId: number;
+  direction: "BUY" | "SELL";
+  symbol: string;
+  orderType: "LIMIT" | "STOP";
+  price: number; // resting level (limit price, or stop trigger)
+  volume: number; // lots
+  sl: number | null;
+  tp: number | null;
+  placedAt: number;
+  expiresAt: number | null; // epoch ms if it auto-expires, else null
+}
+
+export interface PendingOrdersData {
+  orders: PendingOrderRow[];
+}
+
 // The full agent-side settings object (src/state.ts BotSettings). Every field is
 // editable from the panel by relaying the matching Telegram command.
 export interface Settings {
@@ -185,6 +205,9 @@ export const api = {
   orderPreview: (p: OrderPreviewParams) => request<OrderPreview>("/order/preview", "POST", p),
   closePosition: (posId: number) =>
     request<{ closed: boolean; text: string }>("/position/close", "POST", { posId }),
+  pendingOrders: () => request<PendingOrdersData>("/orders/pending"),
+  cancelOrder: (orderId: number) =>
+    request<{ cancelled: boolean; text: string }>("/order/cancel", "POST", { orderId }),
   amendPosition: (posId: number, sl: number | null, tp: number | null) =>
     request<{ text: string }>("/position/amend", "POST", { posId, sl, tp }),
   // Placing the order reuses the command relay: same handler the chat uses, so

@@ -221,6 +221,92 @@ export async function cancelRestingOrdersForSymbol(symbol: string): Promise<numb
   return cancelled;
 }
 
+// A resting (unfilled) entry order sitting at the broker: a LIMIT or STOP that
+// hasn't been reached yet. Shape the Mini App renders and can cancel by orderId.
+export interface PendingOrderRow {
+  orderId: number;
+  symbol: string;
+  direction: "BUY" | "SELL";
+  orderType: "LIMIT" | "STOP";
+  price: number; // the resting level (limit price, or stop trigger)
+  volume: number; // lots
+  sl: number | null;
+  tp: number | null;
+  placedAt: number; // epoch ms
+  expiresAt: number | null; // epoch ms if GOOD_TILL_DATE, else null (GTC)
+}
+
+// Read resting entry orders straight from the broker (the authoritative source:
+// state.pendingOrders never stored the broker orderId, and a reconcile also picks
+// up orders placed outside the bot). Filtered to allowed symbols, matching how
+// positions are adopted. Never throws — returns [] on any failure.
+export async function getPendingOrders(): Promise<PendingOrderRow[]> {
+  if (!connection) return [];
+
+  let res: any;
+  try {
+    res = await connection.sendCommand("ProtoOAReconcileReq", {
+      ctidTraderAccountId: parseInt(process.env.ACCOUNT_ID || "0"),
+    });
+  } catch (err: any) {
+    console.warn(`[PENDING] reconcile failed: ${err.errorCode || err.message || "request failed"}`);
+    return [];
+  }
+
+  const allowedIds = new Set(
+    state.settings.allowedSymbols
+      .map((s) => symbolIdFor(s))
+      .filter((id): id is number => id !== undefined)
+  );
+
+  const rows: PendingOrderRow[] = [];
+  for (const o of res.order || []) {
+    // Only resting ENTRY orders. Skip MARKET (fills immediately) and the
+    // STOP_LOSS_TAKE_PROFIT protective orders that ride an open position.
+    if (o.orderType !== "LIMIT" && o.orderType !== "STOP") continue;
+    const td = o.tradeData || {};
+    const symbolId = Number(td.symbolId);
+    if (!allowedIds.has(symbolId)) continue;
+
+    const spec = await getSymbolSpec(symbolId);
+    const volumeCents = Number(td.volume) || 0;
+    const lots = spec?.lotSize ? volumeCents / spec.lotSize : volumeCents;
+    const price = o.orderType === "LIMIT" ? Number(o.limitPrice) || 0 : Number(o.stopPrice) || 0;
+
+    rows.push({
+      orderId: Number(o.orderId),
+      symbol: symbolNameById(symbolId),
+      direction: td.tradeSide === "SELL" ? "SELL" : "BUY",
+      orderType: o.orderType,
+      price,
+      volume: lots,
+      sl: o.stopLoss != null ? Number(o.stopLoss) : null,
+      tp: o.takeProfit != null ? Number(o.takeProfit) : null,
+      placedAt: Number(td.openTimestamp) || 0,
+      expiresAt: o.expirationTimestamp ? Number(o.expirationTimestamp) : null,
+    });
+  }
+  return rows;
+}
+
+// Cancel a single resting order by its broker orderId. Also drops any in-memory
+// pending marker for that order's symbol so the duplicate gate stops treating it
+// as an outstanding order.
+export async function cancelOrder(orderId: number): Promise<{ ok: boolean; error?: string }> {
+  if (!connection) return { ok: false, error: "No broker connection" };
+  try {
+    await connection.sendCommand("ProtoOACancelOrderReq", {
+      ctidTraderAccountId: parseInt(process.env.ACCOUNT_ID || "0"),
+      orderId,
+    });
+    console.log(`[PENDING] cancelled resting order ${orderId}`);
+    return { ok: true };
+  } catch (err: any) {
+    console.warn(`[PENDING] cancel order ${orderId} failed: ${err.errorCode || err.message || "request failed"}`);
+    return { ok: false, error: err.errorCode || err.message || "cancel failed" };
+  }
+}
+
 interface SymbolSpec {
   lotSize: number;    // cents per 1.0 lot
   minVolume: number;  // cents

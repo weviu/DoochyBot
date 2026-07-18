@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Download, Plus, RotateCcw, Timer } from "lucide-react";
+import { BarChart3, Download, Plus, RotateCcw, Timer } from "lucide-react";
+import { pnl } from "../lib/format";
 import { api, type CommandDocument, type Settings as SettingsData, type StatusData } from "../lib/api";
 import { notify } from "../lib/telegram";
 import { Button, Chip, Flash, NumberField, SectionCard, Skeleton, Toggle } from "./ui";
@@ -295,9 +296,9 @@ export function Settings({ status }: { status: StatusData | null }) {
         />
       </SectionCard>
 
-      {/* ---- Export ---------------------------------------------------------*/}
-      <SectionCard title="Export trade history" description="Download closed trades as a file.">
-        <ExportSection />
+      {/* ---- Trade history --------------------------------------------------*/}
+      <SectionCard title="Trade history" description="Performance stats and export for closed trades.">
+        <TradeHistorySection />
       </SectionCard>
 
       {/* ---- Notifications --------------------------------------------------*/}
@@ -373,41 +374,140 @@ export function Settings({ status }: { status: StatusData | null }) {
   }
 }
 
-// Trade-history export: pick a from/to date (both default to today) and download
-// the JSON the agent builds. Uses native date inputs so mobile gets the OS
-// calendar; the range is inclusive and interpreted in UTC by the agent.
-function ExportSection() {
+// One closed trade as the /export command builds it (src/bot/commands/export.ts).
+interface ExportTrade {
+  time: string;
+  symbol: string;
+  side: "BUY" | "SELL";
+  lots: number;
+  entry: number | null;
+  exit: number | null;
+  netUsd: number; // net of commission + swap
+  timeHeld: string; // "1d 2h", "45m", or "unknown"
+  closedBy: string; // "TP" | "SL" | "stop-out" | "market"
+}
+
+interface HistoryStats {
+  count: number;
+  net: number;
+  wins: number;
+  losses: number;
+  avgHoldMs: number | null;
+  exits: { TP: number; SL: number; "stop-out": number; market: number };
+  bySymbol: { symbol: string; count: number; net: number }[];
+}
+
+// Decode the base64 JSON the export command returns into the trades array. The
+// same document also feeds the download, so one round-trip yields both.
+function decodeTrades(b64: string): ExportTrade[] {
+  try {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const arr = JSON.parse(new TextDecoder().decode(bytes));
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+// Parse the human "1d 2h 3m 4s" string back to ms; null for "unknown".
+function parseHeldMs(s: string): number | null {
+  if (!s || s === "unknown") return null;
+  const re = /(\d+)\s*([dhms])/g;
+  let m: RegExpExecArray | null;
+  let ms = 0;
+  let found = false;
+  while ((m = re.exec(s))) {
+    found = true;
+    const v = Number(m[1]);
+    ms += m[2] === "d" ? v * 86400000 : m[2] === "h" ? v * 3600000 : m[2] === "m" ? v * 60000 : v * 1000;
+  }
+  return found ? ms : null;
+}
+
+function fmtHold(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d) return `${d}d ${h}h`;
+  if (h) return `${h}h ${m}m`;
+  if (m) return `${m}m`;
+  return `${s}s`;
+}
+
+function computeStats(trades: ExportTrade[]): HistoryStats {
+  const exits = { TP: 0, SL: 0, "stop-out": 0, market: 0 };
+  const sym = new Map<string, { count: number; net: number }>();
+  let net = 0, wins = 0, losses = 0, holdSum = 0, holdN = 0;
+
+  for (const t of trades) {
+    net += t.netUsd;
+    if (t.netUsd > 0) wins++;
+    else if (t.netUsd < 0) losses++;
+    const ms = parseHeldMs(t.timeHeld);
+    if (ms != null) { holdSum += ms; holdN++; }
+    if (t.closedBy === "TP" || t.closedBy === "SL" || t.closedBy === "stop-out") exits[t.closedBy]++;
+    else exits.market++;
+    const s = sym.get(t.symbol) ?? { count: 0, net: 0 };
+    s.count++;
+    s.net += t.netUsd;
+    sym.set(t.symbol, s);
+  }
+
+  const bySymbol = [...sym.entries()]
+    .map(([symbol, v]) => ({ symbol, ...v }))
+    .sort((a, b) => b.count - a.count);
+
+  return { count: trades.length, net, wins, losses, avgHoldMs: holdN ? holdSum / holdN : null, exits, bySymbol };
+}
+
+// Trade history: pick a from/to date (both default to today), load the closed
+// trades for that range, and show performance stats computed from them. The same
+// fetched data downloads as JSON, so nothing is re-requested. Native date inputs
+// give mobile the OS calendar; the range is inclusive and interpreted in UTC.
+function TradeHistorySection() {
   const today = todayUTC();
   const [from, setFrom] = useState(today);
   const [to, setTo] = useState(today);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
+  const [stats, setStats] = useState<HistoryStats | null>(null);
+  const [doc, setDoc] = useState<CommandDocument | null>(null);
 
   const rangeError = from > to ? "The start date must be on or before the end date." : null;
 
-  async function run() {
+  async function load() {
     if (rangeError) return;
     setBusy(true);
     setMsg(null);
+    setStats(null);
+    setDoc(null);
     try {
       const res = await api.exportTrades(from, to);
       if (res.document?.data) {
-        const ok = downloadBase64(res.document);
-        notify(ok ? "success" : "warning");
-        setMsg(ok
-          ? { tone: "success", text: res.document.caption || "Export ready." }
-          : { tone: "danger", text: "Your browser blocked the download. Use /export in the chat instead." });
+        setStats(computeStats(decodeTrades(res.document.data)));
+        setDoc(res.document);
+        notify("success");
       } else {
-        // No file means no closed trades in range (the agent replies with text).
+        // No document means no closed trades in range (the agent replies text).
         notify("warning");
         setMsg({ tone: "danger", text: res.text || "No closed trades in that range." });
       }
     } catch (e: any) {
       notify("error");
-      setMsg({ tone: "danger", text: e?.message || "Export failed" });
+      setMsg({ tone: "danger", text: e?.message || "Could not load history" });
     } finally {
       setBusy(false);
     }
+  }
+
+  function download() {
+    if (!doc) return;
+    const ok = downloadBase64(doc);
+    notify(ok ? "success" : "warning");
+    if (!ok) setMsg({ tone: "danger", text: "Your browser blocked the download. Use /export in the chat instead." });
   }
 
   const dateInput =
@@ -435,12 +535,98 @@ function ExportSection() {
         size="md"
         variant="primary"
         className="w-full"
-        icon={<Download className="h-4 w-4" />}
+        icon={<BarChart3 className="h-4 w-4" />}
         disabled={busy || !!rangeError}
-        onClickAsync={rangeError ? undefined : run}
+        onClickAsync={rangeError ? undefined : load}
       >
-        {busy ? "Preparing…" : "Download trade history"}
+        {busy ? "Loading…" : "Load stats"}
+      </Button>
+
+      {stats && <StatsView stats={stats} onDownload={download} />}
+    </div>
+  );
+}
+
+// Read-only performance summary for a loaded date range. Figures use the theme's
+// status colours (green profit / red loss) and always carry a sign or label, so
+// meaning never rests on colour alone.
+function StatsView({ stats, onDownload }: { stats: HistoryStats; onDownload: () => void }) {
+  const decided = stats.wins + stats.losses; // exclude break-even trades from the rate
+  const winPct = decided ? (stats.wins / decided) * 100 : 0;
+
+  return (
+    <div className="space-y-5 border-t border-hairline pt-4">
+      <div className="grid grid-cols-2 gap-3">
+        <Tile label="Net P&L" value={pnl(stats.net)} tone={stats.net >= 0 ? "success" : "danger"} />
+        <Tile label="Trades" value={String(stats.count)} />
+        <Tile label="Win rate" value={decided ? `${winPct.toFixed(0)}%` : "—"} />
+        <Tile label="Avg hold" value={stats.avgHoldMs != null ? fmtHold(stats.avgHoldMs) : "—"} />
+      </div>
+
+      {decided > 0 && (
+        <div>
+          <div className="mb-1.5 flex items-center justify-between text-xs text-fg-muted">
+            <span>{stats.wins} win{stats.wins !== 1 ? "s" : ""}</span>
+            <span>{stats.losses} loss{stats.losses !== 1 ? "es" : ""}</span>
+          </div>
+          {/* Win/loss proportion. 2px gap between the two fills per the mark spec. */}
+          <div className="flex h-1.5 gap-0.5">
+            <div className="rounded-full bg-success" style={{ width: `${winPct}%` }} />
+            <div className="flex-1 rounded-full bg-danger" />
+          </div>
+        </div>
+      )}
+
+      <div>
+        <div className="mb-2 text-xs font-medium text-fg-muted">How trades closed</div>
+        <div className="flex flex-wrap gap-2">
+          <ExitChip label="TP" n={stats.exits.TP} tone="success" />
+          <ExitChip label="SL" n={stats.exits.SL} tone="danger" />
+          <ExitChip label="Stop-out" n={stats.exits["stop-out"]} tone="danger" />
+          <ExitChip label="Market" n={stats.exits.market} tone="muted" />
+        </div>
+      </div>
+
+      {stats.bySymbol.length > 0 && (
+        <div>
+          <div className="mb-2 text-xs font-medium text-fg-muted">By symbol</div>
+          <div className="space-y-1.5">
+            {stats.bySymbol.map((s) => (
+              <div key={s.symbol} className="flex items-center justify-between text-sm">
+                <span className="font-medium text-fg">{s.symbol}</span>
+                <span className="flex items-center gap-3 tabular-nums">
+                  <span className="text-xs text-fg-faint">{s.count} trade{s.count !== 1 ? "s" : ""}</span>
+                  <span className={s.net >= 0 ? "text-success" : "text-danger"}>{pnl(s.net)}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <Button size="md" variant="secondary" className="w-full" icon={<Download className="h-4 w-4" />} onClick={onDownload}>
+        Download JSON
       </Button>
     </div>
+  );
+}
+
+function Tile({ label, value, tone }: { label: string; value: string; tone?: "success" | "danger" }) {
+  const color = tone === "success" ? "text-success" : tone === "danger" ? "text-danger" : "text-fg";
+  return (
+    <div className="rounded-md border border-hairline bg-canvas/40 p-3">
+      <div className="text-xs text-fg-faint">{label}</div>
+      <div className={`mt-1 text-lg font-semibold tabular-nums tracking-tight ${color}`}>{value}</div>
+    </div>
+  );
+}
+
+function ExitChip({ label, n, tone }: { label: string; n: number; tone: "success" | "danger" | "muted" }) {
+  const color = tone === "success" ? "text-success" : tone === "danger" ? "text-danger" : "text-fg-muted";
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-hairline bg-surface px-2 py-1 text-xs">
+      <span className={`font-medium ${color}`}>{label}</span>
+      <span className="tabular-nums text-fg">{n}</span>
+    </span>
   );
 }

@@ -138,6 +138,11 @@ export function startHubServer(registry: Registry, port: number): http.Server {
     relayApi(registry, req.telegramUserId, "close_position", req.body || {}, res));
   api.post("/position/amend", (req: any, res) =>
     relayApi(registry, req.telegramUserId, "amend_position", req.body || {}, res));
+  // Resting LIMIT/STOP orders awaiting fill, and the per-order cancel.
+  api.get("/orders/pending", (req: any, res) =>
+    relayApi(registry, req.telegramUserId, "pending_orders", {}, res));
+  api.post("/order/cancel", (req: any, res) =>
+    relayApi(registry, req.telegramUserId, "cancel_order", req.body || {}, res));
   api.post("/pause", (req: any, res) => relayApi(registry, req.telegramUserId, "pause", {}, res));
   api.post("/resume", (req: any, res) => relayApi(registry, req.telegramUserId, "resume", {}, res));
   api.post("/closeall", (req: any, res) => relayApi(registry, req.telegramUserId, "closeall", {}, res));

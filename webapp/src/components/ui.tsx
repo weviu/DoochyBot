@@ -87,15 +87,21 @@ export function Card({
   children,
   className = "",
   interactive = false,
+  flat = false,
 }: {
   children: ReactNode;
   className?: string;
   interactive?: boolean;
+  // Omit the box-shadow. Use for cards that reposition during an animation
+  // (accordions): an outset shadow repaints on every frame a card moves, which
+  // stutters on mobile. The hairline border alone delineates the card here.
+  flat?: boolean;
 }) {
   return (
     <div
       className={
-        "rounded-lg border border-hairline bg-surface shadow-card " +
+        "rounded-lg border border-hairline bg-surface " +
+        (flat ? "" : "shadow-card ") +
         (interactive ? "transition hover:bg-surface-hover hover:border-hairline-strong cursor-pointer " : "") +
         className
       }
@@ -295,7 +301,7 @@ export function SectionCard({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <Card className="overflow-hidden">
+    <Card flat className="overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

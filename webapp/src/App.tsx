@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Play, Pause, XOctagon, RefreshCw, AlertCircle } from "lucide-react";
-import { api, type StatusData, type PositionsData } from "./lib/api";
+import { api, type StatusData, type PositionsData, type PendingOrderRow } from "./lib/api";
 import { notify } from "./lib/telegram";
 import { Button, Card } from "./components/ui";
 import { Dashboard } from "./components/Dashboard";
@@ -17,6 +17,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [status, setStatus] = useState<StatusData | null>(null);
   const [positions, setPositions] = useState<PositionsData | null>(null);
+  const [pending, setPending] = useState<PendingOrderRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
 
@@ -28,6 +29,15 @@ export default function App() {
       setError(null);
     } catch (e: any) {
       setError(e?.message || "Failed to load");
+      return;
+    }
+    // Resting orders are best-effort (a broker reconcile): a failure here must
+    // not blank the dashboard, so keep the last-known list on error.
+    try {
+      const po = await api.pendingOrders();
+      setPending(po.orders);
+    } catch {
+      /* keep last-known pending list */
     }
   }, []);
 
@@ -82,7 +92,7 @@ export default function App() {
             </Button>
           </div>
         </div>
-        <div className="mx-auto flex max-w-2xl gap-1 px-4 pb-2">
+        <div className="mx-auto flex max-w-2xl gap-1 pl-2 pr-4 pb-2">
           {(["dashboard", "positions", "trade", "settings"] as Tab[]).map((t) => (
             <button
               key={t}
@@ -111,7 +121,7 @@ export default function App() {
         )}
 
         {tab === "dashboard" && <Dashboard status={status} />}
-        {tab === "positions" && <Positions data={positions} onChanged={refresh} />}
+        {tab === "positions" && <Positions data={positions} pending={pending} onChanged={refresh} />}
         {tab === "trade" && <Trade />}
         {tab === "settings" && <Settings status={status} />}
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { ArrowUpRight, ArrowDownRight, Timer, XOctagon } from "lucide-react";
-import type { PositionsData, PositionRow } from "../lib/api";
+import { ArrowUpRight, ArrowDownRight, Timer, XOctagon, Hourglass, Ban } from "lucide-react";
+import type { PositionsData, PositionRow, PendingOrderRow } from "../lib/api";
 import { api } from "../lib/api";
 import { notify } from "../lib/telegram";
 import { pnl, money } from "../lib/format";
@@ -26,7 +26,26 @@ function heldFor(openTime: number): string {
   return `${Math.floor(h / 24)}d ${h % 24}h`;
 }
 
-export function Positions({ data, onChanged }: { data: PositionsData | null; onChanged?: () => void }) {
+// "in 42m" / "in 3h 10m" until a future epoch; null if already past or absent.
+function expiresIn(at: number | null): string | null {
+  if (!at) return null;
+  const ms = at - Date.now();
+  if (ms <= 0) return null;
+  const m = Math.floor(ms / 60000);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
+}
+
+export function Positions({
+  data,
+  pending = [],
+  onChanged,
+}: {
+  data: PositionsData | null;
+  pending?: PendingOrderRow[];
+  onChanged?: () => void;
+}) {
   // Only one card is expanded at a time; the 5s poll must never collapse it or
   // clobber a half-typed SL/TP, so expansion and drafts live here keyed by id.
   const [openId, setOpenId] = useState<number | null>(null);
@@ -40,7 +59,10 @@ export function Positions({ data, onChanged }: { data: PositionsData | null; onC
     );
   }
 
-  if (data.positions.length === 0) {
+  const hasPositions = data.positions.length > 0;
+  const hasPending = pending.length > 0;
+
+  if (!hasPositions && !hasPending) {
     return (
       <FadeRise>
         <Card className="p-8 text-center">
@@ -51,25 +73,44 @@ export function Positions({ data, onChanged }: { data: PositionsData | null; onC
   }
 
   return (
-    <div className="space-y-4">
-      <Stagger className="space-y-3">
-        {data.positions.map((p) => (
-          <StaggerItem key={p.posId}>
-            <PositionCard
-              p={p}
-              open={openId === p.posId}
-              onToggle={() => setOpenId(openId === p.posId ? null : p.posId)}
-              onChanged={onChanged}
-            />
-          </StaggerItem>
-        ))}
-      </Stagger>
-      {data.positions.length > 1 && (
-        <div className="flex items-center justify-between px-1 text-sm">
-          <span className="text-fg-muted">Total P&L</span>
-          <span className={`font-semibold tabular-nums ${data.totalPnL >= 0 ? "text-success" : "text-danger"}`}>
-            {pnl(data.totalPnL)}
-          </span>
+    <div className="space-y-6">
+      {hasPositions && (
+        <div className="space-y-4">
+          <Stagger className="space-y-3">
+            {data.positions.map((p) => (
+              <StaggerItem key={p.posId}>
+                <PositionCard
+                  p={p}
+                  open={openId === p.posId}
+                  onToggle={() => setOpenId(openId === p.posId ? null : p.posId)}
+                  onChanged={onChanged}
+                />
+              </StaggerItem>
+            ))}
+          </Stagger>
+          {data.positions.length > 1 && (
+            <div className="flex items-center justify-between px-1 text-sm">
+              <span className="text-fg-muted">Total P&L</span>
+              <span className={`font-semibold tabular-nums ${data.totalPnL >= 0 ? "text-success" : "text-danger"}`}>
+                {pnl(data.totalPnL)}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {hasPending && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-1.5 px-1 text-xs font-medium uppercase tracking-wide text-fg-faint">
+            <Hourglass className="h-3.5 w-3.5" /> Resting orders ({pending.length})
+          </div>
+          <Stagger className="space-y-3">
+            {pending.map((o) => (
+              <StaggerItem key={o.orderId}>
+                <PendingCard o={o} onChanged={onChanged} />
+              </StaggerItem>
+            ))}
+          </Stagger>
         </div>
       )}
     </div>
@@ -136,7 +177,7 @@ function PositionCard({
   }
 
   return (
-    <Card className="overflow-hidden">
+    <Card flat className="overflow-hidden">
       <button type="button" onClick={onToggle} className="w-full p-4 text-left transition hover:bg-surface-hover">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -234,6 +275,78 @@ function PositionCard({
         danger
         onConfirm={doClose}
         onClose={() => setConfirmClose(false)}
+      />
+    </Card>
+  );
+}
+
+// A resting LIMIT/STOP order awaiting fill. Not a position yet, so it's a flat,
+// non-expandable card: the resting level, size, SL/TP, and a cancel. No P&L
+// because nothing is filled.
+function PendingCard({ o, onChanged }: { o: PendingOrderRow; onChanged?: () => void }) {
+  const isBuy = o.direction === "BUY";
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [msg, setMsg] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
+  const expiry = expiresIn(o.expiresAt);
+
+  async function doCancel() {
+    try {
+      const r = await api.cancelOrder(o.orderId);
+      notify("success");
+      setMsg({ tone: "success", text: r.text });
+      onChanged?.();
+    } catch (e: any) {
+      notify("error");
+      setMsg({ tone: "danger", text: e?.message || "Could not cancel" });
+    }
+  }
+
+  return (
+    <Card flat className="overflow-hidden">
+      <div className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Badge tone={isBuy ? "success" : "danger"}>
+              {isBuy ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
+              {o.direction}
+            </Badge>
+            <span className="text-sm font-semibold tracking-tight">{o.symbol}</span>
+            <span className="text-xs text-fg-faint">{o.volume}L</span>
+            <Badge tone="muted">{o.orderType.toLowerCase()}</Badge>
+          </div>
+          <div className="text-xs text-fg-muted">
+            {expiry ? `expires in ${expiry}` : "good till cancel"}
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <Field label={o.orderType === "LIMIT" ? "Limit" : "Trigger"} value={String(o.price)} />
+          <Field label="SL" value={o.sl != null ? String(o.sl) : "—"} />
+          <Field label="TP" value={o.tp != null ? String(o.tp) : "—"} />
+        </div>
+
+        {msg && <div className="mt-3"><Flash tone={msg.tone}>{msg.text}</Flash></div>}
+
+        <div className="mt-4">
+          <Button variant="secondary" size="sm" className="w-full" onClick={() => setConfirmCancel(true)}>
+            <Ban className="h-3.5 w-3.5" /> Cancel order
+          </Button>
+        </div>
+      </div>
+
+      <ConfirmModal
+        open={confirmCancel}
+        title={`Cancel ${o.direction} ${o.symbol}?`}
+        body={
+          <span>
+            Removes the resting {o.orderType.toLowerCase()} order for {o.volume} lots at{" "}
+            <strong className="text-fg">{o.price}</strong>. Nothing is filled, so there is no P&L; you can place it again later.
+          </span>
+        }
+        confirmLabel="Cancel order"
+        danger
+        onConfirm={doCancel}
+        onClose={() => setConfirmCancel(false)}
       />
     </Card>
   );
