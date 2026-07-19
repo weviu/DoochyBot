@@ -10,6 +10,7 @@ import { executeReversal } from "./reversal";
 import { maybeNotifySignal } from "../bot/signalNotify";
 import { inEntryBlackout } from "./news/calendar";
 import { effectiveTimeExitMin } from "./timeExit";
+import { recordSignal } from "../signals/history";
 
 // Outcome of running a signal through the gate. The poller ignores this; the
 // webhook uses it to tell the caller whether the signal executed or why it was
@@ -19,7 +20,16 @@ export interface GateResult {
   reason?: string;
 }
 
+// Public entry: run the gate and record the signal + its outcome to the history
+// log (display-only) before returning. Every caller (feed poller, channel relay)
+// goes through here, so the log captures both.
 export function processSignal(signal: ParsedSignal): GateResult {
+  const result = gateSignal(signal);
+  recordSignal(signal, result);
+  return result;
+}
+
+function gateSignal(signal: ParsedSignal): GateResult {
   // Signal notification (independent of execution): tell the user about every
   // qualifying signal up front, before any gate rejection, so they can trade it
   // manually elsewhere even when this account skips it.

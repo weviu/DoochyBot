@@ -2,6 +2,7 @@ import { state } from "../../state";
 import { fetchTrader, fetchTodayRealizedPnL } from "../../ctrader/account";
 import { activeCooldowns } from "../../risk/cooldown";
 import { floatingPnL, maxLossUSD } from "../../risk/dailyLoss";
+import { getReentryCooldown } from "../../risk/reentryCooldown";
 
 let connection: any = null;
 
@@ -16,6 +17,7 @@ export interface StatusData {
   currency: string;
   paused: boolean;
   locked: boolean;
+  lockReason: string | null; // why the daily lock is on, when locked
   openPositions: number;
   maxPositions: number;
   dailyRealizedPnL: number;
@@ -29,6 +31,9 @@ export interface StatusData {
   marginAware: boolean;
   allowedSymbols: string[];
   cooldowns: { symbol: string; remainingMs: number }[];
+  // Per symbol+direction re-entry blocks after a losing close (prop-firm
+  // same-trade-idea rule); distinct from the consecutive-loss cooldowns above.
+  reentryCooldowns: { symbol: string; direction: "BUY" | "SELL"; remainingMs: number }[];
 }
 
 // Assemble the live status snapshot both /status (text) and the Mini App API
@@ -59,6 +64,16 @@ export async function getStatusData(conn: any): Promise<StatusData> {
   const liveFloating = floatingPnL();
   const cooldowns = activeCooldowns().map((c) => ({ symbol: c.symbol, remainingMs: c.remainingMs }));
 
+  // Active re-entry blocks: one per symbol+direction whose cooldown is still
+  // running (getReentryCooldown also lazily drops expired entries).
+  const reentryCooldowns: { symbol: string; direction: "BUY" | "SELL"; remainingMs: number }[] = [];
+  for (const key of state.lossReentry.keys()) {
+    const [symbol, dir] = key.split(":");
+    const direction: "BUY" | "SELL" = dir === "SELL" ? "SELL" : "BUY";
+    const remainingMs = getReentryCooldown(symbol, direction);
+    if (remainingMs != null) reentryCooldowns.push({ symbol, direction, remainingMs });
+  }
+
   return {
     connected: connOk,
     accountId: process.env.ACCOUNT_ID || "?",
@@ -66,6 +81,7 @@ export async function getStatusData(conn: any): Promise<StatusData> {
     currency: info.currency,
     paused: state.paused,
     locked: state.tradingLocked,
+    lockReason: state.lockReason,
     openPositions: state.positions.size,
     maxPositions: state.settings.maxPositions,
     dailyRealizedPnL: dailyPnL,
@@ -79,6 +95,7 @@ export async function getStatusData(conn: any): Promise<StatusData> {
     marginAware: state.settings.marginAware,
     allowedSymbols: state.settings.allowedSymbols,
     cooldowns,
+    reentryCooldowns,
   };
 }
 
@@ -89,7 +106,7 @@ export async function statusCmd(ctx: any) {
     `cTrader: ${s.connected ? "connected" : "not connected"}`,
     `Account: ${s.accountId}`,
     `Balance: ${s.balance.toFixed(2)} ${s.currency}`,
-    `Trading: ${s.paused ? "paused" : "active"}${s.locked ? " (locked)" : ""}`,
+    `Trading: ${s.paused ? "paused" : "active"}${s.locked ? ` (locked${s.lockReason ? `: ${s.lockReason}` : ""})` : ""}`,
     `Open positions: ${s.openPositions}/${s.maxPositions}`,
     `Daily realized P&L: ${s.dailyRealizedPnL >= 0 ? "+" : ""}${s.dailyRealizedPnL.toFixed(2)} ${s.currency}`,
     `Floating P&L: ${s.floatingPnL >= 0 ? "+" : ""}${s.floatingPnL.toFixed(2)} ${s.currency}`,
@@ -100,6 +117,7 @@ export async function statusCmd(ctx: any) {
     `Margin-aware sizing: ${s.marginAware ? "on" : "off"}`,
     `Sizing: ${s.riskPerTradeUSD > 0 ? `$${s.riskPerTradeUSD.toFixed(2)} risk/trade, sized to the signal's own SL (TP from signal)` : "not set - /risk pertrade required to trade"}`,
     `Cooldowns: ${s.cooldowns.length === 0 ? "none" : s.cooldowns.map((c) => `${c.symbol} ${Math.ceil(c.remainingMs / 60_000)}m`).join(", ")}`,
+    `Re-entry blocked: ${s.reentryCooldowns.length === 0 ? "none" : s.reentryCooldowns.map((c) => `${c.symbol} ${c.direction} ${Math.ceil(c.remainingMs / 60_000)}m`).join(", ")}`,
     `Allowed symbols: ${s.allowedSymbols.length}`,
   ];
   await ctx.reply(lines.join("\n"));

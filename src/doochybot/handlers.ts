@@ -17,6 +17,7 @@ import { settingsCmd } from "../bot/commands/settings";
 import { notificationsCmd } from "../bot/commands/notifications";
 import { cooldownCmd } from "../bot/commands/cooldown";
 import { positionsCmd, getPositionsData } from "../bot/commands/positions";
+import { getSignalHistory } from "../signals/history";
 import { orderCmd } from "../bot/commands/order";
 import { getConnection, pauseTrading, resumeTrading, closeAll } from "../miniapp/service";
 import { HubRequest } from "./hubClient";
@@ -138,6 +139,11 @@ async function runApi(endpoint: string, params: Record<string, any> = {}): Promi
       return { ok: true, data: await getStatusData(getConnection()) };
     case "positions":
       return { ok: true, data: getPositionsData() };
+
+    // The signal log: every signal the gate evaluated (executed or rejected),
+    // newest first, for the mini-app's Signals view.
+    case "signals":
+      return { ok: true, data: { signals: getSignalHistory() } };
 
     // Resting (unfilled) LIMIT/STOP entry orders sitting at the broker. Read via
     // reconcile so it's authoritative and includes orders placed outside the bot.

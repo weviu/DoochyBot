@@ -127,6 +127,7 @@ export function startHubServer(registry: Registry, port: number): http.Server {
   // with the agent offline, but every live route goes through the agent.
   api.get("/status", (req: any, res) => relayApi(registry, req.telegramUserId, "status", {}, res));
   api.get("/positions", (req: any, res) => relayApi(registry, req.telegramUserId, "positions", {}, res));
+  api.get("/signals", (req: any, res) => relayApi(registry, req.telegramUserId, "signals", {}, res));
   api.get("/settings", (req: any, res) => relayApi(registry, req.telegramUserId, "settings", {}, res));
   // Manual-order panel: live prices for the selector, and the preview that turns
   // a size into a risk figure (or a risk into a size) before anything is placed.

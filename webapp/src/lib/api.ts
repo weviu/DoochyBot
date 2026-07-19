@@ -8,6 +8,7 @@ export interface StatusData {
   currency: string;
   paused: boolean;
   locked: boolean;
+  lockReason: string | null;
   openPositions: number;
   maxPositions: number;
   dailyRealizedPnL: number;
@@ -21,6 +22,7 @@ export interface StatusData {
   marginAware: boolean;
   allowedSymbols: string[];
   cooldowns: { symbol: string; remainingMs: number }[];
+  reentryCooldowns: { symbol: string; direction: "BUY" | "SELL"; remainingMs: number }[];
 }
 
 export interface PositionRow {
@@ -65,6 +67,27 @@ export interface PendingOrderRow {
 
 export interface PendingOrdersData {
   orders: PendingOrderRow[];
+}
+
+// One signal the gate evaluated (executed or rejected), for the Signals view.
+export interface SignalRecord {
+  receivedAt: number;
+  symbol: string;
+  direction: "BUY" | "SELL";
+  confidence: number;
+  price: number;
+  sl: number | null;
+  tp: number | null;
+  timeframe: string;
+  source: string | null;
+  signalSource: string | null;
+  btcState: string | null;
+  outcome: "executed" | "rejected";
+  reason: string | null;
+}
+
+export interface SignalsData {
+  signals: SignalRecord[];
 }
 
 // The full agent-side settings object (src/state.ts BotSettings). Every field is
@@ -186,6 +209,7 @@ async function request<T>(
 export const api = {
   status: () => request<StatusData>("/status"),
   positions: () => request<PositionsData>("/positions"),
+  signals: () => request<SignalsData>("/signals"),
   settings: () => request<Settings>("/settings"),
   pause: () => request<{ paused: boolean }>("/pause", "POST"),
   resume: () => request<{ paused: boolean; lockCleared: boolean }>("/resume", "POST"),

@@ -70,7 +70,7 @@ export function startCapMonitor(): void {
     console.log(`[CAP] Breach: realized ${state.dailyRealizedPnL.toFixed(2)} + floating ${floating.toFixed(2)} = ${total.toFixed(2)} >= trigger ${trigger.toFixed(2)} (cap ${cap.toFixed(2)}). Force-closing ${count} position(s).`);
     try {
       const { closed, failed } = await closeAllPositions();
-      setTradingLock(true);
+      setTradingLock(true, "Daily profit cap reached");
       notify(
         `Daily profit cap hit: +${total.toFixed(2)} USD (cap ${cap.toFixed(2)}). ` +
         `Force-closed ${closed}/${count} position(s)${failed ? ` — ${failed} FAILED, check manually` : ""}. ` +

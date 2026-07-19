@@ -89,7 +89,8 @@ export function evaluateDailyLimits(announce: boolean): void {
   const reason = breachedLimit();
   if (!reason) return;
   const wasLocked = state.tradingLocked;
-  setTradingLock(true);
+  const shortReason = reason.startsWith("Daily profit cap") ? "Daily profit cap reached" : "Daily loss limit reached";
+  setTradingLock(true, shortReason);
   console.log(`[PNL] Trading locked - ${reason}`);
   if (announce && !wasLocked) {
     notify(`${reason}. New signals are blocked until midnight UTC or /resume.`);

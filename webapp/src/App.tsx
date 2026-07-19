@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Play, Pause, XOctagon, RefreshCw, AlertCircle } from "lucide-react";
+import { Play, Pause, XOctagon, RefreshCw, AlertCircle, Signal, ChevronLeft } from "lucide-react";
 import { api, type StatusData, type PositionsData, type PendingOrderRow } from "./lib/api";
 import { notify } from "./lib/telegram";
 import { Button, Card } from "./components/ui";
@@ -7,14 +7,20 @@ import { Dashboard } from "./components/Dashboard";
 import { Positions } from "./components/Positions";
 import { Settings } from "./components/Settings";
 import { Trade } from "./components/Trade";
+import { Signals } from "./components/Signals";
 import { ConfirmModal } from "./components/Modal";
 
-type Tab = "dashboard" | "positions" | "trade" | "settings";
+// The four bar tabs. "signals" is a sub-page reached from the dashboard button
+// and the positions card (with a Back control), not a bar tab.
+type BarTab = "dashboard" | "positions" | "trade" | "settings";
+type Tab = BarTab | "signals";
 
 const POLL_MS = 5000;
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("dashboard");
+  // Which bar tab to return to when leaving the signals sub-page.
+  const [signalsFrom, setSignalsFrom] = useState<BarTab>("dashboard");
   const [status, setStatus] = useState<StatusData | null>(null);
   const [positions, setPositions] = useState<PositionsData | null>(null);
   const [pending, setPending] = useState<PendingOrderRow[]>([]);
@@ -48,6 +54,11 @@ export default function App() {
   }, [refresh]);
 
   const paused = status?.paused ?? false;
+
+  function openSignals(from: BarTab) {
+    setSignalsFrom(from);
+    setTab("signals");
+  }
 
   async function togglePause() {
     try {
@@ -93,7 +104,7 @@ export default function App() {
           </div>
         </div>
         <div className="mx-auto flex max-w-2xl gap-1 pl-2 pr-4 pb-2">
-          {(["dashboard", "positions", "trade", "settings"] as Tab[]).map((t) => (
+          {(["dashboard", "positions", "trade", "settings"] as BarTab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -120,12 +131,34 @@ export default function App() {
           </Card>
         )}
 
+        {tab === "signals" && (
+          <button
+            onClick={() => setTab(signalsFrom)}
+            className="mb-4 inline-flex items-center gap-1 text-sm text-fg-muted transition hover:text-fg"
+          >
+            <ChevronLeft className="h-4 w-4" /> Back
+          </button>
+        )}
+
         {tab === "dashboard" && <Dashboard status={status} />}
-        {tab === "positions" && <Positions data={positions} pending={pending} onChanged={refresh} />}
+        {tab === "positions" && (
+          <Positions data={positions} pending={pending} onChanged={refresh} onOpenSignals={() => openSignals("positions")} />
+        )}
         {tab === "trade" && <Trade />}
         {tab === "settings" && <Settings status={status} />}
+        {tab === "signals" && <Signals />}
 
-        {tab !== "settings" && tab !== "trade" && status && status.openPositions > 0 && (
+        {/* Dashboard entry point to the signals page (replaces close-all here). */}
+        {tab === "dashboard" && (
+          <div className="mt-6">
+            <Button variant="secondary" size="lg" className="w-full" onClick={() => openSignals("dashboard")}>
+              <Signal className="h-4 w-4" /> Signals
+            </Button>
+          </div>
+        )}
+
+        {/* Close-all lives only on the positions tab now. */}
+        {tab === "positions" && status && status.openPositions > 0 && (
           <div className="mt-6">
             <Button variant="danger" size="lg" className="w-full" onClick={() => setConfirmClose(true)}>
               <XOctagon className="h-4 w-4" /> Close all positions

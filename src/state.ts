@@ -68,6 +68,7 @@ export interface BotSettings {
 export interface BotState {
   paused: boolean;
   tradingLocked: boolean;
+  lockReason: string | null; // why the daily lock is on (for /status and the app); null when unlocked
   dailyRealizedPnL: number;
   dailyPnLSeeded: boolean; // false until broker seed succeeds; limits are skipped until then
   settings: BotSettings;
@@ -111,6 +112,7 @@ export const DEFAULT_SETTINGS: BotSettings = {
 export const state: BotState = {
   paused: false,
   tradingLocked: false,
+  lockReason: null,
   dailyRealizedPnL: 0,
   dailyPnLSeeded: false,
   settings: { ...DEFAULT_SETTINGS },
@@ -206,6 +208,7 @@ export function initSettings(): void {
 
       if (rt.tradingLocked && rt.lockDay === todayUTC()) {
         state.tradingLocked = true;
+        state.lockReason = rt.lockReason ?? null;
       }
 
       console.log(
@@ -250,6 +253,7 @@ function persistAll(): void {
     btcBiasMinConfStrongBearish: state.settings.btcBiasMinConfStrongBearish,
     runtime: {
       tradingLocked: state.tradingLocked,
+      lockReason: state.tradingLocked ? state.lockReason : null,
       lockDay: state.tradingLocked ? todayUTC() : null,
       lossReentry: Object.fromEntries(state.lossReentry),
       symbolCooldowns: Object.fromEntries(state.symbolCooldowns),
@@ -267,10 +271,14 @@ export function persistRuntime(): void {
 }
 
 // Set the daily-limit trading lock and persist it, so the lock survives a
-// restart within the same UTC day. No-op (and no write) if already in that state.
-export function setTradingLock(locked: boolean): void {
-  if (state.tradingLocked === locked) return;
+// restart within the same UTC day. `reason` is a short human label (e.g. "Daily
+// loss limit reached") kept for display; it is cleared on unlock. No-op (and no
+// write) if nothing changed.
+export function setTradingLock(locked: boolean, reason: string | null = null): void {
+  const nextReason = locked ? reason : null;
+  if (state.tradingLocked === locked && state.lockReason === nextReason) return;
   state.tradingLocked = locked;
+  state.lockReason = nextReason;
   persistRuntime();
 }
 

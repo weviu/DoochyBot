@@ -71,6 +71,14 @@ export function Dashboard({ status }: { status: StatusData | null }) {
             </div>
             {tradingBadge}
           </div>
+          {status.locked && (
+            <div className="mt-4 flex items-start gap-2 rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-xs text-danger">
+              <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>
+                Trading locked{status.lockReason ? ` — ${status.lockReason}` : ""}. Resume, or wait for the midnight UTC reset.
+              </span>
+            </div>
+          )}
           <div className="mt-6 grid grid-cols-2 gap-4">
             <Stat
               label="Daily realized"
@@ -160,6 +168,24 @@ export function Dashboard({ status }: { status: StatusData | null }) {
               {status.cooldowns.map((c) => (
                 <Badge key={c.symbol} tone="muted">
                   {c.symbol} {Math.ceil(c.remainingMs / 60000)}m
+                </Badge>
+              ))}
+            </div>
+          </Card>
+        </FadeRise>
+      )}
+
+      {status.reentryCooldowns.length > 0 && (
+        <FadeRise delay={0.2}>
+          <Card className="p-4">
+            <div className="flex items-center gap-1.5 text-xs text-fg-muted">
+              <Timer className="h-3.5 w-3.5" /> Re-entry blocked
+            </div>
+            <div className="mt-1 text-xs text-fg-faint">Same symbol and direction after a loss.</div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {status.reentryCooldowns.map((c) => (
+                <Badge key={`${c.symbol}:${c.direction}`} tone="muted">
+                  {c.symbol} {c.direction} {Math.ceil(c.remainingMs / 60000)}m
                 </Badge>
               ))}
             </div>

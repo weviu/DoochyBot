@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowUpRight, ArrowDownRight, Timer, XOctagon, Hourglass, Ban } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Timer, XOctagon, Hourglass, Ban, Signal, ChevronRight } from "lucide-react";
 import type { PositionsData, PositionRow, PendingOrderRow } from "../lib/api";
 import { api } from "../lib/api";
 import { notify } from "../lib/telegram";
@@ -41,10 +41,12 @@ export function Positions({
   data,
   pending = [],
   onChanged,
+  onOpenSignals,
 }: {
   data: PositionsData | null;
   pending?: PendingOrderRow[];
   onChanged?: () => void;
+  onOpenSignals?: () => void;
 }) {
   // Only one card is expanded at a time; the 5s poll must never collapse it or
   // clobber a half-typed SL/TP, so expansion and drafts live here keyed by id.
@@ -62,18 +64,16 @@ export function Positions({
   const hasPositions = data.positions.length > 0;
   const hasPending = pending.length > 0;
 
-  if (!hasPositions && !hasPending) {
-    return (
-      <FadeRise>
-        <Card className="p-8 text-center">
-          <div className="text-sm text-fg-muted">No open positions</div>
-        </Card>
-      </FadeRise>
-    );
-  }
-
   return (
     <div className="space-y-6">
+      {!hasPositions && !hasPending && (
+        <FadeRise>
+          <Card flat className="p-8 text-center">
+            <div className="text-sm text-fg-muted">No open positions</div>
+          </Card>
+        </FadeRise>
+      )}
+
       {hasPositions && (
         <div className="space-y-4">
           <Stagger className="space-y-3">
@@ -112,6 +112,23 @@ export function Positions({
             ))}
           </Stagger>
         </div>
+      )}
+
+      {onOpenSignals && (
+        <button
+          type="button"
+          onClick={onOpenSignals}
+          className="flex w-full items-center gap-3 rounded-lg border border-hairline bg-surface p-4 text-left transition hover:border-hairline-strong hover:bg-surface-hover"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent-soft text-accent">
+            <Signal className="h-4 w-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-fg">Signals</span>
+            <span className="mt-0.5 block text-xs text-fg-faint">Incoming signals and why each was taken or skipped</span>
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-fg-muted" />
+        </button>
       )}
     </div>
   );
