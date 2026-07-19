@@ -35,10 +35,18 @@ New here? Send `/guide` in Telegram for a step-by-step trading setup.
 ## Run (server / development)
 
 ```bash
+pnpm bootstrap        # fresh machine: install ALL workspace deps + build everything
 pnpm doochybot:dev    # the local agent, live from src/
 pnpm hub:dev          # the hub, live from src/ (reads .env.hub)
-pnpm build            # tsc, builds to dist/
+pnpm build            # tsc, builds the AGENT only to dist/
+pnpm build:webapp     # builds the mini-app to webapp/dist/ (served by the hub)
+pnpm build:all        # builds every workspace package (agent, hub, channel-listener, webapp)
 ```
+
+The agent, channel-listener, and `webapp/` are pnpm workspace packages, so a
+single root `pnpm install` installs all their deps (including the webapp's
+React/Vite toolchain). `pnpm build` alone only builds the agent — use
+`pnpm build:all` (or `pnpm bootstrap` on a new machine) when the webapp changed.
 
 ### Deploy and gotchas (read me, future self)
 

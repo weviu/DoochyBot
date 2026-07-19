@@ -1,6 +1,7 @@
 packages:
   - '.'
   - 'channel-listener'
+  - 'webapp'
 
 allowBuilds:
   bufferutil: true
