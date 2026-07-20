@@ -10,6 +10,7 @@ data/
 tradeHistory/
 dist/
 docs/
-x.env
 
 ecosystem.admin.config.js
+
+crypto-scanner/

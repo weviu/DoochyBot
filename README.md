@@ -1,6 +1,6 @@
 # DoochyBot
 
-Telegram-controlled cTrader auto-trader, multi-user. Every user runs their own DoochyBot on their own machine, trading their own cTrader account (demo or live); a central hub connects them all to one Telegram bot (@DoochyBot), the mini-app, and the shared signal sources. Signals go through each user's own risk gate before any order is placed.
+Telegram controlled cTrader auto trader. Every user runs their own DoochyBot on their machine, trading their own cTrader account (demo or live). A central hub connects them all to: one Telegram bot (@DoochyBot), the mini app, and the shared signal sources. Signals go through each user's own risk gate before any order is placed.
 
 ```
 Telegram + mini-app
@@ -14,34 +14,15 @@ Telegram + mini-app
   your account)         their account)
 ```
 
-**Signal sources (fed to every connected DoochyBot, through each user's own risk gate):**
-- An RSI signal feed, polled by each DoochyBot itself.
-- A Telegram channel listener (server-side only) that reads the SureShot Gold channel; the hub fans its signals out to all connected users.
+**Signal sources:**
+- A signal feed, polled by each DoochyBot
+- A Telegram channel listener (server side only) that reads set channels; the hub sends its signals out to all connected users.
 
-**Want to run DoochyBot as a user? Read [SETUP.md](SETUP.md).** Short version: clone, `cd doochybot`, `pnpm go`, then pair with a code from /pair. Done.
+**How to run DoochyBot as a user:**
+- Read [SETUP.md](SETUP.md)
+- Short version: clone, `cd doochybot`, `pnpm go`, then pair with a code from /pair.
 
-New here? Send `/guide` in Telegram for a step-by-step trading setup.
 
----
-
-## Repo layout
-
-- `src/doochybot/` - the local agent every user runs (trading engine + hub link)
-- `src/hub/` - the central server (Telegram bot, mini-app, WebSocket relay); VPS only
-- `src/` (rest) - the shared trading core: risk gate, cTrader layer, monitors
-- `channel-listener/` - server-side Telegram channel reader; VPS only
-- `webapp/` - the mini-app frontend
-
-## Run (server / development)
-
-```bash
-pnpm go               # first-time user: install everything + run the setup wizard
-pnpm install          # install all workspace deps (agent, channel-listener, webapp)
-pnpm build            # build the whole workspace (agent + channel-listener + webapp)
-pnpm build:webapp     # build just the mini-app to webapp/dist/ (served by the hub)
-pnpm doochybot:dev    # the local agent, live from src/
-pnpm hub:dev          # the hub, live from src/ (reads .env.hub)
-```
 
 The agent, channel-listener, and `webapp/` are all pnpm workspace packages, so a
 single root `pnpm install` installs every dep (including the webapp's React/Vite
