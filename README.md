@@ -18,7 +18,7 @@ Telegram + mini-app
 - An RSI signal feed, polled by each DoochyBot itself.
 - A Telegram channel listener (server-side only) that reads the SureShot Gold channel; the hub fans its signals out to all connected users.
 
-**Want to run DoochyBot as a user? Read [SETUP.md](SETUP.md).** Short version: `pnpm install`, `pnpm doochybot:setup`, pair with a code from /pair, done.
+**Want to run DoochyBot as a user? Read [SETUP.md](SETUP.md).** Short version: clone, `cd doochybot`, `pnpm go`, then pair with a code from /pair. Done.
 
 New here? Send `/guide` in Telegram for a step-by-step trading setup.
 
@@ -35,28 +35,29 @@ New here? Send `/guide` in Telegram for a step-by-step trading setup.
 ## Run (server / development)
 
 ```bash
-pnpm bootstrap        # fresh machine: install ALL workspace deps + build everything
+pnpm go               # first-time user: install everything + run the setup wizard
+pnpm install          # install all workspace deps (agent, channel-listener, webapp)
+pnpm build            # build the whole workspace (agent + channel-listener + webapp)
+pnpm build:webapp     # build just the mini-app to webapp/dist/ (served by the hub)
 pnpm doochybot:dev    # the local agent, live from src/
 pnpm hub:dev          # the hub, live from src/ (reads .env.hub)
-pnpm build            # tsc, builds the AGENT only to dist/
-pnpm build:webapp     # builds the mini-app to webapp/dist/ (served by the hub)
-pnpm build:all        # builds every workspace package (agent, hub, channel-listener, webapp)
 ```
 
-The agent, channel-listener, and `webapp/` are pnpm workspace packages, so a
-single root `pnpm install` installs all their deps (including the webapp's
-React/Vite toolchain). `pnpm build` alone only builds the agent — use
-`pnpm build:all` (or `pnpm bootstrap` on a new machine) when the webapp changed.
+The agent, channel-listener, and `webapp/` are all pnpm workspace packages, so a
+single root `pnpm install` installs every dep (including the webapp's React/Vite
+toolchain) and `pnpm build` builds every package. A fresh full-stack machine is
+just `pnpm install && pnpm build`; a user setting up their own agent runs
+`pnpm go` (see [SETUP.md](SETUP.md)).
 
 ### Deploy and gotchas (read me, future self)
 
-- **pm2 runs the compiled `dist/`.** After any code change you MUST rebuild before restarting:
+- **pm2 runs the compiled `dist/`.** After any code change you MUST rebuild before restarting. `pnpm build` now builds the whole workspace (agent, channel-listener, and the webapp the hub serves), so one build covers everything:
   ```bash
   pnpm build && pm2 restart hub doochybot
   ```
-- **The channel listener is a separate process** with its own folder and build:
+- **The channel listener is a separate pm2 process** (its own folder, `channel-listener/dist`). `pnpm build` at the root already compiles it; just restart it after a rebuild if it changed:
   ```bash
-  cd channel-listener && pnpm build && pm2 restart channel-listener
+  pm2 restart channel-listener
   ```
 - **The host must match the account type.** Use `CTRADER_HOST=demo.ctraderapi.com` for a demo account and `live.ctraderapi.com` for a live one. If they mismatch, app auth still succeeds but account auth fails with `CANT_ROUTE_REQUEST` and the bot crash-loops. Going live needs real live credentials, not just a host change.
 - **Public routing:** nginx serves doochy.route07.com and forwards /app, /api and /ws to the hub on 127.0.0.1:9009. /webhook is loopback-only on purpose.

@@ -183,7 +183,11 @@ async function main() {
 
   console.log("");
   console.log("Building...");
-  if (run("pnpm", ["build"]) !== 0) {
+  // Agent-only build (tsc): a user setting up their local agent doesn't need the
+  // webapp or channel-listener (those run on the central hub). `pnpm build` builds
+  // the whole workspace; here we compile just the agent so setup stays fast and
+  // never fails on a frontend build the user will never run.
+  if (run("pnpm", ["exec", "tsc"]) !== 0) {
     console.error("Build failed; fix the error above and re-run pnpm doochybot:setup.");
     process.exit(1);
   }

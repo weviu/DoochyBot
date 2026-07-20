@@ -27,15 +27,14 @@ trading account automatically from them.
 ```
 git clone <repo url>   # or unzip the archive you were given
 cd doochybot
-pnpm install
-pnpm doochybot:setup
+pnpm go
 ```
 
-The wizard asks for the four credential values, looks up your trading account,
-writes .env, builds, and offers to start. On the first start it asks for a
-pairing code: send /pair to @DoochyBot in Telegram and type the 6-character
-code at the prompt. You should see "Paired as user ..." and a confirmation in
-Telegram that your agent is online.
+`pnpm go` installs everything and runs the setup wizard. The wizard asks for the
+four credential values, looks up your trading account, writes .env, builds, and
+offers to start. On the first start it asks for a pairing code: send /pair to
+@DoochyBot in Telegram and type the 6-character code at the prompt. You should
+see "Paired as user ..." and a confirmation in Telegram that your agent is online.
 
 After that, starting is always just:
 
@@ -45,7 +44,7 @@ pnpm doochybot:start
 
 (Prefer flags? `pnpm doochybot:start -- --code YOURCODE` or AGENT_PAIR_CODE in
 .env also work for the one-time pairing. To reconfigure credentials, delete
-.env and re-run pnpm doochybot:setup.)
+.env and re-run `pnpm go`.)
 
 ## Use it
 
@@ -73,7 +72,7 @@ reboots:
 
 ```
 npm install -g pm2
-pm2 start ecosystem.user.config.js
+pm2 start ecosystem.config.js
 pm2 save && pm2 startup
 ```
 

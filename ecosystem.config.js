@@ -1,8 +1,8 @@
 // PM2 config for a normal DoochyBot user: exactly one process, your own
-// trading agent. (ecosystem.config.js is the VPS's file; it also defines the
-// hub and channel-listener, which do NOT run on user machines.)
+// trading agent. (ecosystem.admin.config.js is the VPS's file; it also defines
+// the hub and channel-listener, which do NOT run on user machines.)
 //
-//   pm2 start ecosystem.user.config.js
+//   pm2 start ecosystem.config.js
 //   pm2 save && pm2 startup
 
 const path = require("path");
