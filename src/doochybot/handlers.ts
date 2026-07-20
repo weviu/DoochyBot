@@ -1,7 +1,7 @@
 import { state, symbolIdFor } from "../state";
 import { processSignal } from "../risk/gate";
 import { parseTextSignal } from "../webhook";
-import { getSymbolSpec, previewOrder, getPendingOrders, cancelOrder } from "../ctrader/orders";
+import { getSymbolSpec, previewOrder, getPendingOrders, cancelOrder, amendOrder } from "../ctrader/orders";
 import { canValueInUsd, getQuote } from "../ctrader/livePrices";
 import { closePosition } from "../risk/midnightClose";
 import { amendPositionSLTP } from "../ctrader/amend";
@@ -159,6 +159,21 @@ async function runApi(endpoint: string, params: Record<string, any> = {}): Promi
       return r.ok
         ? { ok: true, data: { cancelled: true, text: `Cancelled order #${orderId}.` } }
         : { ok: false, error: r.error || "cancel failed" };
+    }
+
+    // Edit a resting order's level and/or its SL/TP. Fields left null keep their
+    // current value; the agent re-reads the order from the broker to validate.
+    case "amend_order": {
+      const orderId = Number(params.orderId);
+      if (!orderId) return { ok: false, error: "no order id" };
+      const price = params.price != null && Number(params.price) > 0 ? Number(params.price) : null;
+      const sl = params.sl != null && Number(params.sl) > 0 ? Number(params.sl) : null;
+      const tp = params.tp != null && Number(params.tp) > 0 ? Number(params.tp) : null;
+      if (price === null && sl === null && tp === null) return { ok: false, error: "nothing to change" };
+      const r = await amendOrder(orderId, { price, sl, tp });
+      return r.ok
+        ? { ok: true, data: { text: `Updated order #${orderId}.` } }
+        : { ok: false, error: r.error || "amend failed" };
     }
     case "settings":
       // The full settings object, for the mini-app's control panel to pre-fill

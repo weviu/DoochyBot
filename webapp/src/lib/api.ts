@@ -232,6 +232,10 @@ export const api = {
   pendingOrders: () => request<PendingOrdersData>("/orders/pending"),
   cancelOrder: (orderId: number) =>
     request<{ cancelled: boolean; text: string }>("/order/cancel", "POST", { orderId }),
+  // Edit a resting order. Pass only the fields to change (null keeps current):
+  // price = new limit/trigger level, sl/tp = new stop/target.
+  amendOrder: (orderId: number, changes: { price?: number | null; sl?: number | null; tp?: number | null }) =>
+    request<{ text: string }>("/order/amend", "POST", { orderId, ...changes }),
   amendPosition: (posId: number, sl: number | null, tp: number | null) =>
     request<{ text: string }>("/position/amend", "POST", { posId, sl, tp }),
   // Placing the order reuses the command relay: same handler the chat uses, so

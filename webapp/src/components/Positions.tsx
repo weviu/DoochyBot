@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowUpRight, ArrowDownRight, Timer, XOctagon, Hourglass, Ban, Signal, ChevronRight } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Timer, XOctagon, Hourglass, Ban, Signal, ChevronRight, Pencil } from "lucide-react";
 import type { PositionsData, PositionRow, PendingOrderRow } from "../lib/api";
 import { api } from "../lib/api";
 import { notify } from "../lib/telegram";
@@ -17,6 +17,22 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
+// Compact numeric input used in the resting-order edit row.
+function BareInput({
+  value, onChange, placeholder,
+}: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <input
+      type="number"
+      inputMode="decimal"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full rounded-md border border-hairline bg-surface px-3 py-2 text-sm tabular-nums text-fg placeholder:text-fg-faint focus:border-accent/60 focus:outline-none focus:ring-2 focus:ring-accent/40"
+    />
+  );
+}
+
 function heldFor(openTime: number): string {
   const ms = Date.now() - openTime;
   const m = Math.floor(ms / 60000);
@@ -24,17 +40,6 @@ function heldFor(openTime: number): string {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ${m % 60}m`;
   return `${Math.floor(h / 24)}d ${h % 24}h`;
-}
-
-// "in 42m" / "in 3h 10m" until a future epoch; null if already past or absent.
-function expiresIn(at: number | null): string | null {
-  if (!at) return null;
-  const ms = at - Date.now();
-  if (ms <= 0) return null;
-  const m = Math.floor(ms / 60000);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  return `${h}h ${m % 60}m`;
 }
 
 export function Positions({
@@ -297,14 +302,50 @@ function PositionCard({
   );
 }
 
-// A resting LIMIT/STOP order awaiting fill. Not a position yet, so it's a flat,
-// non-expandable card: the resting level, size, SL/TP, and a cancel. No P&L
-// because nothing is filled.
+// A resting LIMIT/STOP order awaiting fill. Not a position yet, so no P&L. Shows
+// the resting level, size and SL/TP, with an inline Edit (move the level, change
+// SL/TP) and a Cancel.
 function PendingCard({ o, onChanged }: { o: PendingOrderRow; onChanged?: () => void }) {
   const isBuy = o.direction === "BUY";
+  const isLimit = o.orderType === "LIMIT";
+  const levelLabel = isLimit ? "Limit" : "Trigger";
+  const [editing, setEditing] = useState(false);
+  const [entry, setEntry] = useState("");
+  const [sl, setSl] = useState("");
+  const [tp, setTp] = useState("");
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [msg, setMsg] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
-  const expiry = expiresIn(o.expiresAt);
+
+  const entryNum = entry.trim() ? Number(entry) : null;
+  const slNum = sl.trim() ? Number(sl) : null;
+  const tpNum = tp.trim() ? Number(tp) : null;
+  // Validate SL/TP against the entry we'd end up with (the new one, or current).
+  const ref = entryNum ?? o.price;
+  let sideErr: string | null = null;
+  if (isBuy) {
+    if (tpNum !== null && tpNum <= ref) sideErr = `For a BUY, TP must be above the ${levelLabel.toLowerCase()} (${ref}).`;
+    else if (slNum !== null && slNum >= ref) sideErr = `For a BUY, SL must be below the ${levelLabel.toLowerCase()} (${ref}).`;
+  } else {
+    if (tpNum !== null && tpNum >= ref) sideErr = `For a SELL, TP must be below the ${levelLabel.toLowerCase()} (${ref}).`;
+    else if (slNum !== null && slNum <= ref) sideErr = `For a SELL, SL must be above the ${levelLabel.toLowerCase()} (${ref}).`;
+  }
+  const dirty =
+    (entryNum !== null && entryNum !== o.price) ||
+    (slNum !== null && slNum !== o.sl) ||
+    (tpNum !== null && tpNum !== o.tp);
+
+  async function save() {
+    try {
+      const r = await api.amendOrder(o.orderId, { price: entryNum, sl: slNum, tp: tpNum });
+      notify("success");
+      setMsg({ tone: "success", text: r.text });
+      setEntry(""); setSl(""); setTp("");
+      onChanged?.();
+    } catch (e: any) {
+      notify("error");
+      setMsg({ tone: "danger", text: e?.message || "Could not update order" });
+    }
+  }
 
   async function doCancel() {
     try {
@@ -331,22 +372,42 @@ function PendingCard({ o, onChanged }: { o: PendingOrderRow; onChanged?: () => v
             <span className="text-xs text-fg-faint">{o.volume}L</span>
             <Badge tone="muted">{o.orderType.toLowerCase()}</Badge>
           </div>
-          <div className="text-xs text-fg-muted">
-            {expiry ? `expires in ${expiry}` : "good till cancel"}
-          </div>
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-3">
-          <Field label={o.orderType === "LIMIT" ? "Limit" : "Trigger"} value={String(o.price)} />
+          <Field label={levelLabel} value={String(o.price)} />
           <Field label="SL" value={o.sl != null ? String(o.sl) : "—"} />
           <Field label="TP" value={o.tp != null ? String(o.tp) : "—"} />
         </div>
 
         {msg && <div className="mt-3"><Flash tone={msg.tone}>{msg.text}</Flash></div>}
 
-        <div className="mt-4">
-          <Button variant="secondary" size="sm" className="w-full" onClick={() => setConfirmCancel(true)}>
-            <Ban className="h-3.5 w-3.5" /> Cancel order
+        <Collapse open={editing}>
+          <div className="mt-4 space-y-2 border-t border-hairline pt-4">
+            <div className="text-sm font-medium text-fg-muted">Edit order</div>
+            <div className="grid grid-cols-3 gap-2">
+              <BareInput value={entry} onChange={setEntry} placeholder={`${levelLabel} ${o.price}`} />
+              <BareInput value={sl} onChange={setSl} placeholder={o.sl != null ? `SL ${o.sl}` : "SL"} />
+              <BareInput value={tp} onChange={setTp} placeholder={o.tp != null ? `TP ${o.tp}` : "TP"} />
+            </div>
+            {sideErr && <Flash tone="danger">{sideErr}</Flash>}
+            <Button
+              size="sm"
+              variant={dirty && !sideErr ? "primary" : "secondary"}
+              disabled={!dirty || !!sideErr}
+              onClickAsync={dirty && !sideErr ? save : undefined}
+            >
+              Save changes
+            </Button>
+          </div>
+        </Collapse>
+
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setEditing((e) => !e)}>
+            <Pencil className="h-3.5 w-3.5" /> {editing ? "Done" : "Edit"}
+          </Button>
+          <Button variant="danger" size="sm" onClick={() => setConfirmCancel(true)}>
+            <Ban className="h-3.5 w-3.5" /> Cancel
           </Button>
         </div>
       </div>

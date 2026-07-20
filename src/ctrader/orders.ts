@@ -307,6 +307,122 @@ export async function cancelOrder(orderId: number): Promise<{ ok: boolean; error
   }
 }
 
+// Decimal places of a price, and rounding to them — the broker silently rejects
+// SL/TP with float junk (e.g. 4333.0999999), so levels are rounded to the resting
+// level's own precision.
+function orderPriceDigits(price: number): number {
+  const s = String(price);
+  const i = s.indexOf(".");
+  return i === -1 ? 0 : s.length - i - 1;
+}
+function roundTo(value: number, digits: number): number {
+  const f = Math.pow(10, digits);
+  return Math.round(value * f) / f;
+}
+
+// Amend a resting LIMIT/STOP order: move its level and/or its SL/TP. Reads the
+// order fresh from the broker (authoritative type/side/volume), so the caller
+// only sends the fields it wants changed; any left null keep their current value.
+// Validates SL/TP sit on the correct side of the (new) entry. Success arrives as
+// an ORDER_REPLACED execution event, failure as ProtoOAOrderErrorEvent, matching
+// the position-amend path. Never clears an existing SL/TP.
+export async function amendOrder(
+  orderId: number,
+  changes: { price?: number | null; sl?: number | null; tp?: number | null }
+): Promise<{ ok: boolean; error?: string }> {
+  if (!connection) return { ok: false, error: "No broker connection" };
+
+  let res: any;
+  try {
+    res = await connection.sendCommand("ProtoOAReconcileReq", {
+      ctidTraderAccountId: parseInt(process.env.ACCOUNT_ID || "0"),
+    });
+  } catch (err: any) {
+    return { ok: false, error: err.errorCode || err.message || "reconcile failed" };
+  }
+
+  const o = (res.order || []).find((x: any) => Number(x.orderId) === orderId);
+  if (!o) return { ok: false, error: "order not found (it may have filled or been cancelled)" };
+  if (o.orderType !== "LIMIT" && o.orderType !== "STOP") return { ok: false, error: "not a resting order" };
+
+  const td = o.tradeData || {};
+  const direction: "BUY" | "SELL" = td.tradeSide === "SELL" ? "SELL" : "BUY";
+  const isLimit = o.orderType === "LIMIT";
+  const curLevel = isLimit ? Number(o.limitPrice) || 0 : Number(o.stopPrice) || 0;
+
+  // null (not provided) means "keep current". Positive values set a new level.
+  const entry = changes.price != null && changes.price > 0 ? changes.price : curLevel;
+  const sl = changes.sl != null && changes.sl > 0 ? changes.sl : (o.stopLoss != null ? Number(o.stopLoss) : null);
+  const tp = changes.tp != null && changes.tp > 0 ? changes.tp : (o.takeProfit != null ? Number(o.takeProfit) : null);
+
+  // Same side rule the order placement and position amend enforce.
+  if (direction === "BUY") {
+    if (tp != null && tp <= entry) return { ok: false, error: `For a BUY, TP must be above the entry (${entry})` };
+    if (sl != null && sl >= entry) return { ok: false, error: `For a BUY, SL must be below the entry (${entry})` };
+  } else {
+    if (tp != null && tp >= entry) return { ok: false, error: `For a SELL, TP must be below the entry (${entry})` };
+    if (sl != null && sl <= entry) return { ok: false, error: `For a SELL, SL must be above the entry (${entry})` };
+  }
+
+  const digits = orderPriceDigits(curLevel || entry);
+  const fields: Record<string, any> = {
+    // Resend the volume and (preserved) expiry: cTrader's amend replaces the
+    // order's parameters, so omitting these can reset them.
+    volume: Number(td.volume) || 0,
+    ...(isLimit ? { limitPrice: roundTo(entry, digits) } : { stopPrice: roundTo(entry, digits) }),
+  };
+  if (sl != null) fields.stopLoss = roundTo(sl, digits);
+  if (tp != null) fields.takeProfit = roundTo(tp, digits);
+  if (o.expirationTimestamp) fields.expirationTimestamp = Number(o.expirationTimestamp);
+
+  const msgId = randomUUID();
+  const outcome = new Promise<{ ok: boolean; error?: string }>((resolve) => {
+    const cleanup = () => {
+      clearTimeout(timer);
+      connection.removeEventListener(execId);
+      connection.removeEventListener(errId);
+    };
+    const timer = setTimeout(() => {
+      cleanup();
+      // No confirmation in time: treat as sent (the amend usually lands); the next
+      // reconcile the app polls will reflect the truth either way.
+      console.log(`[AMEND-ORDER] #${orderId}: no confirmation within 5s`);
+      resolve({ ok: true });
+    }, 5_000);
+
+    let execId: string;
+    execId = connection.on("ProtoOAExecutionEvent", (event: any) => {
+      const data = event.descriptor ?? event;
+      if (Number(data.order?.orderId) !== orderId) return;
+      if (data.executionType === "ORDER_REPLACED" || data.executionType === 3) {
+        cleanup();
+        console.log(`[AMEND-ORDER] #${orderId}: confirmed (level ${entry}, SL ${sl ?? "-"}, TP ${tp ?? "-"})`);
+        resolve({ ok: true });
+      }
+    });
+
+    let errId: string;
+    errId = connection.on("ProtoOAOrderErrorEvent", (event: any) => {
+      const data = event.descriptor ?? event;
+      if (data.clientMsgId !== msgId) return;
+      cleanup();
+      console.log(`[AMEND-ORDER] #${orderId}: REJECTED ${data.errorCode} - ${data.description}`);
+      resolve({ ok: false, error: data.errorCode || data.description || "amend rejected" });
+    });
+  });
+
+  try {
+    await connection.sendCommand("ProtoOAAmendOrderReq", {
+      ctidTraderAccountId: parseInt(process.env.ACCOUNT_ID || "0"),
+      orderId,
+      ...fields,
+    }, msgId);
+  } catch (err: any) {
+    return { ok: false, error: err.errorCode || err.message || "amend failed" };
+  }
+  return outcome;
+}
+
 interface SymbolSpec {
   lotSize: number;    // cents per 1.0 lot
   minVolume: number;  // cents
